@@ -1,0 +1,10 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(python3 -c \"import sys,json; d=json.load\\(sys.stdin\\); print\\('Login:', d['success']\\); print\\('Token:', d['data']['token'][:20]+'...'\\)\")",
+      "Bash(curl -s -X POST http://localhost:3000/api/v1/admin/auth/login -H \"Content-Type: application/json\" -d '{\"email\":\"admin@shrijibazaar.com\",\"password\":\"admin123\"}')",
+      "Bash(python3 -c \"import sys,json; d=json.load\\(sys.stdin\\); print\\('success:', d['success']\\); token=d['data']['token']\")",
+      "Bash(curl -s -w '\\\\nHTTP:%{http_code}\\\\n' -H 'Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJhZG1pbklkIjoiNzNiMGFjMmItYTNiNS00YjczLTg1ZGMtMzEyZDAwMThjMTkyIiwiZW1haWwiOiJhZG1pbkBzaHJpamliYXphYXIuY29tIiwicm9sZSI6InN1cGVyX2FkbWluIiwiaWF0IjoxNzg3NDMyMjUyLCJleHAiOjE3ODc0NjEwNTJ9.eh5CSsebLHQwh6qc_XTiOZcKCGzpYuc7olS4l6QNz7g' 'http://localhost:3000/api/v1/notifications?page=1&limit=50')"
+    ]
+  }
+}

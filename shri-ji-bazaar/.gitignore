@@ -1,0 +1,66 @@
+# Dependencies
+node_modules/
+.pub-cache/
+
+# Build outputs
+dist/
+build/
+*.apk
+*.ipa
+*.app
+
+# Environment
+.env
+.env.local
+.env.*.local
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+npm-debug.log*
+
+# Test coverage
+coverage/
+
+# Database
+*.sqlite
+*.db
+
+# Uploads
+uploads/*
+!uploads/.gitkeep
+
+# Gradle
+.gradle/
+*/build/
+
+# CocoaPods
+ios/Pods/
+ios/.symlinks/
+ios/Flutter/Flutter.framework
+
+# Flutter
+.dart_tool/
+.flutter-plugins
+.flutter-plugins-dependencies
+.packages
+.pub-cache/
+.pub/
+build/
+
+# Docker
+docker/data/
+
+# Misc
+*.pid
+*.seed
+*.pid.lock

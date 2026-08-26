@@ -1,0 +1,42 @@
+import 'package:dio/dio.dart';
+import '../storage/secure_storage.dart';
+import '../../../../main.dart';
+
+class AuthInterceptor extends Interceptor {
+  @override
+  void onRequest(RequestOptions options, RequestInterceptorHandler handler) async {
+    final token = await SecureStorage.readToken();
+    if (token != null && token.isNotEmpty) {
+      options.headers['Authorization'] = 'Bearer $token';
+    }
+    handler.next(options);
+  }
+
+  @override
+  void onError(DioException err, ErrorInterceptorHandler handler) async {
+    if (err.response?.statusCode == 401) {
+      final refreshToken = await SecureStorage.readRefreshToken();
+      if (refreshToken != null && refreshToken.isNotEmpty) {
+        try {
+          final dio = Dio(BaseOptions(
+            baseUrl: 'http://10.0.2.2:3000/api/v1',
+            headers: {'Content-Type': 'application/json'},
+          ));
+          final response = await dio.post('/auth/refresh', data: { 'refreshToken': refreshToken });
+          final newAccessToken = response.data['data']['accessToken'] as String;
+          await SecureStorage.writeToken(newAccessToken);
+
+          final opts = err.requestOptions;
+          opts.headers['Authorization'] = 'Bearer $newAccessToken';
+          final retry = await Dio().fetch(opts);
+          handler.resolve(retry);
+          return;
+        } catch (e) {
+          await SecureStorage.deleteAll();
+          navigatorKey.currentState?.pushNamedAndRemoveUntil('/login', (route) => false);
+        }
+      }
+    }
+    handler.next(err);
+  }
+}

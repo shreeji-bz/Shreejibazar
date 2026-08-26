@@ -1,0 +1,39 @@
+# Dependencies
+.pub-cache/
+.dart_tool/
+
+# Build outputs
+build/
+dist/
+*.apk
+*.ipa
+*.app
+
+# IDE
+.vscode/
+.idea/
+
+# Environment
+.env
+.env.local
+.env.*.local
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+logs/
+
+# iOS
+ios/.symlinks/
+ios/Flutter/Flutter.framework/
+ios/Flutter/App.framework/
+ios/ServiceDefinitions.json
+
+# Misc
+*.swp
+*.swo
+*~
+coverage/
