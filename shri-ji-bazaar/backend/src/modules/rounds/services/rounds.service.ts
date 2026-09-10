@@ -1,28 +1,65 @@
 import { RoundsRepository } from '../repositories/rounds.repository';
-import { RoundEntity } from '../entities/round.entity';
+import { supabase } from '../../../config/database.config';
 
 export class RoundsService {
-  constructor(private roundsRepository: RoundsRepository) {}
+  constructor(private roundsRepo: RoundsRepository) {}
 
-  async findByGame(gameId: string, options?: any) {
-    return this.roundsRepository.findByGame(gameId, options);
+  async getUpcoming(gameId?: string) {
+    return this.roundsRepo.findUpcoming(gameId);
   }
 
-  async findById(id: string): Promise<RoundEntity> {
-    const round = await this.roundsRepository.findById(id);
+  async getByGameId(gameId: string, options: any) {
+    return this.roundsRepo.findByGameId(gameId, options);
+  }
+
+  async getResults(gameId?: string, limit = 20) {
+    return this.roundsRepo.getLatestResults(gameId, limit);
+  }
+
+  async getActive(gameId?: string) {
+    return this.roundsRepo.findActive(gameId);
+  }
+
+  async declareResult(roundId: string, result: string, adminId: string) {
+    const round = await this.roundsRepo.findById(roundId);
     if (!round) throw new Error('Round not found');
-    return round;
+
+    const updated = await this.roundsRepo.updateStatus(roundId, 'result_declared', result);
+
+    const { error } = await supabase.from('results').insert({
+      round_id: roundId,
+      game_id: round.gameId,
+      result,
+    });
+
+    if (error) throw new Error('Failed to create result');
+
+    const { io } = require('../../../config/websocket.config');
+    if (io) {
+      io.to(`game:${round.gameId}`).emit('result:declared', {
+        gameId: round.gameId,
+        roundId,
+        result,
+        declaredAt: new Date().toISOString(),
+      });
+    }
+
+    return updated;
   }
 
-  async create(data: Partial<RoundEntity>): Promise<RoundEntity> {
-    return this.roundsRepository.create(data);
-  }
+  async createRound(data: { gameId: string; startTime: string; endTime: string }) {
+    const game = await supabase.from('games').select('result_time').eq('id', data.gameId).single();
+    if (!game.data) throw new Error('Game not found');
 
-  async closeRound(id: string): Promise<RoundEntity> {
-    return this.roundsRepository.closeRound(id);
-  }
+    const roundNumber = Date.now();
 
-  async declareResult(id: string, result: string): Promise<RoundEntity> {
-    return this.roundsRepository.declareResult(id, result);
+    return this.roundsRepo.create({
+      gameId: data.gameId,
+      roundNumber,
+      startTime: data.startTime,
+      endTime: data.endTime,
+      resultTime: game.data.result_time,
+      status: 'pending',
+    });
   }
 }

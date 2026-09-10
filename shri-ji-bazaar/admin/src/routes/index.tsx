@@ -5,6 +5,7 @@ import { useAuthStore } from '../store/authStore';
 import { Dashboard } from '../pages/dashboard/Dashboard';
 import { Users } from '../pages/users/Users';
 import { Games } from '../pages/games/Games';
+import { GameDetailPage } from '../pages/games/GameDetailPage';
 import { Rounds } from '../pages/rounds/Rounds';
 import { Results } from '../pages/results/Results';
 import { Activities } from '../pages/activities/Activities';
@@ -16,6 +17,10 @@ import { Support } from '../pages/support/Support';
 import { Banners } from '../pages/banners/Banners';
 import { Settings } from '../pages/settings/Settings';
 import { AuditLogs } from '../pages/audit-logs/AuditLogs';
+import { Wagers } from '../pages/wagers/Wagers';
+import { WagerDetailPage } from '../pages/wagers/WagerDetailPage';
+import { Payments } from '../pages/payments/Payments';
+import { PaymentDetailPage } from '../pages/payments/PaymentDetailPage';
 
 const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
   const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
@@ -32,6 +37,7 @@ export const routes = [
       { path: 'dashboard', element: <Dashboard /> },
       { path: 'users', element: <Users /> },
       { path: 'games', element: <Games /> },
+      { path: 'games/:id', element: <GameDetailPage /> },
       { path: 'rounds', element: <Rounds /> },
       { path: 'results', element: <Results /> },
       { path: 'activities', element: <Activities /> },
@@ -43,6 +49,10 @@ export const routes = [
       { path: 'banners', element: <Banners /> },
       { path: 'settings', element: <Settings /> },
       { path: 'audit-logs', element: <AuditLogs /> },
+      { path: 'wagers', element: <Wagers /> },
+      { path: 'wagers/:id', element: <WagerDetailPage /> },
+      { path: 'payments', element: <Payments /> },
+      { path: 'payments/:id', element: <PaymentDetailPage /> },
       { index: true, element: <Navigate to="/dashboard" replace /> },
     ],
   },

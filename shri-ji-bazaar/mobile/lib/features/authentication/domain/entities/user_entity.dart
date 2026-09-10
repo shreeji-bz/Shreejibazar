@@ -6,10 +6,10 @@ class UserEntity {
   final String? avatar;
   final String referralCode;
   final String? referredBy;
-  final String status;
+  final String? status;
   final DateTime? lastLogin;
-  final DateTime createdAt;
-  final DateTime updatedAt;
+  final DateTime? createdAt;
+  final DateTime? updatedAt;
 
   const UserEntity({
     required this.id,
@@ -19,10 +19,10 @@ class UserEntity {
     this.avatar,
     required this.referralCode,
     this.referredBy,
-    required this.status,
+    this.status,
     this.lastLogin,
-    required this.createdAt,
-    required this.updatedAt,
+    this.createdAt,
+    this.updatedAt,
   });
 
   UserEntity copyWith({

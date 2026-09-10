@@ -1,4 +1,4 @@
-import '../../../core/network/api_service.dart';
+import '../../../../core/network/api_service.dart';
 
 class SettingsDatasource {
   final ApiService _api = ApiService();

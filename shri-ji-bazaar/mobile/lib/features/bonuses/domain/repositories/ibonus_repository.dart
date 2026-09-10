@@ -1,4 +1,4 @@
-import '../../domain/entities/bonus_entity.dart';
+import '../entities/bonus_entity.dart';
 
 abstract class IBonusRepository {
   Future<List<BonusEntity>> getAvailableBonuses();

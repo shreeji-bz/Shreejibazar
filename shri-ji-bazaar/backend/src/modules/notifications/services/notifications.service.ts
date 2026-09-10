@@ -1,38 +1,33 @@
-import { INotificationsRepository, NotificationsFindAllOptions } from '../interfaces/notifications.interface';
 import { NotificationsRepository } from '../repositories/notifications.repository';
 
 export class NotificationsService {
-  constructor(private notificationsRepository: NotificationsRepository) {}
+  constructor(private notificationsRepo: NotificationsRepository) {}
 
-  async findAll(options?: NotificationsFindAllOptions) {
-    return this.notificationsRepository.findAll(options);
+  async getUserNotifications(userId: string, page = 1, limit = 20) {
+    return this.notificationsRepo.getForUser(userId, page, limit);
   }
 
-  async findById(id: string) {
-    const notification = await this.notificationsRepository.findById(id);
-    if (!notification) {
-      throw new Error('Notification not found');
+  async getUnreadCount(userId: string) {
+    return this.notificationsRepo.getUnreadCount(userId);
+  }
+
+  async markAsRead(id: string) {
+    return this.notificationsRepo.markAsRead(id);
+  }
+
+  async markAllAsRead(userId: string) {
+    return this.notificationsRepo.markAllAsRead(userId);
+  }
+
+  async sendNotification(data: { title: string; message: string; type?: string; target?: string; userIds?: string[] }) {
+    if (data.target === 'all') {
+      return this.notificationsRepo.create({ title: data.title, message: data.message, type: data.type });
     }
-    return notification;
-  }
 
-  async create(data: Partial<any>) {
-    return this.notificationsRepository.create(data);
-  }
-
-  async createBulk(data: Partial<any>[]) {
-    if (!data || data.length === 0) {
-      return [];
+    const results = [];
+    for (const uid of data.userIds || []) {
+      results.push(await this.notificationsRepo.create({ title: data.title, message: data.message, type: data.type, userId: uid }));
     }
-    return this.notificationsRepository.createBulk(data);
-  }
-
-  async updateStatus(id: string, isRead: boolean) {
-    const notification = await this.notificationsRepository.findById(id);
-    if (!notification) {
-      throw new Error('Notification not found');
-    }
-    await this.notificationsRepository.updateStatus(id, isRead);
-    return { success: true };
+    return results;
   }
 }

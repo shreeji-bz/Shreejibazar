@@ -1,25 +1,34 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
-import '../features/splash/presentation/pages/splash_page.dart';
-import '../features/authentication/presentation/pages/login_page.dart';
-import '../features/authentication/presentation/pages/register_page.dart';
-import '../features/authentication/presentation/pages/forgot_password_page.dart';
-import '../features/home/presentation/pages/home_page.dart';
-import '../features/games/presentation/pages/games_page.dart';
-import '../features/game_details/presentation/pages/game_details_page.dart';
-import '../features/results/presentation/pages/results_page.dart';
-import '../features/my_activity/presentation/pages/my_activity_page.dart';
-import '../features/points/presentation/pages/points_page.dart';
-import '../features/bonuses/presentation/pages/bonuses_page.dart';
-import '../features/referrals/presentation/pages/referrals_page.dart';
-import '../features/notifications/presentation/pages/notifications_page.dart';
-import '../features/profile/presentation/pages/profile_page.dart';
-import '../features/support/presentation/pages/support_page.dart';
-import '../features/settings/presentation/pages/settings_page.dart';
-import '../features/settings/presentation/pages/about_page.dart';
-import '../core/constants/app_keys.dart';
-import '../core/widgets/main_shell.dart';
+import '../../features/authentication/presentation/controllers/auth_controller.dart';
+import '../../features/splash/presentation/pages/splash_page.dart';
+import '../../features/authentication/presentation/pages/login_page.dart';
+import '../../features/authentication/presentation/pages/register_page.dart';
+import '../../features/authentication/presentation/pages/forgot_password_page.dart';
+import '../../features/home/presentation/pages/home_page.dart';
+import '../../features/games/presentation/pages/games_page.dart';
+import '../../features/game_details/presentation/pages/game_details_page.dart';
+import '../../features/results/presentation/pages/results_page.dart';
+import '../../features/my_activity/presentation/pages/my_activity_page.dart';
+import '../../features/points/presentation/pages/points_page.dart';
+import '../../features/wager/presentation/pages/play_page.dart';
+import '../../features/payments/presentation/pages/wallet_page.dart';
+import '../../features/payments/presentation/pages/deposit_page.dart';
+import '../../features/payments/presentation/pages/withdraw_page.dart';
+import '../../features/payments/presentation/pages/payment_history_page.dart';
+import '../../features/bonuses/presentation/pages/bonuses_page.dart';
+import '../../features/referrals/presentation/pages/referrals_page.dart';
+import '../../features/notifications/presentation/pages/notifications_page.dart';
+import '../../features/profile/presentation/pages/profile_page.dart';
+import '../../features/support/presentation/pages/support_page.dart';
+import '../../features/settings/presentation/pages/settings_page.dart';
+import '../../features/settings/presentation/pages/about_page.dart';
+import '../constants/app_keys.dart';
+import '../routes/route_names.dart';
+import '../widgets/main_shell.dart';
+
+final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>(debugLabel: 'shriJiNavigator');
 
 class AppRouter extends ChangeNotifier {
   final GoRouter _router;
@@ -32,13 +41,13 @@ class AppRouter extends ChangeNotifier {
 GoRouter createRouter(BuildContext context) {
   return GoRouter(
     initialLocation: RouteNames.splash,
+    navigatorKey: navigatorKey,
     redirect: (context, state) {
       final auth = Provider.of<AuthController>(context, listen: false);
       final isLoggedIn = auth.isAuthenticated;
       final isAuthRoute = state.matchedLocation == RouteNames.login ||
           state.matchedLocation == RouteNames.register ||
           state.matchedLocation == RouteNames.forgotPassword ||
-          state.matchedLocation == RouteNames.otpVerification ||
           state.matchedLocation == RouteNames.splash;
 
       if (!isLoggedIn && !isAuthRoute) return RouteNames.login;
@@ -50,10 +59,6 @@ GoRouter createRouter(BuildContext context) {
       GoRoute(path: RouteNames.login, builder: (_, __) => const LoginPage()),
       GoRoute(path: RouteNames.register, builder: (_, __) => const RegisterPage()),
       GoRoute(path: RouteNames.forgotPassword, builder: (_, __) => const ForgotPasswordPage()),
-      GoRoute(
-        path: RouteNames.otpVerification,
-        builder: (context, state) => OtpVerificationPage(mobile: state.uri.queryParameters['mobile'] ?? ''),
-      ),
       ShellRoute(
         builder: (context, state, child) => MainShell(child: child),
         routes: [
@@ -66,6 +71,17 @@ GoRouter createRouter(BuildContext context) {
           GoRoute(path: RouteNames.results, builder: (_, __) => const ResultsPage()),
           GoRoute(path: RouteNames.myPlays, builder: (_, __) => const MyActivityPage()),
           GoRoute(path: RouteNames.points, builder: (_, __) => const PointsPage()),
+          GoRoute(path: RouteNames.wallet, builder: (_, __) => const WalletPage()),
+          GoRoute(path: RouteNames.deposit, builder: (_, __) => const DepositPage()),
+          GoRoute(path: RouteNames.withdraw, builder: (_, __) => const WithdrawPage()),
+          GoRoute(path: RouteNames.paymentHistory, builder: (_, __) => const PaymentHistoryPage()),
+          GoRoute(path: RouteNames.play, builder: (context, state) {
+            final extra = state.extra as Map<String, String>? ?? {};
+            final gameId = extra['gameId'] ?? '';
+            final gameName = extra['gameName'] ?? '';
+            final roundId = extra['roundId'] ?? '';
+            return PlayPage(gameId: gameId, gameName: gameName, roundId: roundId);
+          }),
           GoRoute(path: RouteNames.bonuses, builder: (_, __) => const BonusesPage()),
           GoRoute(path: RouteNames.referrals, builder: (_, __) => const ReferralsPage()),
           GoRoute(path: RouteNames.notifications, builder: (_, __) => const NotificationsPage()),

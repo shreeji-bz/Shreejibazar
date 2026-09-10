@@ -1,230 +1,99 @@
-/**
- * Shri Ji Bazaar - Points Repository (Supabase)
- */
-
+import { PointsWallet, PointTransaction } from '../entities/points.entity';
 import { supabase } from '../../../config/database.config';
-import { IPointsRepository, GetTransactionsOptions, GetTransactionsResult, PointReference } from '../interfaces/points.interface';
 
-export class PointsRepository implements IPointsRepository {
-  async getWallet(userId: string): Promise<any> {
-    const { data: wallet } = await supabase
-      .from('point_wallets')
-      .select('*')
-      .eq('user_id', userId)
-      .maybeSingle();
+export class PointsRepository {
+  async getWallet(userId: string): Promise<PointsWallet | null> {
+    const { data } = await supabase.from('points_wallet').select('*').eq('user_id', userId).single();
 
-    if (wallet) {
-      return {
-        id: wallet.id,
-        userId: wallet.user_id,
-        balance: wallet.balance,
-        createdAt: wallet.created_at,
-        updatedAt: wallet.updated_at,
-      };
+    if (!data) {
+      const { data: newWallet } = await supabase.from('points_wallet').insert({ user_id: userId }).select().single();
+      return newWallet ? this.mapWallet(newWallet) : null;
     }
 
-    // Create wallet if it does not exist
-    const { data: newWallet, error } = await supabase
-      .from('point_wallets')
-      .insert({ user_id: userId, balance: 0 })
-      .select('*')
-      .single();
-
-    if (error || !newWallet) {
-      throw new Error(error?.message || 'Failed to create point wallet');
-    }
-
-    return {
-      id: newWallet.id,
-      userId: newWallet.user_id,
-      balance: newWallet.balance,
-      createdAt: newWallet.created_at,
-      updatedAt: newWallet.updated_at,
-    };
+    return this.mapWallet(data);
   }
 
-  async getTransactions(options: GetTransactionsOptions): Promise<GetTransactionsResult> {
-    let query = supabase
-      .from('point_transactions')
-      .select('*', { count: 'exact' })
-      .eq('user_id', options.userId);
-
-    if (options.type) {
-      query = query.eq('type', options.type);
-    }
-
-    const page = options.page && options.page > 0 ? options.page : 1;
-    const limit = options.limit && options.limit > 0 ? Math.min(options.limit, 100) : 20;
+  async getTransactions(userId: string, options: any = {}): Promise<{ data: PointTransaction[]; meta: any }> {
+    const page = Math.max(1, options.page || 1);
+    const limit = Math.min(100, options.limit || 20);
     const from = (page - 1) * limit;
     const to = from + limit - 1;
 
-    const { data, count, error } = await query
+    const { data, count } = await supabase
+      .from('point_transactions')
+      .select('*', { count: 'exact' })
+      .eq('user_id', userId)
       .order('created_at', { ascending: false })
       .range(from, to);
 
-    if (error) {
-      throw new Error(error.message);
-    }
-
-    const transactions: any[] = (data || []).map((tx) => ({
-      id: tx.id,
-      userId: tx.user_id,
-      type: tx.type,
-      amount: tx.amount,
-      balanceBefore: tx.balance_before,
-      balanceAfter: tx.balance_after,
-      referenceId: tx.reference_id,
-      referenceType: tx.reference_type,
-      description: tx.description,
-      createdAt: tx.created_at,
-    }));
-
-    const total = count || 0;
-    const totalPages = Math.ceil(total / limit) || 1;
-
     return {
-      data: transactions,
-      meta: { total, page, limit, totalPages },
+      data: (data || []).map(this.mapTransaction),
+      meta: { total: count || 0, page, limit, totalPages: Math.ceil((count || 0) / limit) },
     };
   }
 
-  async creditPoints(
-    userId: string,
-    amount: number,
-    description: string,
-    reference: PointReference
-  ): Promise<any> {
-    if (amount <= 0) {
-      throw new Error('Credit amount must be positive');
-    }
-
+  async addPoints(userId: string, amount: number, type: PointTransaction['type'], description: string, referenceId?: string): Promise<PointTransaction> {
     const wallet = await this.getWallet(userId);
-    const balanceBefore = wallet.balance;
-    const balanceAfter = balanceBefore + amount;
+    if (!wallet) throw new Error('Wallet not found');
 
-    const { error: updateError } = await supabase
-      .from('point_wallets')
-      .update({ balance: balanceAfter, updated_at: new Date().toISOString() })
+    const newBalance = wallet.balance + amount;
+    if (newBalance < 0) throw new Error('Insufficient points');
+
+    await supabase
+      .from('points_wallet')
+      .update({
+        balance: newBalance,
+        total_earned: (type === 'credit' || type === 'bonus' || type === 'referral') ? wallet.totalEarned + amount : wallet.totalEarned,
+        total_spent: type === 'debit' ? wallet.totalSpent + Math.abs(amount) : wallet.totalSpent,
+        updated_at: new Date().toISOString(),
+      })
       .eq('user_id', userId);
 
-    if (updateError) {
-      throw new Error(updateError.message);
-    }
-
-    const { data: tx, error: insertError } = await supabase
+    const { data: transaction } = await supabase
       .from('point_transactions')
       .insert({
         user_id: userId,
-        type: 'credit',
+        type,
         amount,
-        balance_before: balanceBefore,
-        balance_after: balanceAfter,
-        reference_id: reference.referenceId || null,
-        reference_type: reference.referenceType || null,
         description,
+        reference_id: referenceId,
+        balance_after: newBalance,
       })
-      .select('*')
+      .select()
       .single();
 
-    if (insertError || !tx) {
-      // Attempt to revert wallet update
-      await supabase
-        .from('point_wallets')
-        .update({ balance: balanceBefore, updated_at: new Date().toISOString() })
-        .eq('user_id', userId);
-      throw new Error(insertError?.message || 'Failed to record credit transaction');
-    }
-
-    return this.mapTransaction(tx);
+    return this.mapTransaction(transaction);
   }
 
-  async debitPoints(
-    userId: string,
-    amount: number,
-    description: string,
-    reference: PointReference
-  ): Promise<any> {
-    if (amount <= 0) {
-      throw new Error('Debit amount must be positive');
-    }
-
-    const wallet = await this.getWallet(userId);
-    const balanceBefore = wallet.balance;
-
-    if (balanceBefore < amount) {
-      throw new Error('Insufficient balance');
-    }
-
-    const balanceAfter = balanceBefore - amount;
-
-    const { error: updateError } = await supabase
-      .from('point_wallets')
-      .update({ balance: balanceAfter, updated_at: new Date().toISOString() })
-      .eq('user_id', userId);
-
-    if (updateError) {
-      throw new Error(updateError.message);
-    }
-
-    const { data: tx, error: insertError } = await supabase
-      .from('point_transactions')
-      .insert({
-        user_id: userId,
-        type: 'debit',
-        amount,
-        balance_before: balanceBefore,
-        balance_after: balanceAfter,
-        reference_id: reference.referenceId || null,
-        reference_type: reference.referenceType || null,
-        description,
-      })
-      .select('*')
-      .single();
-
-    if (insertError || !tx) {
-      // Attempt to revert wallet update
-      await supabase
-        .from('point_wallets')
-        .update({ balance: balanceBefore, updated_at: new Date().toISOString() })
-        .eq('user_id', userId);
-      throw new Error(insertError?.message || 'Failed to record debit transaction');
-    }
-
-    return this.mapTransaction(tx);
+  async transferPoints(fromUserId: string, toUserId: string, amount: number, description: string): Promise<{ debit: PointTransaction; credit: PointTransaction }> {
+    const debit = await this.addPoints(fromUserId, -amount, 'debit', description);
+    const credit = await this.addPoints(toUserId, amount, 'referral', description);
+    return { debit, credit };
   }
 
-  async adjustPoints(
-    userId: string,
-    amount: number,
-    description: string
-  ): Promise<any> {
-    if (amount === 0) {
-      throw new Error('Adjustment amount cannot be zero');
-    }
-
-    if (amount > 0) {
-      return this.creditPoints(userId, amount, description, {
-        referenceType: 'admin_adjustment',
-      });
-    }
-
-    return this.debitPoints(userId, Math.abs(amount), description, {
-      referenceType: 'admin_adjustment',
-    });
-  }
-
-  private mapTransaction(tx: any): any {
+  private mapWallet(row: any): PointsWallet {
     return {
-      id: tx.id,
-      userId: tx.user_id,
-      type: tx.type,
-      amount: tx.amount,
-      balanceBefore: tx.balance_before,
-      balanceAfter: tx.balance_after,
-      referenceId: tx.reference_id,
-      referenceType: tx.reference_type,
-      description: tx.description,
-      createdAt: tx.created_at,
+      id: row.id,
+      userId: row.user_id,
+      balance: row.balance,
+      totalEarned: row.total_earned,
+      totalSpent: row.total_spent,
+      createdAt: row.created_at,
+      updatedAt: row.updated_at,
+    };
+  }
+
+  private mapTransaction(row: any): PointTransaction {
+    return {
+      id: row.id,
+      userId: row.user_id,
+      type: row.type,
+      amount: row.amount,
+      description: row.description,
+      referenceId: row.reference_id,
+      referenceType: row.reference_type,
+      balanceAfter: row.balance_after,
+      createdAt: row.created_at,
     };
   }
 }

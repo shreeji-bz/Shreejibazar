@@ -11,6 +11,11 @@ class RouteNames {
   static const String myPlays = '/my-plays';
   static const String points = '/points';
   static const String pointsHistory = '/points-history';
+  static const String wallet = '/wallet';
+  static const String deposit = '/deposit';
+  static const String withdraw = '/withdraw';
+  static const String paymentHistory = '/payment-history';
+  static const String play = '/play';
   static const String bonuses = '/bonuses';
   static const String referrals = '/referrals';
   static const String notifications = '/notifications';

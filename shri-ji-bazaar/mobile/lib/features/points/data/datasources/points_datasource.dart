@@ -1,4 +1,4 @@
-import '../../../core/network/api_service.dart';
+import '../../../../core/network/api_service.dart';
 import '../../domain/entities/points_entity.dart';
 
 class PointsDatasource {

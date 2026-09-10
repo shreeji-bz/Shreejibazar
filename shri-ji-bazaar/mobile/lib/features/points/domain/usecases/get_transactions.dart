@@ -1,5 +1,5 @@
-import '../../domain/entities/points_entity.dart';
-import '../../domain/repositories/ipoints_repository.dart';
+import '../entities/points_entity.dart';
+import '../repositories/ipoints_repository.dart';
 
 class GetTransactions {
   final IPointsRepository _repository;

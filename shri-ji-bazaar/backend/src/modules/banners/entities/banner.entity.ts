@@ -3,12 +3,12 @@ export interface BannerEntity {
   title: string;
   image: string;
   description?: string;
-  action: string;
+  action?: string;
   actionValue?: string;
-  status: string;
   sortOrder: number;
-  startDate?: Date;
-  endDate?: Date;
-  createdAt: Date;
-  updatedAt: Date;
+  startDate?: string;
+  endDate?: string;
+  isActive: boolean;
+  createdAt: string;
+  updatedAt: string;
 }

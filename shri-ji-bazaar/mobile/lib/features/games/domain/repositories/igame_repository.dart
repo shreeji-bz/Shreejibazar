@@ -1,4 +1,4 @@
-import '../../domain/entities/game_entity.dart';
+import '../entities/game_entity.dart';
 
 abstract class IGameRepository {
   Future<List<GameEntity>> getPopularGames();

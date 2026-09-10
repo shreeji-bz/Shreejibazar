@@ -1,72 +1,112 @@
 import { Request, Response } from 'express';
-import { NotificationsService } from '../services/notifications.service';
+import { supabase } from '../../../config/database.config';
 
 export class NotificationsController {
-  constructor(private notificationsService: NotificationsService, private router: any) {
+  constructor(private router: any) {
     this.initializeRoutes();
   }
 
   initializeRoutes() {
-    this.router.get('/', this.getAll.bind(this));
-    this.router.get('/:id', this.getById.bind(this));
-    this.router.post('/', this.create.bind(this));
-    this.router.post('/bulk', this.createBulk.bind(this));
+    this.router.get('/', this.getUserNotifications.bind(this));
+    this.router.get('/unread-count', this.getUnreadCount.bind(this));
     this.router.patch('/:id/read', this.markAsRead.bind(this));
+    this.router.patch('/mark-all-read', this.markAllAsRead.bind(this));
+    this.router.post('/send', this.sendNotification.bind(this));
   }
 
-  async getAll(req: Request, res: Response) {
+  async getUserNotifications(req: Request, res: Response) {
     try {
-      const userId = (req as any).user?.id;
-      const options = {
-        ...req.query,
-        userId,
-      };
-      const result = await this.notificationsService.findAll(options);
-      res.json({ success: true, data: result.data, total: result.total });
+      const userId = req.body.userId;
+      const page = Math.max(1, parseInt(req.query.page as string) || 1);
+      const limit = Math.min(100, parseInt(req.query.limit as string) || 20);
+      const from = (page - 1) * limit;
+      const to = from + limit - 1;
+
+      const { data, count } = await supabase
+        .from('notifications')
+        .select('*', { count: 'exact' })
+        .or(`user_id.eq.${userId},user_id.is.null`)
+        .order('created_at', { ascending: false })
+        .range(from, to);
+
+      res.json({
+        success: true,
+        data: data || [],
+        meta: { total: count || 0, page, limit, totalPages: Math.ceil((count || 0) / limit) },
+      });
     } catch (error: any) {
       res.status(500).json({ success: false, message: error.message });
     }
   }
 
-  async getById(req: Request, res: Response) {
+  async getUnreadCount(req: Request, res: Response) {
     try {
-      const data = await this.notificationsService.findById(req.params.id);
-      res.json({ success: true, data });
-    } catch (error: any) {
-      res.status(404).json({ success: false, message: error.message });
-    }
-  }
+      const { count } = await supabase
+        .from('notifications')
+        .select('*', { count: 'exact', head: true })
+        .or(`user_id.eq.${req.body.userId},user_id.is.null`)
+        .eq('is_read', false);
 
-  async create(req: Request, res: Response) {
-    try {
-      const userId = (req as any).user?.id;
-      const data = await this.notificationsService.create({ ...req.body, userId });
-      res.status(201).json({ success: true, data });
+      res.json({ success: true, count: count || 0 });
     } catch (error: any) {
-      res.status(400).json({ success: false, message: error.message });
-    }
-  }
-
-  async createBulk(req: Request, res: Response) {
-    try {
-      const notifications = Array.isArray(req.body) ? req.body : req.body.notifications;
-      if (!notifications || !Array.isArray(notifications) || notifications.length === 0) {
-        res.status(400).json({ success: false, message: 'Notifications array is required and must not be empty' });
-        return;
-      }
-      const data = await this.notificationsService.createBulk(notifications);
-      res.status(201).json({ success: true, data, count: data.length });
-    } catch (error: any) {
-      res.status(400).json({ success: false, message: error.message });
+      res.status(500).json({ success: false, message: error.message });
     }
   }
 
   async markAsRead(req: Request, res: Response) {
     try {
-      const result = await this.notificationsService.updateStatus(req.params.id, true);
-      res.json({ ...result, message: 'Notification marked as read' });
+      await supabase.from('notifications').update({ is_read: true, read_at: new Date().toISOString() }).eq('id', req.params.id);
+      res.json({ success: true, message: 'Marked as read' });
     } catch (error: any) {
-      res.status(404).json({ success: false, message: error.message });
+      res.status(500).json({ success: false, message: error.message });
+    }
+  }
+
+  async markAllAsRead(req: Request, res: Response) {
+    try {
+      await supabase
+        .from('notifications')
+        .update({ is_read: true, read_at: new Date().toISOString() })
+        .or(`user_id.eq.${req.body.userId},user_id.is.null`)
+        .eq('is_read', false);
+
+      res.json({ success: true, message: 'All marked as read' });
+    } catch (error: any) {
+      res.status(500).json({ success: false, message: error.message });
+    }
+  }
+
+  async sendNotification(req: Request, res: Response) {
+    try {
+      const { title, message, type, target, userIds } = req.body;
+
+      if (target === 'all') {
+        await supabase.from('notifications').insert({
+          title,
+          message,
+          type: type || 'info',
+          data: {},
+        });
+      } else {
+        for (const uid of userIds || []) {
+          await supabase.from('notifications').insert({
+            user_id: uid,
+            title,
+            message,
+            type: type || 'info',
+            data: {},
+          });
+        }
+      }
+
+      const { io } = require('../../../config/websocket.config');
+      if (io) {
+        io.emit('notification:new', { title, message, type });
+      }
+
+      res.json({ success: true, message: 'Notification sent' });
+    } catch (error: any) {
+      res.status(500).json({ success: false, message: error.message });
     }
   }
 }

@@ -5,7 +5,6 @@ import { RoundsRepository } from './repositories/rounds.repository';
 
 export class RoundsModule {
   public router = Router();
-
   constructor() {
     const repository = new RoundsRepository();
     const service = new RoundsService(repository);

@@ -1,4 +1,4 @@
-import '../../../core/network/api_service.dart';
+import '../../../../core/network/api_service.dart';
 import '../../domain/entities/notification_entity.dart';
 
 class NotificationDatasource {

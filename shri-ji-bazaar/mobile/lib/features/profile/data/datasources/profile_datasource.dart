@@ -1,6 +1,6 @@
 import 'dart:convert';
 import 'package:dio/dio.dart';
-import '../../../../core/network/api_client.dart';
+import '../../../../../core/network/api_client.dart';
 import '../models/profile_model.dart';
 
 class ProfileDatasource {

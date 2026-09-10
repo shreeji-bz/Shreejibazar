@@ -1,4 +1,4 @@
-import '../../../core/network/api_service.dart';
+import '../../../../core/network/api_service.dart';
 import '../../domain/entities/activity_entity.dart';
 
 class ActivityDatasource {

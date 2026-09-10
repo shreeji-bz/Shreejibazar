@@ -7,6 +7,7 @@ class AppConstants {
   static const String apiBaseUrl = 'http://localhost:3000/api/v1';
   static const int connectTimeout = 30000;
   static const int receiveTimeout = 30000;
+  static const int apiTimeout = 30000;
 
   // Points
   static const int minPointsPerPlay = 10;

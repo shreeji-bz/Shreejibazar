@@ -20,10 +20,18 @@ class GameCard extends StatelessWidget {
 
   Color get _statusColor {
     switch (status.toLowerCase()) {
-      case 'open': return AppColors.success;
-      case 'closed': return AppColors.error;
-      case 'upcoming': return AppColors.warning;
-      default: return AppColors.textMuted;
+      case 'open':
+      case 'active':
+        return AppColors.success;
+      case 'closed':
+      case 'inactive':
+        return AppColors.error;
+      case 'upcoming':
+        return AppColors.warning;
+      case 'maintenance':
+        return AppColors.gold;
+      default:
+        return AppColors.textMuted;
     }
   }
 

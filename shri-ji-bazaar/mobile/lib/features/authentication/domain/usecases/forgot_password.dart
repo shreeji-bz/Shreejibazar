@@ -1,4 +1,4 @@
-import '../../domain/repositories/auth_repository.dart';
+import '../repositories/auth_repository.dart';
 
 class ForgotPassword {
   final AuthRepository _repository;

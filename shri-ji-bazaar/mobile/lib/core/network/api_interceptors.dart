@@ -1,8 +1,12 @@
 import 'package:dio/dio.dart';
-import '../storage/secure_storage.dart';
-import '../../../../main.dart';
+import 'package:flutter/material.dart';
+import 'package:shri_ji_bazaar/core/storage/secure_storage.dart';
 
 class AuthInterceptor extends Interceptor {
+  final GlobalKey<NavigatorState> navigatorKey;
+
+  AuthInterceptor(this.navigatorKey);
+
   @override
   void onRequest(RequestOptions options, RequestInterceptorHandler handler) async {
     final token = await SecureStorage.readToken();

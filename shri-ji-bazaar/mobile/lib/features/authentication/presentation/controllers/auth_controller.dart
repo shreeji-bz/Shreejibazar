@@ -1,7 +1,7 @@
 import 'dart:async';
 import 'package:flutter/foundation.dart';
-import '../../../core/network/api_client.dart';
-import '../../../core/storage/secure_storage.dart';
+import '../../../../../core/network/api_client.dart';
+import '../../../../../core/storage/secure_storage.dart';
 import '../../domain/entities/user_entity.dart';
 
 enum AuthStatus { initial, loading, authenticated, unauthenticated, error }
@@ -62,6 +62,9 @@ class AuthController extends ChangeNotifier {
         mobile: data['user']['mobile'],
         email: data['user']['email'],
         referralCode: data['user']['referralCode'],
+        status: data['user']['status'] ?? 'active',
+        createdAt: data['user']['createdAt'] != null ? DateTime.tryParse(data['user']['createdAt'].toString()) ?? DateTime.now() : DateTime.now(),
+        updatedAt: data['user']['updatedAt'] != null ? DateTime.tryParse(data['user']['updatedAt'].toString()) ?? DateTime.now() : DateTime.now(),
       );
       _status = AuthStatus.authenticated;
       notifyListeners();
@@ -93,6 +96,9 @@ class AuthController extends ChangeNotifier {
         mobile: data['user']['mobile'],
         email: data['user']['email'],
         referralCode: data['user']['referralCode'],
+        status: data['user']['status'] ?? 'active',
+        createdAt: data['user']['createdAt'] != null ? DateTime.tryParse(data['user']['createdAt'].toString()) ?? DateTime.now() : DateTime.now(),
+        updatedAt: data['user']['updatedAt'] != null ? DateTime.tryParse(data['user']['updatedAt'].toString()) ?? DateTime.now() : DateTime.now(),
       );
       _status = AuthStatus.authenticated;
       notifyListeners();

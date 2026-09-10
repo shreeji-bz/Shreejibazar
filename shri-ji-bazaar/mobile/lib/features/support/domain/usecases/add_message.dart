@@ -1,4 +1,4 @@
-import '../../domain/repositories/isupport_repository.dart';
+import '../repositories/isupport_repository.dart';
 
 class AddMessage {
   final ISupportRepository _repository;

@@ -1,5 +1,5 @@
-import '../../../core/network/api_service.dart';
-import '../../domain/entities/support/ticket_entity.dart';
+import '../../../../core/network/api_service.dart';
+import '../../domain/entities/ticket_entity.dart';
 
 class SupportDatasource {
   final ApiService _api = ApiService();

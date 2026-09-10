@@ -1,5 +1,5 @@
-import '../../domain/entities/result_entity.dart';
-import '../../domain/repositories/iresult_repository.dart';
+import '../entities/result_entity.dart';
+import '../repositories/iresult_repository.dart';
 
 class GetLatestResults {
   final IResultRepository _repository;

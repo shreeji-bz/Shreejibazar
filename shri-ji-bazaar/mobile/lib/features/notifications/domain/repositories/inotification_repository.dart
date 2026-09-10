@@ -1,4 +1,4 @@
-import '../../domain/entities/notification_entity.dart';
+import '../entities/notification_entity.dart';
 
 abstract class INotificationRepository {
   Future<List<NotificationEntity>> getNotifications({int page = 1, int limit = 20});

@@ -19,3 +19,8 @@ export async function del<T>(path: string): Promise<T> {
   const res = await fetch(`${API_BASE}${path}`, { method: 'DELETE' });
   return res.json();
 }
+
+export async function patch<T>(path: string, body: any): Promise<T> {
+  const res = await fetch(`${API_BASE}${path}`, { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
+  return res.json();
+}

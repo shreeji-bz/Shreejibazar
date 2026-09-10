@@ -1,0 +1,2 @@
+/Users/apple/Documents/untitled folder/xx/shri-ji-bazaar/mobile/android/app/.cxx/Debug/06s502n2/x86_64/CMakeFiles/edit_cache.dir
+/Users/apple/Documents/untitled folder/xx/shri-ji-bazaar/mobile/android/app/.cxx/Debug/06s502n2/x86_64/CMakeFiles/rebuild_cache.dir

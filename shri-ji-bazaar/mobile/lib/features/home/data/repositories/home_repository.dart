@@ -1,5 +1,5 @@
-import '../../games/data/models/game_model.dart';
-import '../data/models/banner_model.dart';
+import '../../../games/data/models/game_model.dart';
+import '../models/banner_model.dart';
 
 class HomeRepository implements IHomeRepository {
   final HomeDatasource _datasource;

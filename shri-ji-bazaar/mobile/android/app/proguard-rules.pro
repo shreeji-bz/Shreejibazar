@@ -1,0 +1,3 @@
+-keep class io.flutter.app.** { *; }
+-keep class io.flutter.plugins.** { *; }
+-keep class com.shrijibazaar.app.** { *; }

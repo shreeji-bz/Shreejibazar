@@ -1,8 +1,12 @@
 import 'dart:io';
 import 'package:dio/dio.dart';
 import 'package:flutter/foundation.dart';
+import 'package:flutter/material.dart';
 import 'api_interceptors.dart';
+import 'retry_interceptor.dart';
 import '../../core/storage/secure_storage.dart';
+
+final GlobalKey<NavigatorState> _kNavigatorKey = GlobalKey<NavigatorState>(debugLabel: 'shriJiApiServiceNavigator');
 
 class ApiService {
   static final ApiService _instance = ApiService._internal();
@@ -21,11 +25,11 @@ class ApiService {
       ),
     );
 
-    dio.interceptors.add(AuthInterceptor());
+    dio.interceptors.add(AuthInterceptor(_kNavigatorKey));
     dio.interceptors.add(RetryInterceptor());
 
     if (kDebugMode) {
-      dio.interceptors.add(LogInterceptor(requestHeader: true, requestBody: true, responseBody: true, compact: true));
+      dio.interceptors.add(LogInterceptor(requestHeader: true, requestBody: true, responseBody: true));
     }
   }
 
@@ -76,10 +80,13 @@ class ApiService {
 
   Future<dynamic> upload(String path, File file, {String fieldName = 'file', Map<String, dynamic>? fields}) async {
     try {
-      final formData = FormData.fromFields({
-        fieldName: await MultipartFile.fromFile(file.path, filename: file.path.split('/').last),
-        if (fields != null) ...fields.map((k, v) => MapEntry(k, v.toString())),
-      });
+      final formData = FormData();
+      formData.files.addAll([
+        MapEntry(fieldName, await MultipartFile.fromFile(file.path, filename: file.path.split('/').last)),
+      ]);
+      if (fields != null) {
+        fields.forEach((k, v) => formData.fields.add(MapEntry(k, v.toString())));
+      }
       final response = await dio.post(path, data: formData);
       return _handleResponse(response);
     } on DioException catch (e) {

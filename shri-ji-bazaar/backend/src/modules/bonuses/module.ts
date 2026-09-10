@@ -1,18 +1,13 @@
 import { Router } from 'express';
-import { BonusController } from './controllers/bonuses.controller';
-import { BonusService } from './services/bonuses.service';
-import { BonusRepository, BonusClaimRepository } from './repositories/bonuses.repository';
-import { PointsService } from '../points/services/points.service';
-import { PointsRepository } from '../points/repositories/points.repository';
+import { BonusesController } from './controllers/bonuses.controller';
+import { BonusesService } from './services/bonuses.service';
+import { BonusesRepository } from './repositories/bonuses.repository';
 
 export class BonusesModule {
   public router = Router();
   constructor() {
-    const bonusRepo = new BonusRepository();
-    const bonusClaimRepo = new BonusClaimRepository();
-    const pointsRepo = new PointsRepository();
-    const pointsService = new PointsService(pointsRepo);
-    const service = new BonusService(bonusRepo, bonusClaimRepo, pointsService);
-    const controller = new BonusController(service, this.router);
+    const repository = new BonusesRepository();
+    const service = new BonusesService(repository);
+    const controller = new BonusesController(service, this.router);
   }
 }

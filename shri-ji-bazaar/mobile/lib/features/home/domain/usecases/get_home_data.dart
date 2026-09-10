@@ -1,4 +1,4 @@
-import '../../domain/repositories/ihome_repository.dart';
+import '../repositories/ihome_repository.dart';
 
 class GetHomeData {
   final IHomeRepository _repository;

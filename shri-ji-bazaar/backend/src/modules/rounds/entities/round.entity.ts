@@ -1,21 +1,19 @@
 export interface RoundEntity {
   id: string;
   gameId: string;
-  gameName: string;
-  roundNumber: string;
-  startTime: Date;
-  endTime: Date;
+  gameName?: string;
+  roundNumber: number;
+  startTime: string;
+  endTime: string;
+  resultTime: string;
+  status: 'pending' | 'open' | 'closed' | 'result_declared';
   result?: string;
-  status: 'open' | 'closed' | 'result_declared';
-  createdAt: Date;
-  updatedAt: Date;
+  declaredAt?: string;
+  createdAt: string;
+  updatedAt: string;
 }
 
 export interface RoundListResult {
   data: RoundEntity[];
-  meta: {
-    total: number;
-    page: number;
-    limit: number;
-  };
+  meta: { total: number; page: number; limit: number; totalPages: number };
 }

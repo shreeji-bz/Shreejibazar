@@ -1,101 +1,71 @@
-import { Router, Request, Response, NextFunction } from 'express';
-import { BonusService } from '../services/bonuses.service';
-import type { IBonusService } from '../interfaces/bonuses.interface';
-import { authenticateToken } from '../../../common/middleware/auth.middleware';
+import { Request, Response } from 'express';
+import { BonusesService } from '../services/bonuses.service';
 
-export class BonusController {
-  constructor(private bonusService: IBonusService, router: Router) {
-    this.initializeRoutes(router);
+export class BonusesController {
+  constructor(private bonusesService: BonusesService, private router: any) {
+    this.initializeRoutes();
   }
 
-  private initializeRoutes(router: Router) {
-    router.get('/', this.getAll);
-    router.get('/:id', this.getById);
-    router.post('/', this.create);
-    router.patch('/:id', this.update);
-    router.delete('/:id', this.delete);
-
-    router.post('/claim', this.claim);
-    router.get('/my-claims', this.getMyClaims);
+  initializeRoutes() {
+    this.router.get('/', this.getAll.bind(this));
+    this.router.get('/my-claims', this.getMyClaims.bind(this));
+    this.router.get('/:id', this.getById.bind(this));
+    this.router.post('/claim/:id', this.claim.bind(this));
+    this.router.post('/', this.create.bind(this));
+    this.router.patch('/:id', this.update.bind(this));
   }
 
-  async getAll(req: Request, res: Response, next: NextFunction) {
+  async getAll(req: Request, res: Response) {
     try {
-      const result = await this.bonusService.findAll(req.query as any);
-      res.json({ success: true, ...result });
+      const data = await this.bonusesService.getAll(req.query);
+      res.json({ success: true, data });
     } catch (error: any) {
-      next(error);
+      res.status(500).json({ success: false, message: error.message });
     }
   }
 
-  async getById(req: Request, res: Response, next: NextFunction) {
+  async getMyClaims(req: Request, res: Response) {
     try {
-      const bonus = await this.bonusService.findById(req.params.id);
-      if (!bonus) {
-        res.status(404).json({ success: false, message: 'Bonus not found' });
-        return;
-      }
-      res.json({ success: true, data: bonus });
+      const data = await this.bonusesService.getUserClaimed(req.body.userId);
+      res.json({ success: true, data });
     } catch (error: any) {
-      next(error);
+      res.status(500).json({ success: false, message: error.message });
     }
   }
 
-  async create(req: Request, res: Response, next: NextFunction) {
+  async getById(req: Request, res: Response) {
     try {
-      const bonus = await this.bonusService.create(req.body);
-      res.status(201).json({ success: true, data: bonus });
+      const data = await this.bonusesService.getById(req.params.id);
+      res.json({ success: true, data });
     } catch (error: any) {
-      next(error);
+      res.status(404).json({ success: false, message: error.message });
     }
   }
 
-  async update(req: Request, res: Response, next: NextFunction) {
+  async claim(req: Request, res: Response) {
     try {
-      const bonus = await this.bonusService.update(req.params.id, req.body);
-      res.json({ success: true, data: bonus });
+      const data = await this.bonusesService.claim(req.body.userId, req.params.id);
+      res.json({ success: true, data });
     } catch (error: any) {
-      next(error);
+      res.status(400).json({ success: false, message: error.message });
     }
   }
 
-  async delete(req: Request, res: Response, next: NextFunction) {
+  async create(req: Request, res: Response) {
     try {
-      await this.bonusService.delete(req.params.id);
-      res.status(204).send();
+      const data = await this.bonusesService.create(req.body);
+      res.status(201).json({ success: true, data });
     } catch (error: any) {
-      next(error);
+      res.status(400).json({ success: false, message: error.message });
     }
   }
 
-  async claim(req: Request, res: Response, next: NextFunction) {
+  async update(req: Request, res: Response) {
     try {
-      if (!req.user) {
-        res.status(401).json({ success: false, message: 'Unauthorized' });
-        return;
-      }
-      const { bonusId } = req.body;
-      if (!bonusId) {
-        res.status(400).json({ success: false, message: 'bonusId is required' });
-        return;
-      }
-      const result = await this.bonusService.claim(req.user.id, bonusId);
-      res.status(201).json({ success: true, data: result });
+      const data = await this.bonusesService.update(req.params.id, req.body);
+      res.json({ success: true, data });
     } catch (error: any) {
-      next(error);
-    }
-  }
-
-  async getMyClaims(req: Request, res: Response, next: NextFunction) {
-    try {
-      if (!req.user) {
-        res.status(401).json({ success: false, message: 'Unauthorized' });
-        return;
-      }
-      const claims = await this.bonusService.getUserClaims(req.user.id);
-      res.json({ success: true, data: claims });
-    } catch (error: any) {
-      next(error);
+      res.status(400).json({ success: false, message: error.message });
     }
   }
 }

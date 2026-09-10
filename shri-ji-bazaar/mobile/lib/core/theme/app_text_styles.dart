@@ -51,6 +51,14 @@ class AppTextStyles {
     height: 1.4,
   );
 
+  // Small body text
+  static const TextStyle bodySmall = TextStyle(
+    fontSize: 12,
+    fontWeight: FontWeight.normal,
+    color: AppColors.textSecondary,
+    height: 1.4,
+  );
+
   // Button text
   static const TextStyle button = TextStyle(
     fontSize: 16,

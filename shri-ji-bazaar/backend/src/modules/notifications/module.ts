@@ -6,8 +6,6 @@ import { NotificationsRepository } from './repositories/notifications.repository
 export class NotificationsModule {
   public router = Router();
   constructor() {
-    const repository = new NotificationsRepository();
-    const service = new NotificationsService(repository);
-    const controller = new NotificationsController(service, this.router);
+    const controller = new NotificationsController(this.router);
   }
 }

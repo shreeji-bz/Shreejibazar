@@ -1,5 +1,5 @@
-import '../../domain/entities/settings_entity.dart';
-import '../../domain/repositories/isettings_repository.dart';
+import '../entities/settings_entity.dart';
+import '../repositories/isettings_repository.dart';
 
 class GetSettings {
   final ISettingsRepository _repository;

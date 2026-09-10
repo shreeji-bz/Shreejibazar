@@ -1,177 +1,176 @@
 # Shri Ji Bazaar
 
-## Project Overview
+> Play. Earn. Win.
 
-Shri Ji Bazaar is a multi-platform application for managing and viewing game schedules and results. The project consists of:
+**Shri Ji Bazaar** is a full-stack gaming and rewards platform featuring 9 live games with real-time results, a points wallet system, and a complete admin management suite.
 
-- **Flutter Mobile App** - Cross-platform mobile application for users
-- **Node.js + TypeScript Backend** - REST API server with WebSocket support
-- **React + Vite Admin Panel** - Web-based admin dashboard
-- **PostgreSQL Database** - Primary data store (via Supabase)
-- **Redis** - Caching and session management
+## Games Catalogue
+
+The platform features 9 popular games:
+
+| # | Game Name     | Opening Time | Result Time |
+| - | ------------- | ------------ | ----------- |
+| 1 | Delhi Bazar   | 3:00 PM      | 3:30 PM     |
+| 2 | Shri Ganesh   | 4:35 PM      | 5:05 PM     |
+| 3 | Faridabad     | 5:55 PM      | 6:25 PM     |
+| 4 | Ghaziyabad    | 9:30 PM      | 10:00 PM    |
+| 5 | Gali          | 11:35 PM     | 12:05 AM    |
+| 6 | Disawar       | 4:30 PM      | 5:00 PM     |
+| 7 | Kashi Morning | 10:00 AM     | 10:30 AM    |
+| 8 | Kashi Day     | 12:40 PM     | 1:10 PM     |
+| 9 | Kashi Night   | 9:13 PM      | 9:43 PM     |
+
+### Round Flow
+
+1. **Pending** — Round created, not yet open
+2. **Open** — Users can view game and check results
+3. **Closed** — Play window closed
+4. **Result Declared** — Result announced, points awarded
+
+## Points System
+
+### Earning Points
+
+| Activity        | Points         |
+| --------------- | -------------- |
+| View game       | +5             |
+| Check result    | +3             |
+| Daily login     | +10            |
+| Referral signup | +50 (referrer) |
+| Welcome bonus   | +100           |
+| Claim bonus     | Variable       |
+
+### Points Wallet
+
+Each user has a `points_wallet` with balance, total_earned, and total_spent. Every point change creates a transaction record.
 
 ## Architecture
 
-The project follows **Clean Architecture** principles:
-
-```
-┌─────────────────────────────────────────────────────┐
-│                   Presentation Layer                │
-│  (Mobile UI / Admin Panel UI)                       │
-├─────────────────────────────────────────────────────┤
-│                   Application Layer                 │
-│  (Use Cases / Controllers)                          │
-├─────────────────────────────────────────────────────┤
-│                     Domain Layer                    │
-│  (Entities / Repository Interfaces)                 │
-├─────────────────────────────────────────────────────┤
-│                      Data Layer                     │
-│  (Models / Data Sources / Repository Impls)         │
-└─────────────────────────────────────────────────────┘
-```
-
-## Tech Stack
-
-| Component | Technology |
-|-----------|-----------|
-| Mobile | Flutter, Dart, GetX |
-| Backend | Node.js, TypeScript, Express |
-| Database | PostgreSQL (Supabase) |
-| Cache | Redis |
-| Admin | React 18, TypeScript, Vite, Tailwind CSS, Redux Toolkit |
-| API | REST + WebSocket |
-| Auth | JWT |
-
-## Project Structure
-
 ```
 shri-ji-bazaar/
-├── mobile/          # Flutter mobile application
-├── backend/         # Node.js + TypeScript API server
+├── mobile/          # Flutter mobile app (iOS + Android)
+├── backend/         # Node.js + TypeScript REST API + WebSocket
 ├── admin/           # React + Vite admin panel
-├── database/        # Database schemas, migrations, seeds
-├── docs/            # Documentation
-├── docker/          # Docker configuration files
-├── scripts/         # Setup and utility scripts
-├── tests/           # Cross-project test configuration
+├── database/        # PostgreSQL schemas, migrations, seeds
+├── docker/          # Docker configs
+├── scripts/         # Setup and dev scripts
+├── docs/            # Full documentation
+├── tests/           # Cross-service tests
+├── assets/          # Shared branding assets
 ├── docker-compose.yml
 └── README.md
 ```
 
-## Development Setup
+## Tech Stack
+
+| Layer     | Technology                                   |
+| --------- | -------------------------------------------- |
+| Mobile    | Flutter 3.x + Provider + GoRouter            |
+| Backend   | Node.js 20 + TypeScript + Express + Supabase |
+| Database  | PostgreSQL (Supabase)                        |
+| Cache     | Redis                                        |
+| Real-time | Socket.IO                                    |
+| Admin     | React 18 + Vite + TypeScript + Tailwind CSS  |
+
+## Quick Start
 
 ### Prerequisites
 
-- Node.js 18+ and npm
-- Flutter SDK 3.16+
-- Docker and Docker Compose
-- PostgreSQL (or use Docker)
-- Redis (or use Docker)
+- Node.js >= 20
+- Flutter >= 3.24
+- Supabase account
+- Redis
+- Docker (optional)
 
-### Quick Start with Docker
+### 1. Setup Backend
 
-1. Clone the repository:
-```bash
-git clone <repository-url>
-cd shri-ji-bazaar
-```
-
-2. Run setup script:
-```bash
-chmod +x scripts/setup.sh
-./scripts/setup.sh
-```
-
-3. Start all services:
-```bash
-docker-compose up -d
-```
-
-### Manual Setup
-
-#### Backend
 ```bash
 cd backend
 cp .env.example .env
+# Edit .env with your Supabase credentials
 npm install
-npm run migration:run
 npm run dev
 ```
-Server runs at http://localhost:3000
 
-#### Admin Panel
+### 2. Setup Admin Panel
+
 ```bash
 cd admin
 npm install
 npm run dev
 ```
-Admin runs at http://localhost:5173
 
-#### Mobile
+### 3. Setup Mobile
+
 ```bash
 cd mobile
 flutter pub get
 flutter run
 ```
 
-## Environment Configuration
+### 4. Docker (All Services)
+
+```bash
+docker compose up --build
+```
+
+## Environment Variables
 
 ### Backend (.env)
+
 ```
-PORT=3000
 NODE_ENV=development
-JWT_SECRET=your-secret-key
-DATABASE_URL=postgresql://...
+PORT=3000
+SUPABASE_URL=https://your-project.supabase.co
+SUPABASE_ANON_KEY=your-anon-key
+SUPABASE_SERVICE_ROLE_KEY=your-service-role-key
+JWT_SECRET=your-secret-key-change-in-production
 REDIS_URL=redis://localhost:6379
+CORS_ORIGIN=http://localhost:5173
 ```
 
-### Admin (.env)
-```
-VITE_API_URL=http://localhost:3000/api
-```
+## API Endpoints
 
-### Mobile (.env)
-```
-VITE_API_URL=http://localhost:3000/api
-```
+| Method | Path                            | Description         |
+| ------ | ------------------------------- | ------------------- |
+| GET    | `/api/v1/games`               | List all games      |
+| GET    | `/api/v1/games/popular`       | Popular games       |
+| GET    | `/api/v1/rounds/upcoming`     | Upcoming rounds     |
+| GET    | `/api/v1/rounds/results`      | Latest results      |
+| GET    | `/api/v1/points/wallet`       | Points wallet       |
+| GET    | `/api/v1/points/transactions` | Transaction history |
+| GET    | `/api/v1/bonuses`             | Available bonuses   |
+| POST   | `/api/v1/bonuses/claim/:id`   | Claim bonus         |
+| GET    | `/api/v1/referrals/stats`     | Referral stats      |
+| GET    | `/api/v1/notifications`       | Notifications       |
+| GET    | `/api/v1/banners`             | Active banners      |
 
-## Running Tests
+## Database
+
+See `database/schemas/` for full SQL definitions. Run via Supabase SQL editor or migration tooling.
+
+## WebSocket Events
+
+| Event                | Direction        | Description          |
+| -------------------- | ---------------- | -------------------- |
+| `result:declared`  | Server → Client | New result announced |
+| `notification:new` | Server → Client | New notification     |
+
+## Development
 
 ```bash
-# Backend
-cd backend && npm test
+# Terminal 1: Backend
+cd backend && npm run dev
 
-# Mobile
-cd mobile && flutter test
+# Terminal 2: Admin
+cd admin && npm run dev
 
-# Admin
-cd admin && npm test
+# Terminal 3: Mobile
+cd mobile && flutter run
 ```
-
-## Docker Commands
-
-```bash
-# Start all services
-docker-compose up -d
-
-# Stop all services
-docker-compose down
-
-# View logs
-docker-compose logs -f
-
-# Rebuild a service
-docker-compose up -d --build backend
-```
-
-## API Documentation
-
-See [docs/api/](docs/api/) for detailed API documentation.
-
-## Contributing
-
-See [CONTRIBUTING.md](CONTRIBUTING.md) for contribution guidelines.
 
 ## License
 
-Proprietary - Shri Ji Bazaar
+Proprietary — Shri Ji Bazaar
+
+cdcon

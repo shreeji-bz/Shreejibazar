@@ -1,6 +1,6 @@
-import '../../../core/network/api_service.dart';
-import '../data/models/banner_model.dart';
-import '../../games/data/models/game_model.dart';
+import '../../../../core/network/api_service.dart';
+import '../models/banner_model.dart';
+import '../../../games/data/models/game_model.dart';
 
 class HomeDatasource {
   final ApiService _api = ApiService();

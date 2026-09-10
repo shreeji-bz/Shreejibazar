@@ -1,17 +1,18 @@
-import '../../domain/repositories/auth_repository.dart' as domain;
+import '../../domain/repositories/auth_repository.dart';
+import '../datasources/auth_datasource.dart';
 
-class AuthRepository implements IAuthRepository {
+class AuthRepository implements AuthRepository {
   final AuthDatasource _datasource;
 
   AuthRepository(this._datasource);
 
   @override
-  Future<AuthResponse> register({required String name, required String mobile, required String password, String? referralCode}) async {
+  Future<UserEntity> register({required String name, required String mobile, required String password, String? referralCode}) async {
     return await _datasource.register(name: name, mobile: mobile, password: password, referralCode: referralCode);
   }
 
   @override
-  Future<AuthResponse> login({required String mobile, required String password}) async {
+  Future<UserEntity> login({required String mobile, required String password}) async {
     return await _datasource.login(mobile: mobile, password: password);
   }
 

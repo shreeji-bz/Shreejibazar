@@ -17,12 +17,10 @@ class RetryInterceptor extends Interceptor {
       await Future.delayed(delay);
       retryDelays.removeAt(0);
       try {
-        final response = await err.requestOptions.headers['Authorization'] != null
-            ? Dio().fetch(err.requestOptions)
-            : rethrow;
+        final response = await Dio().fetch(err.requestOptions);
         handler.resolve(response);
         return;
-      } catch (e) {
+      } catch (_) {
         // fall through to next handler
       }
     }

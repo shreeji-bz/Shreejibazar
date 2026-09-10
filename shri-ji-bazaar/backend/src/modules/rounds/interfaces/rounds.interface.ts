@@ -6,4 +6,5 @@ export interface IRoundsRepository {
   create(data: Partial<RoundEntity>): Promise<RoundEntity>;
   closeRound(id: string): Promise<RoundEntity>;
   declareResult(id: string, result: string): Promise<RoundEntity>;
+  findActive(gameId?: string): Promise<RoundEntity | null>;
 }

@@ -1,69 +1,38 @@
-/**
- * Shri Ji Bazaar - Points Service
- */
-
 import { PointsRepository } from '../repositories/points.repository';
-import { PointReference } from '../interfaces/points.interface';
+import { supabase } from '../../../config/database.config';
 
 export class PointsService {
-  constructor(private pointsRepository: PointsRepository) {}
+  constructor(private pointsRepo: PointsRepository) {}
 
-  async getWallet(userId: string): Promise<{ balance: number }> {
-    const wallet = await this.pointsRepository.getWallet(userId);
-    return { balance: wallet.balance };
+  async getWallet(userId: string) {
+    return this.pointsRepo.getWallet(userId);
   }
 
-  async getTransactions(options: { userId: string; type?: string; page?: number; limit?: number }): Promise<{
-    data: any[];
-    meta: { total: number; page: number; limit: number; totalPages: number };
-  }> {
-    return this.pointsRepository.getTransactions({
-      userId: options.userId,
-      type: options.type as 'credit' | 'debit' | undefined,
-      page: options.page,
-      limit: options.limit,
-    });
+  async getTransactions(userId: string, options: any) {
+    return this.pointsRepo.getTransactions(userId, options);
   }
 
-  async creditPoints(
-    userId: string,
-    amount: number,
-    description: string,
-    reference: PointReference
-  ): Promise<any> {
-    if (amount <= 0) {
-      throw new Error('Credit amount must be a positive number');
-    }
-
-    const transaction = await this.pointsRepository.creditPoints(userId, amount, description, reference);
-    return transaction;
+  async awardPoints(userId: string, amount: number, type: 'activity' | 'bonus' | 'referral' | 'manual', description: string, referenceId?: string) {
+    const transactionType = type === 'activity' ? 'credit' : type === 'bonus' ? 'bonus' : type === 'referral' ? 'referral' : 'credit';
+    return this.pointsRepo.addPoints(userId, amount, transactionType, description, referenceId);
   }
 
-  async debitPoints(
-    userId: string,
-    amount: number,
-    description: string,
-    reference: PointReference
-  ): Promise<any> {
-    if (amount <= 0) {
-      throw new Error('Debit amount must be a positive number');
-    }
-
-    // Check balance before debiting
-    const { balance } = await this.pointsRepository.getWallet(userId);
-    if (balance < amount) {
-      throw new Error('Insufficient balance');
-    }
-
-    const transaction = await this.pointsRepository.debitPoints(userId, amount, description, reference);
-    return transaction;
+  async deductPoints(userId: string, amount: number, description: string, referenceId?: string) {
+    return this.pointsRepo.addPoints(userId, -amount, 'debit', description, referenceId);
   }
 
-  async adjustPoints(userId: string, amount: number, description: string): Promise<any> {
-    if (amount === 0) {
-      throw new Error('Adjustment amount cannot be zero');
-    }
+  async getLeaderboard(limit = 100) {
+    const { data } = await supabase
+      .from('points_wallet')
+      .select('user_id, balance, total_earned, auth.users(name)')
+      .order('balance', { ascending: false })
+      .limit(limit);
 
-    return this.pointsRepository.adjustPoints(userId, amount, description);
+    return (data || []).map((row: any) => ({
+      userId: row.user_id,
+      name: row.users?.name || 'Anonymous',
+      balance: row.balance,
+      totalEarned: row.total_earned,
+    }));
   }
 }

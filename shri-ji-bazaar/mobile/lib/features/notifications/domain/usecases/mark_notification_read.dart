@@ -1,4 +1,4 @@
-import '../../domain/repositories/inotification_repository.dart';
+import '../repositories/inotification_repository.dart';
 
 class MarkNotificationRead {
   final INotificationRepository _repository;

@@ -1,5 +1,5 @@
-import '../../domain/entities/notification_entity.dart';
-import '../../domain/repositories/inotification_repository.dart';
+import '../entities/notification_entity.dart';
+import '../repositories/inotification_repository.dart';
 
 class GetNotifications {
   final INotificationRepository _repository;

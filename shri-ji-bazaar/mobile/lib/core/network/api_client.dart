@@ -1,8 +1,15 @@
+import 'dart:async';
+
 import 'package:dio/dio.dart';
+import 'package:flutter/foundation.dart';
+import 'package:flutter/material.dart';
 import 'package:pretty_dio_logger/pretty_dio_logger.dart';
 
 import '../constants/app_constants.dart';
 import 'api_interceptors.dart';
+import 'retry_interceptor.dart';
+
+final globalNavigatorKey = GlobalKey<NavigatorState>(debugLabel: 'shriJiGlobalNavigator');
 
 class ApiClient {
   static final ApiClient _instance = ApiClient._internal();
@@ -24,18 +31,20 @@ class ApiClient {
     );
 
     // Register interceptors
-    dio.interceptors.add(AuthInterceptor());
+    dio.interceptors.add(AuthInterceptor(globalNavigatorKey));
     dio.interceptors.add(RetryInterceptor());
 
     // Dev logger
-    dio.interceptors.add(
-      PrettyDioLogger(
-        requestHeader: true,
-        requestBody: true,
-        responseBody: true,
-        responseHeader: false,
-        compact: true,
-      ),
-    );
+    if (kDebugMode) {
+      dio.interceptors.add(
+        PrettyDioLogger(
+          requestHeader: true,
+          requestBody: true,
+          responseBody: true,
+          responseHeader: false,
+          compact: true,
+        ),
+      );
+    }
   }
 }

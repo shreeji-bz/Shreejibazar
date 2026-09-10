@@ -1,5 +1,5 @@
-import '../../domain/entities/referral_entity.dart';
-import '../../domain/repositories/ireferral_repository.dart';
+import '../entities/referral_entity.dart';
+import '../repositories/ireferral_repository.dart';
 
 class GetReferralList {
   final IReferralRepository _repository;

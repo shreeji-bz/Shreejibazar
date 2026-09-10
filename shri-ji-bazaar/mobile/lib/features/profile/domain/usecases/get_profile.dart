@@ -1,6 +1,6 @@
 import '../../data/datasources/profile_datasource.dart';
-import '../../domain/entities/profile_entity.dart';
-import '../../domain/repositories/iprofile_repository.dart';
+import '../entities/profile_entity.dart';
+import '../repositories/iprofile_repository.dart';
 
 class GetProfileUseCase {
   final IProfileRepository _repository;

@@ -1,4 +1,4 @@
-import '../../domain/entities/points_entity.dart';
+import '../entities/points_entity.dart';
 
 abstract class IPointsRepository {
   Future<PointsEntity> getWallet();

@@ -1,6 +1,5 @@
 import { Request, Response } from 'express';
 import { RoundsService } from '../services/rounds.service';
-import { RoundEntity } from '../entities/round.entity';
 
 export class RoundsController {
   constructor(private roundsService: RoundsService, private router: any) {
@@ -8,44 +7,54 @@ export class RoundsController {
   }
 
   initializeRoutes() {
-    this.router.get('/game/:gameId', this.getByGameId.bind(this));
-    this.router.get('/:id', this.getById.bind(this));
-    this.router.post('/', this.create.bind(this));
-    this.router.post('/:id/close', this.closeRound.bind(this));
-    this.router.post('/:id/result', this.declareResult.bind(this));
+    this.router.get('/upcoming', this.getUpcoming.bind(this));
+    this.router.get('/active', this.getActive.bind(this));
+    this.router.get('/game/:gameId', this.getByGame.bind(this));
+    this.router.get('/results', this.getResults.bind(this));
+    this.router.post('/create', this.createRound.bind(this));
+    this.router.post('/:id/declare-result', this.declareResult.bind(this));
   }
 
-  async getByGameId(req: Request, res: Response) {
+  async getUpcoming(req: Request, res: Response) {
     try {
-      const data = await this.roundsService.findByGame(req.params.gameId, req.query);
+      const data = await this.roundsService.getUpcoming(req.query.gameId as string | undefined);
+      res.json({ success: true, data });
+    } catch (error: any) {
+      res.status(500).json({ success: false, message: error.message });
+    }
+  }
+
+  async getByGame(req: Request, res: Response) {
+    try {
+      const data = await this.roundsService.getByGameId(req.params.gameId, req.query);
       res.json({ success: true, ...data });
     } catch (error: any) {
       res.status(500).json({ success: false, message: error.message });
     }
   }
 
-  async getById(req: Request, res: Response) {
+  async getResults(req: Request, res: Response) {
     try {
-      const data: RoundEntity = await this.roundsService.findById(req.params.id);
+      const data = await this.roundsService.getResults(req.query.gameId as string | undefined, parseInt(req.query.limit as string) || 20);
       res.json({ success: true, data });
     } catch (error: any) {
-      res.status(404).json({ success: false, message: error.message });
+      res.status(500).json({ success: false, message: error.message });
     }
   }
 
-  async create(req: Request, res: Response) {
+  async getActive(req: Request, res: Response) {
     try {
-      const data: RoundEntity = await this.roundsService.create(req.body);
+      const data = await this.roundsService.getActive(req.query.gameId as string | undefined);
+      res.json({ success: true, data });
+    } catch (error: any) {
+      res.status(500).json({ success: false, message: error.message });
+    }
+  }
+
+  async createRound(req: Request, res: Response) {
+    try {
+      const data = await this.roundsService.createRound(req.body);
       res.status(201).json({ success: true, data });
-    } catch (error: any) {
-      res.status(400).json({ success: false, message: error.message });
-    }
-  }
-
-  async closeRound(req: Request, res: Response) {
-    try {
-      const data: RoundEntity = await this.roundsService.closeRound(req.params.id);
-      res.json({ success: true, data });
     } catch (error: any) {
       res.status(400).json({ success: false, message: error.message });
     }
@@ -54,7 +63,9 @@ export class RoundsController {
   async declareResult(req: Request, res: Response) {
     try {
       const { result } = req.body;
-      const data: RoundEntity = await this.roundsService.declareResult(req.params.id, result);
+      if (!result) return res.status(400).json({ success: false, message: 'Result is required' });
+
+      const data = await this.roundsService.declareResult(req.params.id, result, req.body.userId);
       res.json({ success: true, data });
     } catch (error: any) {
       res.status(400).json({ success: false, message: error.message });

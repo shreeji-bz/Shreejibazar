@@ -8,3 +8,12 @@ const storage = multer.diskStorage({
 });
 
 export const upload = multer({ storage });
+export const singleAvatar = upload.single('avatar');
+
+export function handleUploadError(err: any, _req: any, res: any, next: any) {
+  if (err) {
+    res.status(400).json({ success: false, message: err.message || 'Upload failed' });
+    return;
+  }
+  next();
+}

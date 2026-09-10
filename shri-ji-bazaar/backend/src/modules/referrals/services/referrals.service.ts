@@ -1,75 +1,39 @@
-import { ReferralRepository } from '../repositories/referrals.repository';
-import { PointsService } from '../../points/services/points.service';
-import { IReferralRepository, ReferralEntity } from '../interfaces/referrals.interface';
+import { ReferralsRepository } from '../repositories/referrals.repository';
+import { supabase } from '../../../config/database.config';
 
 export class ReferralsService {
-  constructor(
-    private referralRepository: IReferralRepository,
-    private pointsService: PointsService
-  ) {}
+  constructor(private referralsRepo: ReferralsRepository) {}
 
-  async findAll(options?: { status?: string; page?: number; limit?: number }) {
-    const page = options?.page || 1;
-    const limit = options?.limit || 20;
-    const status = options?.status as 'pending' | 'completed' | 'cancelled' | undefined;
-
-    const result = await this.referralRepository.findAll({ status, page, limit });
-    return result;
+  async getStats(userId: string) {
+    return this.referralsRepo.getStats(userId);
   }
 
-  async findById(id: string): Promise<ReferralEntity> {
-    const referral = await this.referralRepository.findById(id);
-    if (!referral) {
-      throw new Error('Referral not found');
-    }
-    return referral;
+  async getList(userId: string) {
+    return this.referralsRepo.getList(userId);
   }
 
-  async create(referrerId: string, referredUserId: string, points: number): Promise<ReferralEntity> {
-    if (referrerId === referredUserId) {
-      throw new Error('Cannot refer yourself');
-    }
+  async applyReferral(userId: string, referralCode: string) {
+    const { data: referrer } = await supabase.from('auth.users').select('id').eq('referral_code', referralCode).single();
+    if (!referrer) throw new Error('Invalid referral code');
 
-    const existing = await this.referralRepository.getByUser(referrerId);
-    const alreadyReferred = existing.some(
-      (r) => r.referredUserId === referredUserId && r.status !== 'cancelled'
-    );
-    if (alreadyReferred) {
-      throw new Error('This user has already been referred');
-    }
+    const referral = await this.referralsRepo.create({
+      referrerId: referrer.id,
+      referredId: userId,
+      referralCode,
+    });
 
-    const referral = await this.referralRepository.create(referrerId, referredUserId, points);
-    return referral;
+    const settings = await this.getSettings();
+    const reward = parseInt(settings.referral_reward || '50');
+
+    await this.referralsRepo.updateStatus(referral.id, 'completed', reward);
+
+    return { message: 'Referral applied', rewardPoints: reward };
   }
 
-  async completeReferral(id: string): Promise<ReferralEntity> {
-    const referral = await this.referralRepository.findById(id);
-    if (!referral) {
-      throw new Error('Referral not found');
-    }
-
-    if (referral.status === 'completed') {
-      throw new Error('Referral is already completed');
-    }
-
-    if (referral.status === 'cancelled') {
-      throw new Error('Cannot complete a cancelled referral');
-    }
-
-    await this.referralRepository.completeReferral(id);
-
-    await this.pointsService.creditPoints(
-      referral.referrerId,
-      referral.points,
-      'Referral bonus',
-      { referenceId: referral.referredUserId, referenceType: 'referral' },
-    );
-
-    const updated = await this.referralRepository.findById(id);
-    return updated!;
-  }
-
-  async getByUser(userId: string): Promise<ReferralEntity[]> {
-    return this.referralRepository.getByUser(userId);
+  private async getSettings() {
+    const { data } = await supabase.from('settings').select('*');
+    const settings: Record<string, string> = {};
+    (data || []).forEach((s: any) => { settings[s.key] = s.value; });
+    return settings;
   }
 }

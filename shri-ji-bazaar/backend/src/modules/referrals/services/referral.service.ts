@@ -15,10 +15,7 @@ export class ReferralService {
     }
     const referral = await this.referralRepository.create({ referrerId, referredUserId, points });
     await this.referralRepository.complete(referral.id);
-    await this.pointsService.creditPoints(referrerId, points, 'Referral bonus', {
-      referenceId: referredUserId,
-      referenceType: 'referral',
-    });
+    await this.pointsService.awardPoints(referrerId, points, 'referral', 'Referral bonus', referredUserId);
     return referral;
   }
 

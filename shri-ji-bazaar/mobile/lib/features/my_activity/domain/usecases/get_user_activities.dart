@@ -1,5 +1,5 @@
-import '../../domain/entities/activity_entity.dart';
-import '../../domain/repositories/iactivity_repository.dart';
+import '../entities/activity_entity.dart';
+import '../repositories/iactivity_repository.dart';
 
 class GetUserActivities {
   final IActivityRepository _repository;

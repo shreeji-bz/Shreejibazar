@@ -1,4 +1,4 @@
-import '../../domain/repositories/ireferral_repository.dart';
+import '../repositories/ireferral_repository.dart';
 
 class ShareReferralLink {
   final IReferralRepository _repository;

@@ -1,5 +1,5 @@
-import '../../domain/entities/game_detail_entity.dart';
-import '../../domain/repositories/igame_detail_repository.dart';
+import '../entities/game_detail_entity.dart';
+import '../repositories/igame_detail_repository.dart';
 
 class GetGameDetails {
   final IGameDetailRepository _repository;

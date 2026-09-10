@@ -1,7 +1,7 @@
 import swaggerJsDoc from 'swagger-jsdoc';
 import { config } from './app.config';
 
-const swaggerOptions: swaggerJsDoc.SwaggerConfig = {
+const swaggerOptions: any = {
   definition: {
     openapi: '3.0.0',
     info: {

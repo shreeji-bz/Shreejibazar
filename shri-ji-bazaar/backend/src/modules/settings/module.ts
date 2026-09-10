@@ -5,7 +5,6 @@ import { SettingsRepository } from './repositories/settings.repository';
 
 export class SettingsModule {
   public router = Router();
-
   constructor() {
     const repository = new SettingsRepository();
     const service = new SettingsService(repository);

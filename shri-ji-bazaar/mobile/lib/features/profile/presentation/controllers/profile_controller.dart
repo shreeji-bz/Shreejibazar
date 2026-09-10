@@ -1,7 +1,7 @@
 import 'package:flutter/foundation.dart';
 import '../../domain/entities/profile_entity.dart';
 import '../../domain/usecases/get_profile.dart';
-import '../../domain/usecases/update_profile.dart';
+import '../../../profile/domain/usecases/update_profile.dart';
 import '../../../authentication/presentation/controllers/auth_controller.dart';
 
 enum ProfileStatus { initial, loading, success, error }

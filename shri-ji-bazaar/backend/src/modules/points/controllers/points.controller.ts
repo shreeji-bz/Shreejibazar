@@ -1,85 +1,63 @@
-/**
- * Shri Ji Bazaar - Points Controller
- */
-
-import { Router, Request, Response } from 'express';
+import { Request, Response } from 'express';
 import { PointsService } from '../services/points.service';
+import { PointsRepository } from '../repositories/points.repository';
 
 export class PointsController {
-  private router: Router;
-
-  constructor(private pointsService: PointsService) {
-    this.router = Router();
+  constructor(private pointsService: PointsService, private pointsRepo: PointsRepository, private router: any) {
     this.initializeRoutes();
   }
 
-  public getRouter(): Router {
-    return this.router;
-  }
-
-  private initializeRoutes(): void {
-    this.router.get('/wallet/:userId', this.getWallet.bind(this));
+  initializeRoutes() {
+    this.router.get('/wallet', this.getWallet.bind(this));
     this.router.get('/transactions', this.getTransactions.bind(this));
-    this.router.post('/credit', this.creditPoints.bind(this));
-    this.router.post('/debit', this.debitPoints.bind(this));
-    this.router.post('/adjust', this.adjustPoints.bind(this));
+    this.router.get('/leaderboard', this.getLeaderboard.bind(this));
+    this.router.post('/award', this.awardPoints.bind(this));
+    this.router.post('/deduct', this.deductPoints.bind(this));
   }
 
-  private async getWallet(req: Request, res: Response): Promise<void> {
+  async getWallet(req: Request, res: Response) {
     try {
-      const { userId } = req.params;
-      const data = await this.pointsService.getWallet(userId);
+      const data = await this.pointsService.getWallet(req.body.userId);
       res.json({ success: true, data });
     } catch (error: any) {
       res.status(500).json({ success: false, message: error.message });
     }
   }
 
-  private async getTransactions(req: Request, res: Response): Promise<void> {
+  async getTransactions(req: Request, res: Response) {
     try {
-      const userId = (req as any).user?.id;
-      const page = parseInt(req.query.page as string) || 1;
-      const limit = parseInt(req.query.limit as string) || 20;
-      const type = req.query.type as string | undefined;
-
-      const data = await this.pointsService.getTransactions({ userId, type, page, limit });
-      res.json({ success: true, ...data });
+      const result = await this.pointsService.getTransactions(req.body.userId, req.query);
+      res.json({ success: true, ...result });
     } catch (error: any) {
       res.status(500).json({ success: false, message: error.message });
     }
   }
 
-  private async creditPoints(req: Request, res: Response): Promise<void> {
+  async getLeaderboard(req: Request, res: Response) {
     try {
-      const { userId, amount, description, referenceId, referenceType } = req.body;
-      const transaction = await this.pointsService.creditPoints(userId, amount, description, {
-        referenceId,
-        referenceType,
-      });
-      res.status(201).json({ success: true, data: transaction });
+      const limit = parseInt(req.query.limit as string) || 100;
+      const data = await this.pointsService.getLeaderboard(limit);
+      res.json({ success: true, data });
+    } catch (error: any) {
+      res.status(500).json({ success: false, message: error.message });
+    }
+  }
+
+  async awardPoints(req: Request, res: Response) {
+    try {
+      const { userId, amount, type, description, referenceId } = req.body;
+      const data = await this.pointsService.awardPoints(userId, amount, type, description, referenceId);
+      res.json({ success: true, data });
     } catch (error: any) {
       res.status(400).json({ success: false, message: error.message });
     }
   }
 
-  private async debitPoints(req: Request, res: Response): Promise<void> {
+  async deductPoints(req: Request, res: Response) {
     try {
-      const { userId, amount, description, referenceId, referenceType } = req.body;
-      const transaction = await this.pointsService.debitPoints(userId, amount, description, {
-        referenceId,
-        referenceType,
-      });
-      res.json({ success: true, data: transaction });
-    } catch (error: any) {
-      res.status(400).json({ success: false, message: error.message });
-    }
-  }
-
-  private async adjustPoints(req: Request, res: Response): Promise<void> {
-    try {
-      const { userId, amount, description } = req.body;
-      const transaction = await this.pointsService.adjustPoints(userId, amount, description);
-      res.json({ success: true, data: transaction });
+      const { userId, amount, description, referenceId } = req.body;
+      const data = await this.pointsService.deductPoints(userId, amount, description, referenceId);
+      res.json({ success: true, data });
     } catch (error: any) {
       res.status(400).json({ success: false, message: error.message });
     }

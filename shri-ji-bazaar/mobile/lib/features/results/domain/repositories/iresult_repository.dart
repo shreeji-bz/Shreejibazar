@@ -1,4 +1,4 @@
-import '../../domain/entities/result_entity.dart';
+import '../entities/result_entity.dart';
 
 abstract class IResultRepository {
   Future<List<ResultEntity>> getLatestResults({int page = 1, int limit = 20});

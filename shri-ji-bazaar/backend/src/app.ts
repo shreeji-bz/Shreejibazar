@@ -23,6 +23,9 @@ import { SupportModule } from './modules/support/module';
 import { BannersModule } from './modules/banners/module';
 import { SettingsModule } from './modules/settings/module';
 import { AdminModule } from './modules/admin/module';
+import { WagersModule } from './modules/wagers/module';
+import { PaymentsModule } from './modules/payments/module';
+import { SettlementsModule } from './modules/settlements/module';
 
 // Middleware
 import { authenticateToken } from './common/middleware/auth.middleware';
@@ -37,7 +40,7 @@ const app: Express = express();
 app.use(helmet());
 
 // CORS
-app.use(cors({ origin: config.cors.origin, credentials: true }));
+app.use(cors({ origin: config.corsOrigin, credentials: true }));
 
 // Body parsing
 app.use(express.json({ limit: '10mb' }));
@@ -61,13 +64,12 @@ const apiRouter = Router();
 const authModule = new AuthModule();
 apiRouter.use('/auth', authModule.router);
 
-// Admin routes — login public, others protected
-const adminModule = new AdminModule();
-apiRouter.use('/admin/auth', adminModule.publicRouter);
-
 // Protected user routes
+const adminModule = new AdminModule();
+const paymentsModule = new PaymentsModule();
 apiRouter.use('/users', authenticateToken, new UsersModule().router);
 apiRouter.use('/games', authenticateToken, new GamesModule().router);
+apiRouter.use('/admin/games', authenticateAdmin, new GamesModule().adminRouter);
 apiRouter.use('/rounds', authenticateToken, new RoundsModule().router);
 apiRouter.use('/results', authenticateToken, new ResultsModule().router);
 apiRouter.use('/activities', authenticateToken, new ActivitiesModule().router);
@@ -78,9 +80,14 @@ apiRouter.use('/notifications', authenticateToken, new NotificationsModule().rou
 apiRouter.use('/support', authenticateToken, new SupportModule().router);
 apiRouter.use('/banners', authenticateToken, new BannersModule().router);
 apiRouter.use('/settings', authenticateToken, new SettingsModule().router);
+apiRouter.use('/wagers', authenticateToken, new WagersModule().router);
+apiRouter.use('/payments', authenticateToken, paymentsModule.router);
+apiRouter.use('/settlements', authenticateToken, new SettlementsModule().router);
 
 // Admin protected routes (require admin JWT)
+apiRouter.use('/admin/auth', adminModule.publicRouter);
 apiRouter.use('/admin', authenticateAdmin, adminModule.protectedRouter);
+apiRouter.use('/admin/payments', authenticateAdmin, paymentsModule.adminRouter);
 
 app.use('/api/v1', apiRouter);
 

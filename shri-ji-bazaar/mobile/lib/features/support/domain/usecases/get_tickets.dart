@@ -1,5 +1,5 @@
-import '../../domain/entities/ticket_entity.dart';
-import '../../domain/repositories/isupport_repository.dart';
+import '../entities/ticket_entity.dart';
+import '../repositories/isupport_repository.dart';
 
 class GetTickets {
   final ISupportRepository _repository;

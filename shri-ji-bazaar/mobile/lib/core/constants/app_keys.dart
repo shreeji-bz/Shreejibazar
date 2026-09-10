@@ -21,4 +21,11 @@ class AppKeys {
   static const String profile = '/profile';
   static const String support = '/support';
   static const String settings = '/settings';
+  static const String forgotPassword = '/forgot-password';
+  static const String wallet = '/wallet';
+  static const String deposit = '/deposit';
+  static const String withdraw = '/withdraw';
+  static const String paymentHistory = '/payment-history';
+  static const String about = '/about';
+  static const String terms = '/terms';
 }

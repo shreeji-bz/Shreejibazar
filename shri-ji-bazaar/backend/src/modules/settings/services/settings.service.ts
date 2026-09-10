@@ -1,20 +1,10 @@
-import type { SettingEntity } from '../entities/setting.entity';
-import type { ISettingsRepository } from '../interfaces/settings.interface';
+import { SettingsRepository } from '../repositories/settings.repository';
 
 export class SettingsService {
-  constructor(private settingsRepository: ISettingsRepository) {}
+  constructor(private settingsRepo: SettingsRepository) {}
 
-  async getAll(): Promise<Record<string, string>> {
-    const settings: SettingEntity[] = await this.settingsRepository.findAll();
-    const result: Record<string, string> = {};
-    for (const s of settings) {
-      result[s.key] = s.value;
-    }
-    return result;
-  }
-
-  async updateSingle(key: string, value: string): Promise<SettingEntity> {
-    await this.settingsRepository.update(key, value);
-    return this.settingsRepository.findByKey(key) as Promise<SettingEntity>;
-  }
+  async getAll() { return this.settingsRepo.getAll(); }
+  async getByKey(key: string) { return this.settingsRepo.getByKey(key); }
+  async set(key: string, value: string) { return this.settingsRepo.set(key, value); }
+  async setMany(updates: Record<string, string>) { return this.settingsRepo.setMany(updates); }
 }

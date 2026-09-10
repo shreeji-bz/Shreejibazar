@@ -1,5 +1,5 @@
-import '../../domain/entities/bonus_entity.dart';
-import '../../domain/repositories/ibonus_repository.dart';
+import '../entities/bonus_entity.dart';
+import '../repositories/ibonus_repository.dart';
 
 class GetBonuses {
   final IBonusRepository _repository;
