@@ -1,3 +1,7 @@
+import '../../domain/entities/ticket_entity.dart';
+import '../../domain/repositories/isupport_repository.dart';
+import '../datasources/support_datasource.dart';
+
 class SupportRepository implements ISupportRepository {
   final SupportDatasource _datasource;
   SupportRepository(this._datasource);

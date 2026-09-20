@@ -1,5 +1,6 @@
 import '../../../../core/network/api_service.dart';
 import '../../domain/entities/ticket_entity.dart';
+import '../models/ticket_model.dart';
 
 class SupportDatasource {
   final ApiService _api = ApiService();

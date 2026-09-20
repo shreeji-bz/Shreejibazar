@@ -1,3 +1,7 @@
+import '../../domain/entities/points_entity.dart';
+import '../../domain/repositories/ipoints_repository.dart';
+import '../datasources/points_datasource.dart';
+
 class PointsRepository implements IPointsRepository {
   final PointsDatasource _datasource;
 

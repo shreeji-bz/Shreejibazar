@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:shri_ji_bazaar/core/theme/app_colors.dart';
 import 'package:shri_ji_bazaar/core/theme/app_text_styles.dart';
-import 'package:shri_ji_bazaar/core/constants/app_strings.dart';
 import 'package:shri_ji_bazaar/shared/widgets/custom_button.dart';
 
 class BetSlipWidget extends StatelessWidget {
@@ -91,7 +90,7 @@ class BetSlipWidget extends StatelessWidget {
         SizedBox(
           width: double.infinity,
           child: CustomButton(
-            text: 'CONFIRM BET',
+            label: 'CONFIRM BET',
             isLoading: isSubmitting,
             onPressed: isSubmitting ? null : onConfirm,
           ),
@@ -120,10 +119,10 @@ class BetSlipWidget extends StatelessWidget {
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
             decoration: BoxDecoration(
-              color: (badgeColor ?? AppColors.gold).withOpacity(0.15),
+              color: (badgeColor ?? AppColors.gold).withValues(alpha: 0.15),
               borderRadius: BorderRadius.circular(6),
               border: Border.all(
-                color: (badgeColor ?? AppColors.gold).withOpacity(0.4),
+                color: (badgeColor ?? AppColors.gold).withValues(alpha: 0.4),
                 width: 1,
               ),
             ),

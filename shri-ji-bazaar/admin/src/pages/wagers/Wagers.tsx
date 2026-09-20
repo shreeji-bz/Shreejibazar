@@ -1,10 +1,10 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { DollarSign, TrendingUp, Clock, AlertTriangle } from 'lucide-react';
+import { DollarSign, TrendingUp, Clock } from 'lucide-react';
 import { useSelector, useDispatch } from 'react-redux';
 import type { RootState, AppDispatch } from '../../store';
 import { fetchWagers, setFilters, clearError } from '../../store/wager.slice';
-import type { Wager, WagerFilters } from '../../types/wager.types';
+import type { WagerFilters } from '../../types/wager.types';
 import { Table, TableRow, TableCell } from '../../components/common/Table';
 import { Button } from '../../components/common/Button';
 import { Input, Select } from '../../components/common';

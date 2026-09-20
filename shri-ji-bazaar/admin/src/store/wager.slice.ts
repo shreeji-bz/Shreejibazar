@@ -1,6 +1,6 @@
 import { createSlice, createAsyncThunk, PayloadAction } from '@reduxjs/toolkit';
-import { get, post, del } from '../../utils/api';
-import type { Wager, WagerFilters, PaginatedWagersResponse, WagerDetail, VoidWagerRequest } from '../../types/wager.types';
+import { get, post } from '../services/api';
+import type { Wager, WagerFilters, PaginatedWagersResponse, WagerDetail, VoidWagerRequest } from '../types/wager.types';
 
 interface WagerState {
   list: Wager[];
@@ -25,15 +25,15 @@ export const fetchWagers = createAsyncThunk<
   WagerFilters,
   { state: { wager: WagerState } }
 >('wager/fetchWagers', async (filters) => {
-  const params = new URLSearchParams();
-  if (filters.gameId) params.set('gameId', filters.gameId);
-  if (filters.status) params.set('status', filters.status);
-  if (filters.dateFrom) params.set('dateFrom', filters.dateFrom);
-  if (filters.dateTo) params.set('dateTo', filters.dateTo);
-  if (filters.search) params.set('search', filters.search);
-  params.set('page', String(filters.page));
-  params.set('limit', String(filters.limit));
-  const data = await get<PaginatedWagersResponse>(`/v1/admin/wagers?${params.toString()}`);
+  const params: Record<string, string> = {};
+  if (filters.gameId) params.gameId = filters.gameId;
+  if (filters.status) params.status = filters.status;
+  if (filters.dateFrom) params.dateFrom = filters.dateFrom;
+  if (filters.dateTo) params.dateTo = filters.dateTo;
+  if (filters.search) params.search = filters.search;
+  params.page = String(filters.page);
+  params.limit = String(filters.limit);
+  const data = await get<PaginatedWagersResponse>('/v1/admin/wagers', params);
   return data;
 });
 

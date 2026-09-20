@@ -1,3 +1,7 @@
+import '../../domain/entities/notification_entity.dart';
+import '../../domain/repositories/inotification_repository.dart';
+import '../datasources/notification_datasource.dart';
+
 class NotificationRepository implements INotificationRepository {
   final NotificationDatasource _datasource;
   NotificationRepository(this._datasource);

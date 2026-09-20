@@ -1,5 +1,6 @@
 import '../../../../core/network/api_service.dart';
 import '../../domain/entities/points_entity.dart';
+import '../models/points_model.dart';
 
 class PointsDatasource {
   final ApiService _api = ApiService();

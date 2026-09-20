@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { getAuditLogs } from '../../services/authService';
-import { Table, TableRow, TableCell } from '../../components/common/Table';
+import { TableRow, TableCell } from '../../components/common/Table';
 
 interface AuditLog { id: string; adminName: string; action: string; entity: string; metadata: any; createdAt: string; }
 

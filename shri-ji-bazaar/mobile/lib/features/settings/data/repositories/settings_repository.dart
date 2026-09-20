@@ -1,4 +1,6 @@
-import '../models/settings_model.dart';
+import '../../domain/entities/settings_entity.dart';
+import '../../domain/repositories/isettings_repository.dart';
+import '../datasources/settings_datasource.dart';
 
 class SettingsRepository implements ISettingsRepository {
   final SettingsDatasource _datasource;

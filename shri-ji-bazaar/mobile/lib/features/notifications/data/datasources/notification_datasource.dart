@@ -1,5 +1,6 @@
 import '../../../../core/network/api_service.dart';
 import '../../domain/entities/notification_entity.dart';
+import '../models/notification_model.dart';
 
 class NotificationDatasource {
   final ApiService _api = ApiService();

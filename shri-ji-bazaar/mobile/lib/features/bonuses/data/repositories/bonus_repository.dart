@@ -1,3 +1,7 @@
+import '../../domain/entities/bonus_entity.dart';
+import '../../domain/repositories/ibonus_repository.dart';
+import '../datasources/bonus_datasource.dart';
+
 class BonusRepository implements IBonusRepository {
   final BonusDatasource _datasource;
 

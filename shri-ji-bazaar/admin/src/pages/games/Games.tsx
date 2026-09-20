@@ -48,7 +48,7 @@ export const Games = () => {
     try {
       const params: Record<string, string> = { page: '1', limit: '100' };
       if (statusFilter !== 'all') params.status = statusFilter;
-      const result = await fetchGames(params);
+      const result = (await fetchGames()) as any;
       if (result.success) {
         dispatch(setGames(result.data));
       }
@@ -275,7 +275,7 @@ export const Games = () => {
           </div>
           <div>
             <label className="block text-sm text-text-secondary mb-1">Status</label>
-            <Select value={formData.status} onChange={(e) => setFormData({...formData, status: e.target.value})}>
+            <Select value={formData.status} onChange={(e) => setFormData({...formData, status: e.target.value as 'active' | 'inactive' | 'maintenance'})}>
               <option value="active">Active</option>
               <option value="inactive">Inactive</option>
               <option value="maintenance">Maintenance</option>

@@ -1,9 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import 'package:go_router/go_router.dart';
 import '../../../../core/theme/app_colors.dart';
-import '../../../../core/theme/app_text_styles.dart';
-import '../../../../core/routes/route_names.dart';
 import '../controllers/profile_controller.dart';
 
 class ProfileHeader extends StatelessWidget {
@@ -24,7 +21,7 @@ class ProfileHeader extends StatelessWidget {
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
                 gradient: AppColors.goldGradient,
-                boxShadow: [BoxShadow(color: AppColors.gold.withOpacity(0.3), blurRadius: 20, spreadRadius: 2)],
+                boxShadow: [BoxShadow(color: AppColors.gold.withValues(alpha: 0.3), blurRadius: 20, spreadRadius: 2)],
               ),
               child: const Icon(Icons.person, size: 40, color: AppColors.textPrimary),
             ),

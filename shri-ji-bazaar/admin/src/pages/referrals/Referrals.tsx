@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { getReferrals } from '../../services/authService';
-import { Table, TableRow, TableCell } from '../../components/common/Table';
+import { TableRow, TableCell } from '../../components/common/Table';
 
 interface Referral { id: string; referrerName: string; referredUserName: string; points: number; status: string; createdAt: string; }
 

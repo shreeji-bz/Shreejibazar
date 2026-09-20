@@ -23,7 +23,7 @@ class AuthInterceptor extends Interceptor {
       if (refreshToken != null && refreshToken.isNotEmpty) {
         try {
           final dio = Dio(BaseOptions(
-            baseUrl: 'http://10.0.2.2:3000/api/v1',
+            baseUrl: 'http://10.97.119.19:3000/api/v1',
             headers: {'Content-Type': 'application/json'},
           ));
           final response = await dio.post('/auth/refresh', data: { 'refreshToken': refreshToken });

@@ -23,7 +23,6 @@ export const ProcessPaymentModal = ({ isOpen, onClose, payment, actionType, onSu
   const isApprove = actionType === 'approve';
   const title = isApprove ? 'Approve Payment' : 'Reject Payment';
   const submitLabel = isApprove ? 'Approve' : 'Reject';
-  const submitVariant = isApprove ? 'primary' as const : 'outline' as const;
   const submitClass = isApprove
     ? 'bg-success hover:bg-success/90'
     : 'border-error/30 text-error hover:bg-error/10';

@@ -1,11 +1,9 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:go_router/go_router.dart';
-import '../../../../../../../core/theme/app_colors.dart';
-import '../../../../../../../core/theme/app_text_styles.dart';
-import '../../../../../../../core/constants/app_strings.dart';
-import '../../../../../../../shared/widgets/custom_button.dart';
-import './login_page.dart';
+import 'package:flutter/services.dart';
+import 'package:shri_ji_bazaar/core/theme/app_colors.dart';
+import 'package:shri_ji_bazaar/core/theme/app_text_styles.dart';
+import 'package:shri_ji_bazaar/shared/widgets/custom_button.dart';
 
 class OtpVerificationPage extends StatefulWidget {
   const OtpVerificationPage({super.key, required this.mobile});
@@ -46,11 +44,11 @@ class _OtpVerificationPageState extends State<OtpVerificationPage> {
                 label: const Text('Back', style: TextStyle(color: AppColors.goldBright)),
               ),
               const SizedBox(height: 40),
-              Text('Verify OTP', style: AppTextStyles.headingLarge),
+              Text('Verify OTP', style: AppTextStyles.display),
               const SizedBox(height: 12),
               Text(
                 'Enter the 6-digit code sent to ${widget.mobile}',
-                style: AppTextStyles.bodyMedium.copyWith(color: AppColors.textSecondary),
+                style: AppTextStyles.body.copyWith(color: AppColors.textSecondary),
               ),
               const SizedBox(height: 40),
               Row(
@@ -66,14 +64,14 @@ class _OtpVerificationPageState extends State<OtpVerificationPage> {
                       textAlign: TextAlign.center,
                       maxLength: 1,
                       inputFormatters: [FilteringTextInputFormatter.digitsOnly],
-                      style: AppTextStyles.headingLarge.copyWith(fontSize: 24, color: AppColors.goldBright),
+                      style: AppTextStyles.display.copyWith(fontSize: 24, color: AppColors.goldBright),
                       decoration: InputDecoration(
                         counterText: '',
                         filled: true,
                         fillColor: AppColors.cardSecondary,
                         border: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(12),
-                          borderSide: BorderSide(color: AppColors.goldBright.withOpacity(0.3)),
+                          borderSide: BorderSide(color: AppColors.goldBright.withValues(alpha: 0.3)),
                         ),
                         focusedBorder: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(12),
@@ -124,9 +122,8 @@ class _OtpVerificationPageState extends State<OtpVerificationPage> {
     }
     setState(() { _isLoading = true; _errorText = null; });
     try {
-      // In a real app, call backend to verify OTP
       await Future.delayed(const Duration(seconds: 1));
-      if (mounted) context.pushReplacement('/login');
+      if (mounted) GoRouter.of(context).go('/login');
     } finally {
       if (mounted) setState(() => _isLoading = false);
     }

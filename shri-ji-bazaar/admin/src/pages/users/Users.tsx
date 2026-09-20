@@ -4,24 +4,20 @@ import { getUsers, updateUserStatus } from '../../services/authService';
 import { Table, TableRow, TableCell } from '../../components/common/Table';
 import { Input } from '../../components/common/Input';
 import { Button } from '../../components/common/Button';
-import { Modal } from '../../components/common/Modal';
 
 interface User { id: string; name: string; mobile: string; email: string; status: string; createdAt: string; }
 
 export const Users = () => {
   const [users, setUsers] = useState<User[]>([]);
   const [search, setSearch] = useState('');
-  const [page, setPage] = useState(1);
-  const [total, setTotal] = useState(0);
-  const [selectedUser, setSelectedUser] = useState<User | null>(null);
 
   const loadUsers = () => {
-    getUsers({ page, limit: 20, search }).then((data: any) => {
-      if (data.success) { setUsers(data.data); setTotal(data.meta?.total || 0); }
+    getUsers({ limit: 20, search }).then((data: any) => {
+      if (data.success) setUsers(data.data);
     });
   };
 
-  useEffect(() => { loadUsers(); }, [page]);
+  useEffect(() => { loadUsers(); }, []);
 
   const handleStatusChange = async (userId: string, status: string) => {
     await updateUserStatus(userId, status);

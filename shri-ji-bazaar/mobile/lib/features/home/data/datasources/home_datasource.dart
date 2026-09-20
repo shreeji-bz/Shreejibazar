@@ -1,5 +1,7 @@
 import '../../../../core/network/api_service.dart';
+import '../../domain/entities/banner_entity.dart';
 import '../models/banner_model.dart';
+import '../../../games/domain/entities/game_entity.dart';
 import '../../../games/data/models/game_model.dart';
 
 class HomeDatasource {
@@ -10,12 +12,12 @@ class HomeDatasource {
     return (data as List).map((e) => BannerModel.fromJson(e)).toList();
   }
 
-  Future<List<GameModel>> getPopularGames() async {
+  Future<List<GameEntity>> getPopularGames() async {
     final data = await _api.get('/games/popular');
     return (data as List).map((e) => GameModel.fromJson(e)).toList();
   }
 
-  Future<List<GameModel>> getRecentGames() async {
+  Future<List<GameEntity>> getRecentGames() async {
     final data = await _api.get('/games/recent');
     return (data as List).map((e) => GameModel.fromJson(e)).toList();
   }

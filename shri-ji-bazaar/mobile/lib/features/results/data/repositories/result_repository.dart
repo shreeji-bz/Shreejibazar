@@ -1,3 +1,7 @@
+import '../../domain/entities/result_entity.dart';
+import '../../domain/repositories/iresult_repository.dart';
+import '../datasources/result_datasource.dart';
+
 class ResultRepository implements IResultRepository {
   final ResultDatasource _datasource;
 

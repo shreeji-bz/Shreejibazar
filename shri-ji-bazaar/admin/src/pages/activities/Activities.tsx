@@ -1,4 +1,3 @@
-import { Table, TableRow, TableCell } from '../../components/common/Table';
 
 export const Activities = () => {
   const data: any[] = [];

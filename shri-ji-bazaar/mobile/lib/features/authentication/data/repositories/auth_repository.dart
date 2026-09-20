@@ -1,7 +1,8 @@
-import '../../domain/repositories/auth_repository.dart';
+import '../../domain/entities/user_entity.dart';
+import '../../domain/repositories/auth_repository.dart' as domain;
 import '../datasources/auth_datasource.dart';
 
-class AuthRepository implements AuthRepository {
+class AuthRepository implements domain.AuthRepository {
   final AuthDatasource _datasource;
 
   AuthRepository(this._datasource);

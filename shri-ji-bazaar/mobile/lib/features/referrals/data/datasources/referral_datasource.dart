@@ -1,5 +1,6 @@
 import '../../../../core/network/api_service.dart';
 import '../../domain/entities/referral_entity.dart';
+import '../models/referral_model.dart';
 
 class ReferralDatasource {
   final ApiService _api = ApiService();

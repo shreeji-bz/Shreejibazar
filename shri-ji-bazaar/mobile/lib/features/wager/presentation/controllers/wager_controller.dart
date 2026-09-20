@@ -3,8 +3,6 @@ import 'package:flutter/foundation.dart';
 import '../../domain/entities/wager_entity.dart';
 import '../../domain/usecases/place_wager.dart';
 import '../../domain/usecases/get_wager_history.dart';
-import '../../data/repositories/wager_repository.dart';
-import '../../data/datasources/wager_datasource.dart';
 import '../../domain/entities/place_wager_params.dart';
 
 class WagerController extends ChangeNotifier {

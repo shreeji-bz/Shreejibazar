@@ -1,9 +1,9 @@
 import { useEffect, useState } from 'react';
-import { Plus, Pencil, Trash2 } from 'lucide-react';
-import { getBanners, createBanner, updateBanner, deleteBanner } from '../../services/authService';
-import { Table, TableRow, TableCell } from '../../components/common/Table';
+import { Plus } from 'lucide-react';
+import { getBanners, createBanner, updateBanner } from '../../services/authService';
 import { Button } from '../../components/common/Button';
-import { Modal, Input, Select } from '../../components/common';
+import { Modal, Input } from '../../components/common';
+import { TableRow, TableCell } from '../../components/common/Table';
 
 interface Banner { id: string; title: string; image: string; action: string; status: string; sortOrder: number; }
 

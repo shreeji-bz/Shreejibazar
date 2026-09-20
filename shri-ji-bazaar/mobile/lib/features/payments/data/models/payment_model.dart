@@ -39,7 +39,6 @@ class PaymentModel extends PaymentEntity {
     );
   }
 
-  @override
   Map<String, dynamic> toJson() {
     return {
       'id': id,

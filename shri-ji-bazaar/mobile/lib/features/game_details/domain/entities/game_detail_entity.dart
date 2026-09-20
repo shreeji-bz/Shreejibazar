@@ -1,20 +1,33 @@
-class GameDetailEntity extends GameEntity {
+class GameDetailEntity {
+  final String id;
+  final String name;
+  final String slug;
+  final String description;
+  final String image;
+  final String openingTime;
+  final String closingTime;
+  final String resultTime;
+  final String status;
+  final bool isPopular;
+  final int sortOrder;
+  final DateTime createdAt;
+  final DateTime updatedAt;
   final List<RoundEntity> rounds;
 
   GameDetailEntity({
-    required super.id,
-    required super.name,
-    required super.slug,
-    required super.description,
-    required super.image,
-    required super.openingTime,
-    required super.closingTime,
-    required super.resultTime,
-    required super.status,
-    required super.isPopular,
-    required super.sortOrder,
-    required super.createdAt,
-    required super.updatedAt,
+    required this.id,
+    required this.name,
+    required this.slug,
+    required this.description,
+    required this.image,
+    required this.openingTime,
+    required this.closingTime,
+    required this.resultTime,
+    required this.status,
+    required this.isPopular,
+    required this.sortOrder,
+    required this.createdAt,
+    required this.updatedAt,
     required this.rounds,
   });
 }

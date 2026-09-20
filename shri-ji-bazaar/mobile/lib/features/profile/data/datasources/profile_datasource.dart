@@ -1,5 +1,3 @@
-import 'dart:convert';
-import 'package:dio/dio.dart';
 import '../../../../../core/network/api_client.dart';
 import '../models/profile_model.dart';
 
@@ -11,10 +9,11 @@ class ProfileDatasource {
     return ProfileModel.fromJson(response.data['data']);
   }
 
-  Future<ProfileModel> updateProfile({String? name, String? email, String? avatar}) async {
+  Future<ProfileModel> updateProfile({String? name, String? email, String? mobile, String? avatar}) async {
     final body = <String, dynamic>{};
     if (name != null) body['name'] = name;
     if (email != null) body['email'] = email;
+    if (mobile != null) body['mobile'] = mobile;
     if (avatar != null) body['avatar'] = avatar;
 
     final response = await _apiClient.dio.patch('/users/me', data: body);

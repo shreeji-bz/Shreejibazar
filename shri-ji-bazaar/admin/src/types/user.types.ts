@@ -1,4 +1,4 @@
-import { User } from './common.types';
+export type { User } from './common.types';
 
 export interface CreateUserRequest {
   name: string;

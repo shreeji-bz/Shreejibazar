@@ -2,7 +2,7 @@ import { useState, useCallback } from 'react';
 
 export function useAuth() {
   const [user, setUser] = useState<any>(null);
-  const login = useCallback(async (email: string, password: string) => {}, []);
+  const login = useCallback(async (_email: string, _password: string) => {}, []);
   const logout = useCallback(() => setUser(null), []);
   return { user, login, logout, isAuthenticated: !!user };
 }

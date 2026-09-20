@@ -1,5 +1,6 @@
 import '../../../../core/network/api_service.dart';
 import '../../domain/entities/activity_entity.dart';
+import '../models/activity_model.dart';
 
 class ActivityDatasource {
   final ApiService _api = ApiService();

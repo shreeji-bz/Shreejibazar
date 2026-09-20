@@ -1,5 +1,6 @@
 import '../../../../core/network/api_service.dart';
 import '../../domain/entities/bonus_entity.dart';
+import '../models/bonus_model.dart';
 
 class BonusDatasource {
   final ApiService _api = ApiService();

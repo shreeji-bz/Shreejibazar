@@ -2,14 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_text_styles.dart';
-import '../../../../core/constants/app_strings.dart';
 import '../../../../shared/widgets/custom_button.dart';
 import '../controllers/wager_controller.dart';
 import '../../domain/entities/wager_entity.dart';
-import '../../data/datasources/wager_datasource.dart';
-import '../../data/repositories/wager_repository.dart';
-import '../../domain/usecases/place_wager.dart';
-import '../../domain/usecases/get_wager_history.dart';
 
 class PlayPage extends StatefulWidget {
   final String gameId;
@@ -59,7 +54,7 @@ class _PlayPageState extends State<PlayPage> {
                 const SizedBox(height: 24),
                 if (controller.errorMessage != null)
                   Padding(padding: const EdgeInsets.only(bottom: 16), child: Text(controller.errorMessage!, style: const TextStyle(color: AppColors.error))),
-                CustomButton(text: 'Place Wager', onPressed: controller.canPlaceWager ? () => _placeWager(context, controller) : null, isLoading: controller.isPlacingWager),
+                CustomButton(label: 'Place Wager', onPressed: controller.canPlaceWager ? () => _placeWager(context, controller) : null, isLoading: controller.isPlacingWager),
                 const SizedBox(height: 32),
                 Text('Wager History', style: AppTextStyles.heading),
                 const SizedBox(height: 12),

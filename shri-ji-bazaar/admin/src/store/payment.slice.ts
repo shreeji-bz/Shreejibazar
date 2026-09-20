@@ -1,6 +1,6 @@
 import { createSlice, createAsyncThunk, PayloadAction } from '@reduxjs/toolkit';
-import { get, post } from '../../utils/api';
-import type { Payment, PaymentFilters, PaginatedPaymentsResponse, ProcessPaymentRequest } from '../../types/payment.types';
+import { get, post } from '../services/api';
+import type { Payment, PaymentFilters, PaginatedPaymentsResponse, ProcessPaymentRequest } from '../types/payment.types';
 
 interface PaymentState {
   list: Payment[];
@@ -25,15 +25,15 @@ export const fetchPayments = createAsyncThunk<
   PaymentFilters,
   { state: { payment: PaymentState } }
 >('payment/fetchPayments', async (filters) => {
-  const params = new URLSearchParams();
-  if (filters.type && filters.type !== 'all') params.set('type', filters.type);
-  if (filters.status && filters.status !== 'all') params.set('status', filters.status);
-  if (filters.dateFrom) params.set('dateFrom', filters.dateFrom);
-  if (filters.dateTo) params.set('dateTo', filters.dateTo);
-  if (filters.search) params.set('search', filters.search);
-  params.set('page', String(filters.page));
-  params.set('limit', String(filters.limit));
-  const data = await get<PaginatedPaymentsResponse>(`/v1/admin/payments?${params.toString()}`);
+  const params: Record<string, string> = {};
+  if (filters.type && filters.type !== 'all') params.type = filters.type;
+  if (filters.status && filters.status !== 'all') params.status = filters.status;
+  if (filters.dateFrom) params.dateFrom = filters.dateFrom;
+  if (filters.dateTo) params.dateTo = filters.dateTo;
+  if (filters.search) params.search = filters.search;
+  params.page = String(filters.page);
+  params.limit = String(filters.limit);
+  const data = await get<PaginatedPaymentsResponse>('/v1/admin/payments', params);
   return data;
 });
 

@@ -1,3 +1,7 @@
+import '../../domain/entities/activity_entity.dart';
+import '../../domain/repositories/iactivity_repository.dart';
+import '../datasources/activity_datasource.dart';
+
 class ActivityRepository implements IActivityRepository {
   final ActivityDatasource _datasource;
 

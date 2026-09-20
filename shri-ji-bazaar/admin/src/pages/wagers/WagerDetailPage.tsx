@@ -1,14 +1,13 @@
 import { useEffect, useState } from 'react';
-import { useParams, useNavigate, Link } from 'react-router-dom';
+import { useParams, Link } from 'react-router-dom';
 import { ArrowLeft, AlertTriangle } from 'lucide-react';
-import { useDispatch } from 'react-redux';
-import type { AppDispatch } from '../../store';
-import { fetchWagerById, clearSelected } from '../../store/wager.slice';
 import type { WagerDetail } from '../../types/wager.types';
 import { wagerService } from '../../services/wager.service';
 import { Button } from '../../components/common/Button';
-import { Modal, Input } from '../../components/common';
 import { VoidWagerModal } from './VoidWagerModal';
+import { useDispatch } from 'react-redux';
+import { fetchWagerById } from '../../store/wager.slice';
+import type { AppDispatch } from '../../store';
 
 const PLAY_TYPE_COLORS: Record<string, { bg: string; text: string }> = {
   open: { bg: 'bg-info/15', text: 'text-info' },
@@ -25,35 +24,25 @@ const WAGER_STATUS_COLORS: Record<string, { bg: string; text: string }> = {
 
 export const WagerDetailPage = () => {
   const { id } = useParams<{ id: string }>();
-  const navigate = useNavigate();
   const dispatch = useDispatch<AppDispatch>();
   const [wager, setWager] = useState<WagerDetail | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [voidModalOpen, setVoidModalOpen] = useState(false);
-  const [voidLoading, setVoidLoading] = useState(false);
-  const [voidError, setVoidError] = useState<string | null>(null);
 
   useEffect(() => {
     if (!id) return;
     setLoading(true);
     setError(null);
-    wagerService.getWagerById(id)
-      .then((data) => setWager(data))
+    dispatch(fetchWagerById(id))
+      .then((action) => setWager(action.payload as WagerDetail))
       .catch(() => setError('Failed to load wager details'))
       .finally(() => setLoading(false));
-    return () => dispatch(clearSelected());
-  }, [id]);
+  }, [id, dispatch]);
 
   const handleVoidSuccess = (updated: WagerDetail) => {
     setWager(updated);
     setVoidModalOpen(false);
-    setVoidError(null);
-  };
-
-  const handleVoidError = (msg: string) => {
-    setVoidError(msg);
-    setVoidLoading(false);
   };
 
   if (loading) {
@@ -195,10 +184,10 @@ export const WagerDetailPage = () => {
 
       <VoidWagerModal
         isOpen={voidModalOpen}
-        onClose={() => { setVoidModalOpen(false); setVoidError(null); }}
+        onClose={() => { setVoidModalOpen(false); }}
+        onError={(msg) => setError(msg)}
         wager={wager}
         onVoid={handleVoidSuccess}
-        onError={handleVoidError}
       />
     </div>
   );

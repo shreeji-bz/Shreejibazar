@@ -3,7 +3,6 @@ import 'package:flutter/services.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 import '../../../../core/routes/route_names.dart';
-import '../../../../core/theme/app_theme.dart';
 import '../controllers/auth_controller.dart';
 
 class LoginPage extends StatelessWidget {

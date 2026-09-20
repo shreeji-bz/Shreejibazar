@@ -1,16 +1,15 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { Wallet, ArrowDownToLine, ArrowUpFromLine, Clock } from 'lucide-react';
+import { ArrowDownToLine, ArrowUpFromLine, Clock } from 'lucide-react';
 import { useSelector, useDispatch } from 'react-redux';
 import type { RootState, AppDispatch } from '../../store';
 import { fetchPayments, setFilters, clearError } from '../../store/payment.slice';
-import type { Payment, PaymentFilters } from '../../types/payment.types';
+import type { PaymentFilters } from '../../types/payment.types';
 import { Table, TableRow, TableCell } from '../../components/common/Table';
 import { Button } from '../../components/common/Button';
 import { Input, Select } from '../../components/common';
 import { Pagination } from '../../components/tables/Pagination';
 import { AdminStatsCard } from '../../components/common/StatsCard';
-import { paymentService } from '../../services/payment.service';
 
 const PAYMENT_TYPE_COLORS: Record<string, { bg: string; text: string }> = {
   deposit: { bg: 'bg-success/15', text: 'text-success' },
@@ -58,11 +57,6 @@ export const Payments = () => {
 
   const handleDateToChange = (dateTo: string) => {
     dispatch(setFilters({ dateTo: dateTo || undefined, page: 1 }));
-  };
-
-  const handlePageChange = (page: number) => {
-    dispatch(setFilters({ page }));
-    window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
   const totalDeposits = list
@@ -197,7 +191,7 @@ export const Payments = () => {
           <Pagination
             currentPage={pagination.page}
             totalPages={pagination.totalPages}
-            onPageChange={handlePageChange}
+            onPageChange={(page) => dispatch(setFilters({ page }))}
           />
         )}
       </div>

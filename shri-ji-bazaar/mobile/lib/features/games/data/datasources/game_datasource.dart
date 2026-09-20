@@ -1,5 +1,6 @@
 import '../../../../core/network/api_service.dart';
 import '../../domain/entities/game_entity.dart';
+import '../models/game_model.dart';
 
 class GameDatasource {
   final ApiService _api = ApiService();

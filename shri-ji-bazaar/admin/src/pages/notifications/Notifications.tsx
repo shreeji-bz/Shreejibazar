@@ -1,9 +1,9 @@
 import { useEffect, useState } from 'react';
 import { Plus } from 'lucide-react';
 import { getNotifications, createNotification } from '../../services/authService';
-import { Table, TableRow, TableCell } from '../../components/common/Table';
+import { TableRow, TableCell } from '../../components/common/Table';
 import { Button } from '../../components/common/Button';
-import { Modal, Input, Select } from '../../components/common';
+import { Modal, Input } from '../../components/common';
 
 interface Notification { id: string; title: string; message: string; type: string; isRead: boolean; createdAt: string; }
 

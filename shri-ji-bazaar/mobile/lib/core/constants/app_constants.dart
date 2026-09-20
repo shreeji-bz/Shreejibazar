@@ -3,8 +3,8 @@ class AppConstants {
   static const String appName = 'Shri Ji Bazaar';
   static const String appVersion = '1.0.0';
 
-  // API
-  static const String apiBaseUrl = 'http://localhost:3000/api/v1';
+  // API — use your machine's LAN IP so physical devices can reach the backend
+  static const String apiBaseUrl = 'http://10.97.119.19:3000/api/v1';
   static const int connectTimeout = 30000;
   static const int receiveTimeout = 30000;
   static const int apiTimeout = 30000;

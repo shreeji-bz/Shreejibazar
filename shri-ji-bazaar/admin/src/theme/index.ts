@@ -18,5 +18,4 @@ export const theme = {
   fontFamily: 'Inter, sans-serif',
 };
 
-export const ThemeProvider = ({ children }: { children: React.ReactNode }) => <>{children}</>;
 export default theme;

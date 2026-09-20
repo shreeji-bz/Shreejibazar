@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { getUsers } from '../../services/authService';
-import { Table, TableRow, TableCell } from '../../components/common/Table';
+import { TableRow, TableCell } from '../../components/common/Table';
 import { AdminStatsCard } from '../../components/common/StatsCard';
 import { Wallet } from 'lucide-react';
 

@@ -1,4 +1,4 @@
-import { Game } from './common.types';
+export type { Game } from './common.types';
 
 export interface CreateGameRequest {
   name: string;

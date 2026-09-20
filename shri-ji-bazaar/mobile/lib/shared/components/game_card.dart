@@ -46,7 +46,7 @@ class GameCard extends StatelessWidget {
           borderRadius: BorderRadius.circular(16),
           border: Border.all(color: AppColors.border, width: 0.5),
           boxShadow: [
-            BoxShadow(color: AppColors.goldDark.withOpacity(0.1), blurRadius: 8, offset: const Offset(0, 2)),
+            BoxShadow(color: AppColors.goldDark.withValues(alpha: 0.1), blurRadius: 8, offset: const Offset(0, 2)),
           ],
         ),
         child: Column(
@@ -62,9 +62,9 @@ class GameCard extends StatelessWidget {
                 Container(
                   padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
                   decoration: BoxDecoration(
-                    color: _statusColor.withOpacity(0.15),
+                    color: _statusColor.withValues(alpha: 0.15),
                     borderRadius: BorderRadius.circular(8),
-                    border: Border.all(color: _statusColor.withOpacity(0.3)),
+                    border: Border.all(color: _statusColor.withValues(alpha: 0.3)),
                   ),
                   child: Text(status.toUpperCase(), style: TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: _statusColor)),
                 ),

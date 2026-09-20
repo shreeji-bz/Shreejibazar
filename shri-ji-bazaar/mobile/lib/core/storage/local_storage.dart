@@ -3,7 +3,6 @@ import 'package:shared_preferences/shared_preferences.dart';
 class LocalStorage {
   static const String _keyToken = 'token';
   static const String _keyRefreshToken = 'refresh_token';
-  static const String _keyUser = 'user_data';
   static const String _keyOnboarding = 'onboarding_done';
 
   static Future<SharedPreferences> get _instance async => await SharedPreferences.getInstance();

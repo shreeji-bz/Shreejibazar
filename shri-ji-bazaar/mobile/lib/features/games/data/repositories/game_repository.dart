@@ -1,3 +1,7 @@
+import '../../domain/entities/game_entity.dart';
+import '../../domain/repositories/igame_repository.dart';
+import '../datasources/game_datasource.dart';
+
 class GameRepository implements IGameRepository {
   final GameDatasource _datasource;
 

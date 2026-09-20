@@ -4,7 +4,6 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'api_interceptors.dart';
 import 'retry_interceptor.dart';
-import '../../core/storage/secure_storage.dart';
 
 final GlobalKey<NavigatorState> _kNavigatorKey = GlobalKey<NavigatorState>(debugLabel: 'shriJiApiServiceNavigator');
 
@@ -18,7 +17,7 @@ class ApiService {
   void init() {
     dio = Dio(
       BaseOptions(
-        baseUrl: 'http://localhost:3000/api/v1',
+        baseUrl: 'http://10.97.119.19:3000/api/v1',
         connectTimeout: const Duration(seconds: 30),
         receiveTimeout: const Duration(seconds: 30),
         headers: {'Content-Type': 'application/json', 'Accept': 'application/json'},

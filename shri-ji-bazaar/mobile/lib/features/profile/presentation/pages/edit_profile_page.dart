@@ -1,13 +1,14 @@
-import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:go_router/go_router.dart';
 import '../../../../../core/theme/app_colors.dart';
-import '../../../../../core/theme/app_text_styles.dart';
-import '../../../../../core/constants/app_strings.dart';
-import '../../../../../core/routes/route_names.dart';
-import '../../../../../../../shared/widgets/custom_button.dart';
-import '../../../../../../../shared/widgets/custom_text_field.dart';
+import '../../../../../shared/widgets/custom_button.dart';
+import '../../../../../shared/widgets/custom_text_field.dart';
 import '../controllers/profile_controller.dart';
+import '../../../profile/domain/usecases/get_profile.dart';
+import '../../../profile/data/repositories/profile_repository.dart';
+import '../../../profile/data/datasources/profile_datasource.dart';
+import '../../../authentication/presentation/controllers/auth_controller.dart';
 
 class EditProfilePage extends StatelessWidget {
   const EditProfilePage({super.key});
@@ -18,7 +19,7 @@ class EditProfilePage extends StatelessWidget {
       create: (_) => ProfileController(
         GetProfileUseCase(ProfileRepository(ProfileDatasource())),
         UpdateProfileUseCase(ProfileRepository(ProfileDatasource())),
-        Provider.of<AuthController>(context, listen: false),
+        AuthController(),
       )..loadProfile(),
       child: const _EditProfileContent(),
     );
@@ -54,7 +55,7 @@ class _EditProfileContentState extends State<_EditProfileContent> {
         backgroundColor: AppColors.background,
         elevation: 0,
         title: const Text('Edit Profile', style: TextStyle(color: AppColors.goldBright)),
-        leading: IconButton(onPressed: () => context.pop(), icon: const Icon(Icons.arrow_back, color: AppColors.textPrimary)),
+        leading: IconButton(onPressed: () => GoRouter.of(context).pop(), icon: const Icon(Icons.arrow_back, color: AppColors.textPrimary)),
       ),
       body: Consumer<ProfileController>(
         builder: (context, controller, _) {
@@ -68,7 +69,6 @@ class _EditProfileContentState extends State<_EditProfileContent> {
               child: Column(
                 children: [
                   const SizedBox(height: 20),
-                  // Avatar
                   Center(
                     child: Stack(
                       children: [
@@ -78,14 +78,14 @@ class _EditProfileContentState extends State<_EditProfileContent> {
                           decoration: BoxDecoration(
                             shape: BoxShape.circle,
                             gradient: AppColors.goldGradient,
-                            boxShadow: [BoxShadow(color: AppColors.gold.withOpacity(0.3), blurRadius: 20, spreadRadius: 2)],
+                            boxShadow: [BoxShadow(color: AppColors.gold.withValues(alpha: 0.3), blurRadius: 20, spreadRadius: 2)],
                             image: controller.profile?.avatar != null && controller.profile!.avatar!.isNotEmpty
                                 ? DecorationImage(image: NetworkImage(controller.profile!.avatar!), fit: BoxFit.cover)
                                 : null,
-                            child: controller.profile?.avatar == null || controller.profile!.avatar!.isEmpty
-                                ? const Icon(Icons.person, size: 50, color: AppColors.textPrimary)
-                                : null,
                           ),
+                          child: controller.profile?.avatar == null || controller.profile!.avatar!.isEmpty
+                              ? const Icon(Icons.person, size: 50, color: AppColors.textPrimary)
+                              : null,
                         ),
                         Positioned(
                           bottom: 0,
@@ -130,7 +130,7 @@ class _EditProfileContentState extends State<_EditProfileContent> {
                       await controller.updateProfileInfo(name: name, email: email.isEmpty ? null : email);
                       if (controller.status == ProfileStatus.success && mounted) {
                         ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Profile updated successfully')));
-                        context.pop();
+                        GoRouter.of(context).pop();
                       }
                     },
                   ),

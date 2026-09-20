@@ -1,12 +1,9 @@
 import { useEffect, useState, useMemo } from 'react';
 import { useParams, useSearchParams, useNavigate, Link } from 'react-router-dom';
 import { ArrowLeft } from 'lucide-react';
-import { useDispatch } from 'react-redux';
-import type { AppDispatch } from '../../store';
 import type { Payment } from '../../types/payment.types';
 import { paymentService } from '../../services/payment.service';
 import { Button } from '../../components/common/Button';
-import { Modal, Textarea } from '../../components/common';
 import { ProcessPaymentModal } from './ProcessPaymentModal';
 
 const PAYMENT_STATUS_COLORS: Record<string, { bg: string; text: string }> = {
@@ -20,7 +17,6 @@ export const PaymentDetailPage = () => {
   const { id } = useParams<{ id: string }>();
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
-  const dispatch = useDispatch<AppDispatch>();
   const [payment, setPayment] = useState<Payment | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);

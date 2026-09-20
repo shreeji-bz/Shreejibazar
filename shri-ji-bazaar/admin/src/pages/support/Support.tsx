@@ -1,7 +1,6 @@
 import { useEffect, useState } from 'react';
 import { getSupportTickets, updateTicket } from '../../services/authService';
-import { Table, TableRow, TableCell } from '../../components/common/Table';
-import { Select } from '../../components/common/Select';
+import { TableRow, TableCell } from '../../components/common/Table';
 
 interface Ticket { id: string; userName: string; subject: string; category: string; status: string; createdAt: string; }
 

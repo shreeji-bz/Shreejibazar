@@ -13,16 +13,14 @@ class ProfileRepository implements IProfileRepository {
   }
 
   @override
-  Future<ProfileEntity> updateProfile({String? name, String? email, String? avatar}) {
-    return _datasource.updateProfile(name: name, email: email, avatar: avatar);
+  Future<ProfileEntity> updateProfile({String? name, String? email, String? mobile}) {
+    return _datasource.updateProfile(name: name, email: email, mobile: mobile);
   }
 
-  @override
   Future<void> changePassword({required String currentPassword, required String newPassword}) {
     return _datasource.changePassword(currentPassword: currentPassword, newPassword: newPassword);
   }
 
-  @override
   Future<void> deleteAccount(String password) {
     return _datasource.deleteAccount(password);
   }

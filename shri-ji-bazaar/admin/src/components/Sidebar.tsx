@@ -24,7 +24,7 @@ const menuItems = [
 
 export const Sidebar = () => {
   const sidebarOpen = useAppStore((s) => s.sidebarOpen);
-  const { logout, user } = useAuthStore();
+  const { logout } = useAuthStore();
 
   return (
     <aside className={`fixed top-0 left-0 h-screen bg-card border-r border-border transition-all duration-300 z-40 ${sidebarOpen ? 'w-64' : 'w-16'}`}>

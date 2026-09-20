@@ -1,8 +1,8 @@
 import { useEffect, useState } from 'react';
 import { getBonuses, createBonus, updateBonus } from '../../services/authService';
-import { Table, TableRow, TableCell } from '../../components/common/Table';
 import { Button } from '../../components/common/Button';
 import { Modal, Input } from '../../components/common';
+import { TableRow, TableCell } from '../../components/common/Table';
 
 interface Bonus { id: string; name: string; slug: string; points: number; type: string; status: string; }
 

@@ -21,7 +21,7 @@ export const Login = () => {
     setLoading(true);
     setError('');
     try {
-      const response = await login(email, password);
+      const response = (await login(email, password)) as any;
       if (response.success) {
         setAuth(response.data.token, response.data.admin);
         navigate('/dashboard');

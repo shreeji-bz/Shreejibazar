@@ -1,3 +1,7 @@
+import '../../domain/entities/referral_entity.dart';
+import '../../domain/repositories/ireferral_repository.dart';
+import '../datasources/referral_datasource.dart';
+
 class ReferralRepository implements IReferralRepository {
   final ReferralDatasource _datasource;
   ReferralRepository(this._datasource);
