@@ -1,7 +1,7 @@
 export const config = {
   port: parseInt(process.env.PORT || '3000'),
   nodeEnv: process.env.NODE_ENV || 'development',
-  corsOrigin: process.env.CORS_ORIGIN || 'http://localhost:5173',
+  corsOrigin: process.env.CORS_ORIGIN || '*',
   jwtSecret: process.env.JWT_SECRET || 'your-secret-key',
   jwtExpires: process.env.JWT_EXPIRES || '7d',
   jwt: {

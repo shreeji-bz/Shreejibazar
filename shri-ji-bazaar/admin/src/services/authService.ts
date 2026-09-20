@@ -17,7 +17,7 @@ export const getAuditLogs = async (params?: any) => {
 };
 
 export const getUsers = async (params: any) => {
-  return get('/v1/users', { params });
+  return get('/v1/users', params);
 };
 
 export const updateUser = async (id: string, data: any) => {

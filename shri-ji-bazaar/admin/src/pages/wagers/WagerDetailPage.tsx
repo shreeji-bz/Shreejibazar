@@ -2,7 +2,6 @@ import { useEffect, useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { ArrowLeft, AlertTriangle } from 'lucide-react';
 import type { WagerDetail } from '../../types/wager.types';
-import { wagerService } from '../../services/wager.service';
 import { Button } from '../../components/common/Button';
 import { VoidWagerModal } from './VoidWagerModal';
 import { useDispatch } from 'react-redux';

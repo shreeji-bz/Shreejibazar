@@ -35,30 +35,45 @@ export const authenticateAdmin = async (req: Request, res: Response, next: NextF
     const token = authHeader.split(' ')[1];
     const decoded = jwt.verify(token, config.jwt.secret) as any;
 
-    // Verify admin still exists in Supabase
-    const { data: admin, error } = await supabase
-      .from('admins')
-      .select('id, email, name, role, status')
-      .eq('id', decoded.adminId)
-      .single();
+    try {
+      // Verify admin still exists in Supabase
+      const { data: admin, error } = await supabase
+        .from('admins')
+        .select('id, email, name, role, status')
+        .eq('id', decoded.adminId)
+        .single();
 
-    if (error || !admin) {
-      res.status(401).json({ success: false, message: 'Admin not found', code: 'ADMIN_NOT_FOUND' });
-      return;
+      if (error || !admin) {
+        res.status(401).json({ success: false, message: 'Admin not found', code: 'ADMIN_NOT_FOUND' });
+        return;
+      }
+
+      if (admin.status !== 'active') {
+        res.status(403).json({ success: false, message: 'Admin account is inactive', code: 'ADMIN_INACTIVE' });
+        return;
+      }
+
+      req.admin = {
+        id: admin.id,
+        email: admin.email,
+        name: admin.name,
+        role: admin.role,
+      };
+      next();
+    } catch (supabaseError) {
+      // Fallback: allow request if we can't reach Supabase in development
+      if (config.nodeEnv === 'development' && decoded.adminId) {
+        req.admin = {
+          id: decoded.adminId,
+          email: decoded.email,
+          name: decoded.email?.split('@')[0] || 'Admin',
+          role: decoded.role || 'admin',
+        };
+        next();
+        return;
+      }
+      throw supabaseError;
     }
-
-    if (admin.status !== 'active') {
-      res.status(403).json({ success: false, message: 'Admin account is inactive', code: 'ADMIN_INACTIVE' });
-      return;
-    }
-
-    req.admin = {
-      id: admin.id,
-      email: admin.email,
-      name: admin.name,
-      role: admin.role,
-    };
-    next();
   } catch (error) {
     res.status(401).json({ success: false, message: 'Invalid or expired token', code: 'INVALID_TOKEN' });
   }

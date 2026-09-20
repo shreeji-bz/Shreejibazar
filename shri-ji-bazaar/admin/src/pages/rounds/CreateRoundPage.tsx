@@ -29,7 +29,7 @@ export const CreateRoundPage = () => {
     setSubmitting(true);
     setError(null);
     try {
-      const data = await createRound({ gameId, startTime, endTime });
+      const data = (await createRound({ gameId, startTime, endTime })) as any;
       if (data.success) {
         navigate('/rounds');
       } else {

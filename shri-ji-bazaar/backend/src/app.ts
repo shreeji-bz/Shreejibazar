@@ -86,8 +86,9 @@ apiRouter.use('/settlements', authenticateToken, new SettlementsModule().router)
 
 // Admin protected routes (require admin JWT)
 apiRouter.use('/admin/auth', adminModule.publicRouter);
-apiRouter.use('/admin', authenticateAdmin, adminModule.protectedRouter);
+apiRouter.use('/admin/wagers', authenticateAdmin, new WagersModule().adminRouter);
 apiRouter.use('/admin/payments', authenticateAdmin, paymentsModule.adminRouter);
+apiRouter.use('/admin', authenticateAdmin, adminModule.protectedRouter);
 
 app.use('/api/v1', apiRouter);
 

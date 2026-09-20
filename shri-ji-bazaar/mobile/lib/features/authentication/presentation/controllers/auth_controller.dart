@@ -49,6 +49,7 @@ class AuthController extends ChangeNotifier {
         'name': name,
         'mobile': mobile,
         'password': password,
+        'confirmPassword': password,
         if (referralCode != null && referralCode.isNotEmpty) 'referralCode': referralCode,
       });
 

@@ -10,11 +10,14 @@ final GlobalKey<NavigatorState> _kNavigatorKey = GlobalKey<NavigatorState>(debug
 class ApiService {
   static final ApiService _instance = ApiService._internal();
   factory ApiService() => _instance;
-  ApiService._internal();
 
   late final Dio dio;
 
-  void init() {
+  ApiService._internal() {
+    _init();
+  }
+
+  void _init() {
     dio = Dio(
       BaseOptions(
         baseUrl: 'http://10.97.119.19:3000/api/v1',

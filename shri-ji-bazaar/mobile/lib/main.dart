@@ -3,6 +3,15 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
+import 'package:shri_ji_bazaar/features/home/data/datasources/home_datasource.dart';
+import 'package:shri_ji_bazaar/features/home/data/repositories/home_repository.dart';
+import 'package:shri_ji_bazaar/features/home/domain/repositories/ihome_repository.dart';
+import 'package:shri_ji_bazaar/features/home/domain/usecases/get_home_data.dart';
+import 'package:shri_ji_bazaar/features/home/presentation/controllers/home_controller.dart';
+import 'package:shri_ji_bazaar/features/points/data/datasources/points_datasource.dart';
+import 'package:shri_ji_bazaar/features/points/data/repositories/points_repository.dart';
+import 'package:shri_ji_bazaar/features/points/domain/repositories/ipoints_repository.dart';
+import 'package:shri_ji_bazaar/features/points/domain/usecases/get_wallet.dart';
 import 'core/theme/app_theme.dart';
 import 'core/routes/app_routes.dart';
 import 'core/config/supabase_config.dart';
@@ -26,6 +35,12 @@ class ShriJiBazaarApp extends StatelessWidget {
     return MultiProvider(
       providers: [
         ChangeNotifierProvider(create: (_) => AuthController()),
+        ChangeNotifierProvider(
+          create: (_) => HomeController(
+            GetHomeData(HomeRepository(HomeDatasource())),
+            GetWallet(PointsRepository(PointsDatasource())),
+          ),
+        ),
       ],
       child: Consumer<AuthController>(
         builder: (context, auth, _) {

@@ -67,7 +67,10 @@ export class AuthRepository {
       .select()
       .single();
 
-    if (error || !user) throw new Error('Failed to create user');
+    if (error || !user) {
+      console.error('Supabase insert error:', error);
+      throw new Error(error?.message || 'Failed to create user');
+    }
     return this.mapRow(user);
   }
 

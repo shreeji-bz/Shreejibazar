@@ -1,7 +1,11 @@
-import 'package:get/get.dart';
-import '../../domain/usecases/get_wallet.dart';
+import 'package:flutter/foundation.dart';
+import '../../domain/entities/points_entity.dart';
+import '../../domain/usecases/get_points_balance.dart';
+import '../../domain/usecases/get_points_history.dart';
 
-class PointsController extends GetxController {
-  final GetWallet getWallet;
-  PointsController(this.getWallet);
+class PointsController extends ChangeNotifier {
+  final GetPointsBalance getPointsBalance;
+  final GetPointsHistory getPointsHistory;
+
+  PointsController(this.getPointsBalance, this.getPointsHistory);
 }

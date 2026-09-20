@@ -49,7 +49,7 @@ export const DeclareResultPage = () => {
     setSubmitting(true);
     setError(null);
     try {
-      const data = await declareResult(roundId, resultValue.trim());
+      const data = (await declareResult(roundId, resultValue.trim())) as any;
       if (data.success) {
         navigate('/results');
       } else {

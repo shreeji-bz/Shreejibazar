@@ -19,7 +19,8 @@ export class AuthController {
       res.status(201).json({ success: true, data: result });
     } catch (error: any) {
       const status = error.statusCode || 500;
-      res.status(status).json({ success: false, message: error.message || 'Registration failed', code: error.code });
+      console.error('Register error:', error);
+      res.status(status).json({ success: false, message: error.message || 'Registration failed', code: error.code, details: error.details || null });
     }
   }
 

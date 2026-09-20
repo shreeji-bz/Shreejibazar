@@ -26,9 +26,8 @@ export class AdminController {
 
   async getDashboard(req: Request, res: Response) {
     try {
-      res.json({ success: true, data: {
-        totalUsers: 0, activeUsers: 0, totalGames: 0, todayPlays: 0, pointsDistributed: 0, openTickets: 0,
-      }});
+      const stats = await this.adminService.getDashboard();
+      res.json({ success: true, data: stats });
     } catch (error: any) { res.status(500).json({ success: false, message: error.message }); }
   }
 

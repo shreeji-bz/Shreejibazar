@@ -51,7 +51,7 @@ export const Rounds = () => {
   const handleCloseRound = async (round: Round) => {
     if (round.status !== 'open') return;
     try {
-      const data = await closeRound(round.id);
+      const data = (await closeRound(round.id)) as any;
       if (data.success) {
         setRounds((prev) =>
           prev.map((r) => (r.id === round.id ? { ...r, status: 'closed' } : r))
@@ -72,7 +72,7 @@ export const Rounds = () => {
     if (!selectedRound || !resultValue.trim()) return;
     setSubmitting(true);
     try {
-      const data = await declareResult(selectedRound.id, resultValue.trim());
+      const data = (await declareResult(selectedRound.id, resultValue.trim())) as any;
       if (data.success) {
         setRounds((prev) =>
           prev.map((r) =>

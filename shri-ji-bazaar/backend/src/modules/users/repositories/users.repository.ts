@@ -24,7 +24,20 @@ export class UsersRepository {
     const to = from + limit - 1;
 
     const { data, count } = await query.order('created_at', { ascending: false }).range(from, to);
-    return { data: data || [], meta: { total: count || 0, page, limit } };
+    const mapped = (data || []).map((row) => ({
+      id: row.id,
+      name: row.name,
+      mobile: row.mobile,
+      email: row.email,
+      avatar: row.avatar,
+      referralCode: row.referral_code,
+      referredBy: row.referred_by,
+      status: row.status,
+      lastLogin: row.last_login ? new Date(row.last_login).toISOString() : null,
+      createdAt: row.created_at ? new Date(row.created_at).toISOString() : null,
+      updatedAt: row.updated_at ? new Date(row.updated_at).toISOString() : null,
+    }));
+    return { data: mapped, meta: { total: count || 0, page, limit } };
   }
 
   async update(id: string, data: any): Promise<any> {

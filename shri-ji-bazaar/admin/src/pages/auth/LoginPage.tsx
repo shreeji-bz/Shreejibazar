@@ -12,7 +12,7 @@ export const LoginPage = () => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
-      const res = await loginAdmin({ email, password });
+      const res = (await loginAdmin({ email, password })) as any;
       if (res.success) {
         login(res.data.token, res.data.admin);
         navigate('/dashboard');

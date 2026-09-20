@@ -1,7 +1,7 @@
-import 'package:get/get.dart';
-import '../../domain/usecases/get_available_bonuses.dart';
+import 'package:flutter/foundation.dart';
+import '../../domain/usecases/get_bonuses.dart';
 
-class BonusController extends GetxController {
-  final GetAvailableBonuses getAvailableBonuses;
-  BonusController(this.getAvailableBonuses);
+class BonusController extends ChangeNotifier {
+  final GetBonuses getBonuses;
+  BonusController(this.getBonuses);
 }
