@@ -27,6 +27,28 @@ export class ReferralsRepository {
     }));
   }
 
+  async getAllReferrals(page: number, limit: number) {
+    const from = (page - 1) * limit;
+    const to = from + limit - 1;
+    const { data } = await supabase
+      .from('referrals')
+      .select('*, referrer:auth.users!referrer_id(name), referred:auth.users!referred_id(name)')
+      .order('created_at', { ascending: false })
+      .range(from, to);
+
+    return (data || []).map((row: any) => ({
+      id: row.id,
+      referrerId: row.referrer_id,
+      referredId: row.referred_id,
+      referrerName: row.referrer?.name || 'Unknown',
+      referredUserName: row.referred?.name || 'Unknown',
+      referralCode: row.referral_code,
+      status: row.status,
+      rewardPoints: row.reward_points,
+      createdAt: row.created_at,
+    }));
+  }
+
   async create(data: { referrerId: string; referredId: string; referralCode: string }) {
     const { data: record } = await supabase.from('referrals').insert({
       ...data,

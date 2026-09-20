@@ -16,7 +16,7 @@ export class SupportController {
     try {
       const userId = (req as any).user?.id;
       const data = await this.supportService.getAll({ ...req.query, userId });
-      res.json({ success: true, ...data });
+      res.json({ success: true, data });
     } catch (error: any) { res.status(500).json({ success: false, message: error.message }); }
   }
   async getById(req: Request, res: Response) {

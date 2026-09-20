@@ -35,11 +35,14 @@ export const authenticateToken = async (req: Request, res: Response, next: NextF
     if (decoded.userId) {
       const { data: user, error } = await supabase
         .from('users')
-        .select('id, email, mobile, name, role')
+        .select('id, email, mobile, name, status')
         .eq('id', decoded.userId)
         .single();
 
       if (error || !user) {
+        if (error) {
+          console.error('Auth middleware users select error:', JSON.stringify(error));
+        }
         res.status(401).json({ success: false, message: 'User not found', code: 'USER_NOT_FOUND' });
         return;
       }
@@ -49,7 +52,7 @@ export const authenticateToken = async (req: Request, res: Response, next: NextF
         email: user.email,
         mobile: user.mobile,
         name: user.name,
-        role: user.role || 'user',
+        role: 'user',
       };
       next();
       return;
@@ -64,6 +67,9 @@ export const authenticateToken = async (req: Request, res: Response, next: NextF
         .single();
 
       if (error || !admin) {
+        if (error) {
+          console.error('Auth middleware admins select error:', JSON.stringify(error));
+        }
         res.status(401).json({ success: false, message: 'Admin not found', code: 'ADMIN_NOT_FOUND' });
         return;
       }
@@ -104,12 +110,12 @@ export const optionalAuth = async (req: Request, res: Response, next: NextFuncti
     if (decoded.userId) {
       const { data: user } = await supabase
         .from('users')
-        .select('id, email, mobile, name, role')
+        .select('id, email, mobile, name, status')
         .eq('id', decoded.userId)
         .single();
 
       if (user) {
-        req.user = { id: user.id, email: user.email, mobile: user.mobile, name: user.name, role: user.role || 'user' };
+        req.user = { id: user.id, email: user.email, mobile: user.mobile, name: user.name, role: 'user' };
       }
     } else if (decoded.adminId) {
       const { data: admin } = await supabase

@@ -160,6 +160,7 @@ class ShriJiBazaarApp extends StatelessWidget {
             createDeposit: CreateDeposit(PaymentRepository(PaymentDatasource())),
             createWithdrawal: CreateWithdrawal(PaymentRepository(PaymentDatasource())),
             getPaymentHistory: GetPaymentHistory(PaymentRepository(PaymentDatasource())),
+            createImbOrder: CreateImbOrder(ImbPaymentRepository(ImbPaymentDatasource())),
           ),
         ),
         ChangeNotifierProvider(

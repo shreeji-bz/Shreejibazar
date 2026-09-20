@@ -7,9 +7,21 @@ export class ReferralsController {
   }
 
   initializeRoutes() {
+    this.router.get('/', this.getAllReferrals.bind(this));
     this.router.get('/stats', this.getStats.bind(this));
     this.router.get('/list', this.getList.bind(this));
     this.router.post('/apply', this.applyReferral.bind(this));
+  }
+
+  async getAllReferrals(req: Request, res: Response) {
+    try {
+      const page = Math.max(1, parseInt(req.query.page as string) || 1);
+      const limit = Math.min(100, parseInt(req.query.limit as string) || 50);
+      const data = await this.referralsService.getAllReferrals(page, limit);
+      res.json({ success: true, data, total: data.length, page, limit, totalPages: Math.ceil(data.length / limit) });
+    } catch (error: any) {
+      res.status(500).json({ success: false, message: error.message });
+    }
   }
 
   async getStats(req: Request, res: Response) {

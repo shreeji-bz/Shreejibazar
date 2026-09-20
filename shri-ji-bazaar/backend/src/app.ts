@@ -83,18 +83,16 @@ apiRouter.use('/settings', authenticateToken, new SettingsModule().router);
 // Temporarily disabled to debug /admin/wagers auth collision
 // apiRouter.use('/wagers', authenticateToken, new WagersModule().router);
 apiRouter.use('/payments', authenticateToken, paymentsModule.router);
+apiRouter.use('/payments/imb/callback', paymentsModule.imbRouter);
+apiRouter.use('/payments/imb/webhook', paymentsModule.imbRouter);
 apiRouter.use('/settlements', authenticateToken, new SettlementsModule().router);
 
 // Admin protected routes (require admin JWT)
 apiRouter.use('/admin/auth', adminModule.publicRouter);
 apiRouter.use('/admin/wagers', authenticateAdmin, new WagersModule().adminRouter);
 apiRouter.use('/admin/payments', authenticateAdmin, paymentsModule.adminRouter);
+apiRouter.use('/admin/referrals', authenticateAdmin, new ReferralsModule().adminRouter);
 apiRouter.use('/admin', authenticateAdmin, adminModule.protectedRouter);
-
-// Diagnostic route
-apiRouter.get('/admin/wagers-test', (req: Request, res: Response) => {
-  res.json({ success: true, message: 'wagers-test reached' });
-});
 
 app.use('/api/v1', apiRouter);
 

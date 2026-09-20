@@ -14,8 +14,9 @@ class RetryInterceptor extends Interceptor {
   void onError(DioException err, ErrorInterceptorHandler handler) async {
     if (_shouldRetry(err) && retryDelays.isNotEmpty) {
       final delay = retryDelays.first;
+      final remainingDelays = List<Duration>.from(retryDelays);
+      remainingDelays.removeAt(0);
       await Future.delayed(delay);
-      retryDelays.removeAt(0);
       try {
         final response = await Dio().fetch(err.requestOptions);
         handler.resolve(response);

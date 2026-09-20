@@ -7,6 +7,7 @@ import { PaymentsRepository } from './repositories/payments.repository';
 export class PaymentsModule {
   public router = Router();
   public adminRouter = Router();
+  public imbRouter = Router(); // Public routes for IMB payment gateway callbacks
 
   constructor() {
     const repository = new PaymentsRepository();
@@ -17,5 +18,10 @@ export class PaymentsModule {
 
     // Admin routes (mounted with authenticateAdmin in app.ts)
     new AdminPaymentsController(service, this.adminRouter);
+
+    // IMB callback/webhook routes - no auth required, verified by signature
+    this.imbRouter.get('/callback', (req, res) => controller.imbCallback(req, res));
+    this.imbRouter.post('/callback', (req, res) => controller.imbWebhook(req, res));
+    this.imbRouter.post('/webhook', (req, res) => controller.imbWebhook(req, res));
   }
 }

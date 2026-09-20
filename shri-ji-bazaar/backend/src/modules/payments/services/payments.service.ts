@@ -250,4 +250,55 @@ export class PaymentsService {
   async getStats() {
     return this.paymentsRepo.getStats();
   }
+
+  async getAllPayments({ page, limit, type, status, dateFrom, dateTo, search }: {
+    page: number;
+    limit: number;
+    type?: string;
+    status?: string;
+    dateFrom?: string;
+    dateTo?: string;
+    search?: string;
+  }): Promise<{ data: PaymentEntity[]; total: number; page: number; limit: number }> {
+    const from = (page - 1) * limit;
+    const to = from + limit - 1;
+
+    let query = supabase.from('payments').select('*', { count: 'exact' });
+
+    if (type) query = query.eq('type', type);
+    if (status) query = query.eq('status', status);
+    if (dateFrom) query = query.gte('created_at', dateFrom);
+    if (dateTo) query = query.lte('created_at', dateTo);
+    if (search) {
+      query = query.or(`reference_id.ilike.%${search}%,user_id.ilike.%${search}%`);
+    }
+
+    const { data, count } = await query.order('created_at', { ascending: false }).range(from, to);
+
+    return {
+      data: (data || []).map((row: any) => ({
+        id: row.id,
+        userId: row.user_id,
+        processedBy: row.processed_by,
+        type: row.type,
+        amount: row.amount,
+        currency: row.currency,
+        method: row.method,
+        status: row.status,
+        referenceId: row.reference_id,
+        referenceType: row.reference_type,
+        notes: row.notes,
+        adminNotes: row.admin_notes,
+        balanceBefore: row.balance_before,
+        balanceAfter: row.balance_after,
+        approvedAt: row.approved_at,
+        completedAt: row.completed_at,
+        createdAt: row.created_at,
+        updatedAt: row.updated_at,
+      })),
+      total: count || 0,
+      page,
+      limit,
+    };
+  }
 }

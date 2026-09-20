@@ -31,6 +31,14 @@ class AuthController extends ChangeNotifier {
     _status = AuthStatus.loading;
     notifyListeners();
 
+    final cachedUser = await _loadCachedUser();
+    if (cachedUser != null) {
+      _user = cachedUser;
+      _status = AuthStatus.authenticated;
+      notifyListeners();
+      return;
+    }
+
     try {
       await fetchCurrentUser();
     } catch (_) {
@@ -41,6 +49,54 @@ class AuthController extends ChangeNotifier {
         await _silentLogout();
       }
     }
+  }
+
+  Future<UserEntity?> _loadCachedUser() async {
+    try {
+      final raw = await SecureStorage.readUser();
+      if (raw == null) return null;
+      return UserEntity(
+        id: raw['id'] as String,
+        name: raw['name'] as String,
+        mobile: raw['mobile'] as String,
+        email: raw['email'] as String? ?? '',
+        referralCode: raw['referralCode'] as String? ?? '',
+        status: raw['status'] as String? ?? 'active',
+        createdAt: raw['createdAt'] != null ? DateTime.tryParse(raw['createdAt'].toString()) ?? DateTime.now() : DateTime.now(),
+        updatedAt: raw['updatedAt'] != null ? DateTime.tryParse(raw['updatedAt'].toString()) ?? DateTime.now() : DateTime.now(),
+      );
+    } catch (_) {
+      return null;
+    }
+  }
+
+  Future<void> _cacheUser(UserEntity user) async {
+    await SecureStorage.writeUser({
+      'id': user.id,
+      'name': user.name,
+      'mobile': user.mobile,
+      'email': user.email,
+      'referralCode': user.referralCode,
+      'status': user.status,
+      'createdAt': user.createdAt?.toIso8601String() ?? DateTime.now().toIso8601String(),
+      'updatedAt': user.updatedAt?.toIso8601String() ?? DateTime.now().toIso8601String(),
+    });
+  }
+
+  Future<void> _applyUserFromApi(Map<String, dynamic> data) async {
+    _user = UserEntity(
+      id: data['id'] as String,
+      name: data['name'] as String,
+      mobile: data['mobile'] as String,
+      email: data['email'] as String? ?? '',
+      referralCode: data['referral_code'] as String? ?? data['referralCode'] as String? ?? '',
+      status: data['status'] as String? ?? 'active',
+      createdAt: data['created_at'] != null ? DateTime.tryParse(data['created_at'].toString()) ?? DateTime.now() : DateTime.now(),
+      updatedAt: data['updated_at'] != null ? DateTime.tryParse(data['updated_at'].toString()) ?? DateTime.now() : DateTime.now(),
+    );
+    await _cacheUser(_user!);
+    _status = AuthStatus.authenticated;
+    notifyListeners();
   }
 
   Future<bool> _tryRefresh() async {
@@ -55,7 +111,7 @@ class AuthController extends ChangeNotifier {
       return true;
     } catch (e) {
       if (kDebugMode) {
-        print('AuthController: refresh failed - ${e.toString().replaceFirst("Exception: ", "")}');
+        print('AuthController: refresh failed - ${e.toString().replaceFirst('Exception: ', '')}');
       }
       return false;
     }
@@ -102,6 +158,7 @@ class AuthController extends ChangeNotifier {
         createdAt: data['user']['createdAt'] != null ? DateTime.tryParse(data['user']['createdAt'].toString()) ?? DateTime.now() : DateTime.now(),
         updatedAt: data['user']['updatedAt'] != null ? DateTime.tryParse(data['user']['updatedAt'].toString()) ?? DateTime.now() : DateTime.now(),
       );
+      await _cacheUser(_user!);
       _status = AuthStatus.authenticated;
       notifyListeners();
     } catch (e) {
@@ -136,6 +193,7 @@ class AuthController extends ChangeNotifier {
         createdAt: data['user']['createdAt'] != null ? DateTime.tryParse(data['user']['createdAt'].toString()) ?? DateTime.now() : DateTime.now(),
         updatedAt: data['user']['updatedAt'] != null ? DateTime.tryParse(data['user']['updatedAt'].toString()) ?? DateTime.now() : DateTime.now(),
       );
+      await _cacheUser(_user!);
       _status = AuthStatus.authenticated;
       notifyListeners();
     } catch (e) {
@@ -148,15 +206,7 @@ class AuthController extends ChangeNotifier {
   Future<void> fetchCurrentUser() async {
     final response = await ApiClient().dio.get('/users/me');
     final data = response.data['data'];
-    _user = UserEntity(
-      id: data['id'],
-      name: data['name'],
-      mobile: data['mobile'],
-      email: data['email'],
-      referralCode: data['referral_code'],
-    );
-    _status = AuthStatus.authenticated;
-    notifyListeners();
+    await _applyUserFromApi(data);
   }
 
   Future<void> forgotPassword(String mobile) async {

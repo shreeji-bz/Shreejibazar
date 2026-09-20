@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 import 'package:shri_ji_bazaar/core/theme/app_text_styles.dart';
 import '../controllers/payment_controller.dart';
+import 'imb_payment_page.dart';
 
 class DepositPage extends StatelessWidget {
   const DepositPage({super.key});
@@ -53,27 +55,29 @@ class _DepositFormState extends State<_DepositForm> {
         children: [
           TextFormField(
             controller: _amountController,
-            keyboardType: TextInputType.number,
+            keyboardType: const TextInputType.numberWithOptions(decimal: true),
             decoration: const InputDecoration(
-              labelText: 'Amount',
+              labelText: 'Amount (INR)',
               hintText: 'Enter deposit amount',
-              prefixIcon: Icon(Icons.attach_money_rounded),
+              prefixIcon: Icon(Icons.currency_rupee_rounded),
             ),
             validator: (value) {
               if (value == null || value.isEmpty) return 'Please enter amount';
               final amount = double.tryParse(value);
               if (amount == null || amount <= 0) return 'Enter a valid amount';
-              if (amount < 50) return 'Minimum deposit is \$50';
+              if (amount < 50) return 'Minimum deposit is ₹50';
               return null;
             },
           ),
           const SizedBox(height: 24),
           Text('Payment Method', style: AppTextStyles.sectionHeading),
           const SizedBox(height: 12),
-          ...['UPI', 'Bank Transfer', 'Credit Card', 'Debit Card'].map((method) {
+          ...['UPI', 'IMPS (IMB)', 'Bank Transfer'].map((method) {
             final isSelected = _selectedMethod == method;
             return GestureDetector(
-              onTap: () => setState(() => _selectedMethod = method),
+              onTap: () {
+                setState(() => _selectedMethod = method);
+              },
               child: Container(
                 margin: const EdgeInsets.only(bottom: 10),
                 padding: const EdgeInsets.all(16),
@@ -89,7 +93,16 @@ class _DepositFormState extends State<_DepositForm> {
                   children: [
                     Icon(_methodIcon(method), color: isSelected ? Theme.of(context).colorScheme.primary : Colors.grey),
                     const SizedBox(width: 12),
-                    Expanded(child: Text(method, style: AppTextStyles.body)),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(method, style: AppTextStyles.body),
+                          if (method == 'IMPS (IMB)')
+                            Text('Instant bank transfer via IMB', style: AppTextStyles.caption),
+                        ],
+                      ),
+                    ),
                     if (isSelected) Icon(Icons.check_circle_rounded, color: Theme.of(context).colorScheme.primary),
                   ],
                 ),
@@ -120,21 +133,65 @@ class _DepositFormState extends State<_DepositForm> {
                     child: ElevatedButton(
                       onPressed: isLoading ? null : () async {
                         if (_formKey.currentState!.validate()) {
-                          final success = await paymentController.requestDeposit(
-                            amount: double.parse(_amountController.text.trim()),
-                            method: _selectedMethod,
-                          );
-                          if (success && context.mounted) {
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              const SnackBar(content: Text('Deposit request submitted!'), backgroundColor: Color(0xFF25C85A)),
+                          final amount = double.parse(_amountController.text.trim());
+
+                          if (_selectedMethod == 'IMPS (IMB)') {
+                            // Create IMB order first, then open WebView
+                            final controller = Provider.of<PaymentController>(context, listen: false);
+                            final result = await controller.initiateImbPayment(amount);
+
+                            if (result == null || !mounted) return;
+
+                            final paymentUrl = result['paymentUrl'] as String? ?? '';
+                            final orderId = result['orderId'] as String? ?? '';
+
+                            if (paymentUrl.isEmpty) {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                const SnackBar(
+                                  content: Text('Failed to create payment order. Please try again.'),
+                                  backgroundColor: Color(0xFFE53935),
+                                ),
+                              );
+                              return;
+                            }
+
+                            final webViewResult = await context.push<bool>(RouteNames.imbPayment, extra: {
+                              'paymentUrl': paymentUrl,
+                              'orderId': orderId,
+                              'amount': amount,
+                            });
+
+                            if (webViewResult == true && context.mounted) {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                const SnackBar(
+                                  content: Text('Deposit successful!'),
+                                  backgroundColor: Color(0xFF25C85A),
+                                ),
+                              );
+                              _amountController.clear();
+                              await controller.loadHistory();
+                            }
+                          } else {
+                            // Standard manual deposit
+                            final success = await paymentController.requestDeposit(
+                              amount: amount,
+                              method: _selectedMethod,
                             );
-                            _amountController.clear();
+                            if (success && context.mounted) {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                const SnackBar(
+                                  content: Text('Deposit request submitted!'),
+                                  backgroundColor: Color(0xFF25C85A),
+                                ),
+                              );
+                              _amountController.clear();
+                            }
                           }
                         }
                       },
                       child: isLoading
                           ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
-                          : const Text('Deposit', style: TextStyle(fontSize: 16)),
+                          : Text(_selectedMethod == 'IMPS (IMB)' ? 'Pay Now' : 'Deposit', style: const TextStyle(fontSize: 16)),
                     ),
                   ),
                 ],
@@ -150,12 +207,10 @@ class _DepositFormState extends State<_DepositForm> {
     switch (method) {
       case 'UPI':
         return Icons.payment_rounded;
-      case 'Bank Transfer':
+      case 'IMPS (IMB)':
         return Icons.account_balance_rounded;
-      case 'Credit Card':
-        return Icons.credit_card_rounded;
-      case 'Debit Card':
-        return Icons.credit_score_rounded;
+      case 'Bank Transfer':
+        return Icons.account_balance_wallet_rounded;
       default:
         return Icons.payment_rounded;
     }

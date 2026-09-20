@@ -2,24 +2,25 @@ import { Request, Response, NextFunction } from 'express';
 import { UsersService } from '../services/users.service';
 import { AppError } from '../../../common/utils/error.util';
 import { singleAvatar, handleUploadError } from '../../../common/middleware/upload.middleware';
+import { supabase } from '../../../config/database.config';
 
 export class UsersController {
   constructor(private usersService: UsersService, private router: any) {
     this.initializeRoutes();
   }
   initializeRoutes() {
-    // Admin endpoints
-    this.router.get('/', this.getAll.bind(this));
-    this.router.get('/:id', this.getById.bind(this));
-    this.router.patch('/:id', this.update.bind(this));
-    this.router.patch('/:id/status', this.updateStatus.bind(this));
-
-    // Self-service profile endpoints
+    // Self-service profile endpoints (must come before /:id to avoid shadowing)
     this.router.get('/me', this.getMe.bind(this));
     this.router.patch('/me', this.updateMe.bind(this));
     this.router.post('/me/avatar', singleAvatar, this.uploadAvatar.bind(this));
     this.router.post('/me/change-password', this.changePassword.bind(this));
     this.router.delete('/me', this.deleteAccount.bind(this));
+
+    // Admin endpoints
+    this.router.get('/', this.getAll.bind(this));
+    this.router.get('/:id', this.getById.bind(this));
+    this.router.patch('/:id', this.update.bind(this));
+    this.router.patch('/:id/status', this.updateStatus.bind(this));
   }
 
   async getAll(req: Request, res: Response) {
@@ -45,8 +46,19 @@ export class UsersController {
   async getMe(req: Request, res: Response) {
     try {
       if (!req.user) throw new AppError(401, 'UNAUTHORIZED', 'Not authenticated');
+      console.log('getMe: looking up user id=', req.user.id);
       const data = await this.usersService.getById(req.user.id);
-      res.json({ success: true, data });
+      console.log('getMe: found user', data ? JSON.stringify(data).substring(0, 200) : 'NULL');
+
+      // Fetch wallet balance from points_wallet table
+      const { data: wallet } = await supabase
+        .from('points_wallet')
+        .select('balance')
+        .eq('user_id', req.user.id)
+        .maybeSingle();
+
+      const points = wallet?.balance ?? 0;
+      res.json({ success: true, data: { ...data, points } });
     } catch (error: any) {
       const status = error.statusCode || 500;
       res.status(status).json({ success: false, message: error.message });

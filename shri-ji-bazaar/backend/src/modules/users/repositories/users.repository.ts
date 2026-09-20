@@ -6,7 +6,16 @@ import { supabase } from '../../../config/database.config';
 
 export class UsersRepository {
   async findById(id: string): Promise<any | null> {
-    const { data } = await supabase.from('users').select('*').eq('id', id).single();
+    const { data, error } = await supabase
+      .from('users')
+      .select('id, name, mobile, email, avatar, referral_code, referred_by, status, last_login, created_at, updated_at, password_hash')
+      .eq('id', id)
+      .single();
+
+    if (error) {
+      console.error(`UsersRepository.findById error for id=${id}:`, JSON.stringify(error));
+      return null;
+    }
     return data || null;
   }
 

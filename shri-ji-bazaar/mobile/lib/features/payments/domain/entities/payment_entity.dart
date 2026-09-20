@@ -4,7 +4,7 @@ class PaymentEntity {
   final String type; // 'deposit' or 'withdrawal'
   final double amount;
   final String currency;
-  final String method; // 'upi', 'bank_transfer', 'paytm', 'phonepe'
+  final String method; // 'upi', 'bank_transfer', 'paytm', 'phonepe', 'imps'
   final String status; // 'pending', 'approved', 'completed', 'rejected', 'failed'
   final String? referenceId;
   final String? notes;

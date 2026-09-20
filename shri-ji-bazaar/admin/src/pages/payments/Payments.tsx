@@ -59,13 +59,13 @@ export const Payments = () => {
     dispatch(setFilters({ dateTo: dateTo || undefined, page: 1 }));
   };
 
-  const totalDeposits = list
+  const totalDeposits = (list || [])
     .filter((p) => p.type === 'deposit' && (p.status === 'approved' || p.status === 'completed'))
     .reduce((sum, p) => sum + p.amount, 0);
-  const totalWithdrawals = list
+  const totalWithdrawals = (list || [])
     .filter((p) => p.type === 'withdrawal' && (p.status === 'approved' || p.status === 'completed'))
     .reduce((sum, p) => sum + p.amount, 0);
-  const pendingApprovals = list.filter((p) => p.status === 'pending').length;
+  const pendingApprovals = (list || []).filter((p) => p.status === 'pending').length;
 
   return (
     <div className="p-6">

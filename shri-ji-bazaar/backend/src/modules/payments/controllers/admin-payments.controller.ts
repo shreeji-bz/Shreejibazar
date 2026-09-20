@@ -7,6 +7,7 @@ export class AdminPaymentsController {
   }
 
   initializeRoutes() {
+    this.router.get('/', this.getAllPayments.bind(this));
     this.router.get('/pending/deposits', this.getPendingDeposits.bind(this));
     this.router.get('/pending/withdrawals', this.getPendingWithdrawals.bind(this));
     this.router.post('/:id/approve', this.approvePayment.bind(this));
@@ -29,6 +30,30 @@ export class AdminPaymentsController {
       const limit = parseInt(req.query.limit as string) || 50;
       const data = await this.paymentsService.getPendingWithdrawals(limit);
       res.json({ success: true, data, count: data.length });
+    } catch (error: any) {
+      res.status(500).json({ success: false, message: error.message });
+    }
+  }
+
+  async getAllPayments(req: Request, res: Response) {
+    try {
+      const page = Math.max(1, parseInt(req.query.page as string) || 1);
+      const limit = Math.min(100, parseInt(req.query.limit as string) || 20);
+      const type = req.query.type as string | undefined;
+      const status = req.query.status as string | undefined;
+      const dateFrom = req.query.dateFrom as string | undefined;
+      const dateTo = req.query.dateTo as string | undefined;
+      const search = req.query.search as string | undefined;
+
+      const result = await this.paymentsService.getAllPayments({ page, limit, type, status, dateFrom, dateTo, search });
+      res.json({
+        success: true,
+        data: result.data,
+        total: result.total,
+        page: result.page,
+        limit: result.limit,
+        totalPages: Math.ceil(result.total / result.limit),
+      });
     } catch (error: any) {
       res.status(500).json({ success: false, message: error.message });
     }

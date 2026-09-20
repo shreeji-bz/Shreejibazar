@@ -2,10 +2,13 @@ import { supabase } from '../../../config/database.config';
 
 export class SettingsRepository {
   async getAll() {
-    const { data } = await supabase.from('settings').select('*');
-    const settings: Record<string, any> = {};
-    (data || []).forEach((s: any) => { settings[s.key] = s.value; });
-    return settings;
+    const { data } = await supabase.from('settings').select('*').order('key');
+    return (data || []).map((row: any) => ({
+      key: row.key,
+      value: row.value,
+      type: row.type || 'text',
+      updatedAt: row.updated_at,
+    }));
   }
 
   async getByKey(key: string) {

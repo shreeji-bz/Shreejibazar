@@ -17,6 +17,7 @@ import '../../features/payments/presentation/pages/wallet_page.dart';
 import '../../features/payments/presentation/pages/deposit_page.dart';
 import '../../features/payments/presentation/pages/withdraw_page.dart';
 import '../../features/payments/presentation/pages/payment_history_page.dart';
+import '../../features/payments/presentation/pages/imb_payment_page.dart';
 import '../../features/bonuses/presentation/pages/bonuses_page.dart';
 import '../../features/referrals/presentation/pages/referrals_page.dart';
 import '../../features/notifications/presentation/pages/notifications_page.dart';
@@ -89,6 +90,24 @@ GoRouter createRouter(BuildContext context) {
           GoRoute(path: RouteNames.settings, builder: (_, __) => const SettingsPage()),
           GoRoute(path: RouteNames.about, builder: (_, __) => const AboutPage()),
         ],
+      ),
+      GoRoute(
+        path: RouteNames.imbPayment,
+        builder: (context, state) {
+          final extra = state.extra as Map<String, dynamic>? ?? {};
+          final paymentUrl = extra['paymentUrl'] as String? ?? '';
+          final orderId = extra['orderId'] as String? ?? '';
+          final amount = (extra['amount'] as num?)?.toDouble() ?? 0.0;
+
+          if (paymentUrl.isEmpty || orderId.isEmpty) {
+            return Scaffold(
+              appBar: AppBar(title: const Text('Payment')),
+              body: const Center(child: Text('Invalid payment request')),
+            );
+          }
+
+          return ImbPaymentPage(paymentUrl: paymentUrl, orderId: orderId, amount: amount);
+        },
       ),
     ],
   );

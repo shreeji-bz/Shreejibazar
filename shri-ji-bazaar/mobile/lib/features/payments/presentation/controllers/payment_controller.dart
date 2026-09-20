@@ -3,6 +3,7 @@ import '../../domain/entities/payment_entity.dart';
 import '../../domain/usecases/create_deposit.dart';
 import '../../domain/usecases/create_withdrawal.dart';
 import '../../domain/usecases/get_payment_history.dart';
+import '../../domain/usecases/create_imb_order.dart';
 
 enum PaymentFilter { all, deposits, withdrawals }
 
@@ -10,11 +11,13 @@ class PaymentController extends ChangeNotifier {
   final CreateDeposit createDeposit;
   final CreateWithdrawal createWithdrawal;
   final GetPaymentHistory getPaymentHistory;
+  final CreateImbOrder createImbOrder;
 
   PaymentController({
     required this.createDeposit,
     required this.createWithdrawal,
     required this.getPaymentHistory,
+    required this.createImbOrder,
   });
 
   // State
@@ -154,6 +157,19 @@ class PaymentController extends ChangeNotifier {
     } catch (e) {
       _setError(e.toString());
       return false;
+    } finally {
+      _setProcessing(false);
+    }
+  }
+
+  Future<Map<String, dynamic>?> initiateImbPayment(double amount) async {
+    _setProcessing(true);
+    try {
+      final result = await createImbOrder.execute(amount);
+      return result;
+    } catch (e) {
+      _setError(e.toString());
+      return null;
     } finally {
       _setProcessing(false);
     }

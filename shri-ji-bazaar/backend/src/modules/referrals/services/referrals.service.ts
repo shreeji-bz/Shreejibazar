@@ -12,6 +12,10 @@ export class ReferralsService {
     return this.referralsRepo.getList(userId);
   }
 
+  async getAllReferrals(page: number, limit: number) {
+    return this.referralsRepo.getAllReferrals(page, limit);
+  }
+
   async applyReferral(userId: string, referralCode: string) {
     const { data: referrer } = await supabase.from('auth.users').select('id').eq('referral_code', referralCode).single();
     if (!referrer) throw new Error('Invalid referral code');

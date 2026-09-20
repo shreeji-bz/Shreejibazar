@@ -1,4 +1,4 @@
-import { Request, Response } from 'express';
+import { Router } from 'express';
 import { WagersService } from '../services/wagers.service';
 import { WagersRepository } from '../repositories/wagers.repository';
 import { supabase } from '../../../config/database.config';
@@ -68,6 +68,97 @@ export class AdminWagersController {
       res.json({ success: true, data });
     } catch (error: any) {
       res.status(500).json({ success: false, message: error.message });
+    }
+  }
+
+  async getWagerById(req: Request, res: Response) {
+    try {
+      const data = await this.wagersService.getWagerById(req.params.id);
+      res.json({ success: true, data });
+    } catch (error: any) {
+      if (error.message === 'Wager not found') {
+        res.status(404).json({ success: false, message: error.message });
+      } else {
+        res.status(500).json({ success: false, message: error.message });
+      }
+    }
+  }
+
+  async getWagersByRound(req: Request, res: Response) {
+    try {
+      const wagers = await this.wagersRepo.findByRoundId(req.params.roundId);
+      res.json({ success: true, data: wagers });
+    } catch (error: any) {
+      res.status(500).json({ success: false, message: error.message });
+    }
+  }
+
+  async voidWager(req: Request, res: Response) {
+    try {
+      const data = await this.wagersService.voidWager(req.params.id, req.body.reason || '');
+      res.json({ success: true, data, message: 'Wager voided successfully. Points refunded.' });
+    } catch (error: any) {
+      if (error.message === 'Wager not found') {
+        res.status(404).json({ success: false, message: error.message });
+      } else {
+        res.status(400).json({ success: false, message: error.message });
+      }
+    }
+  }
+
+  async settleRoundWagers(req: Request, res: Response) {
+    try {
+      const { resultText, winningSelection } = req.body;
+      if (!resultText) {
+        return res.status(400).json({ success: false, message: 'resultText is required' });
+      }
+
+      const activeWagers = await this.wagersService.getActiveWagersForRound(req.params.roundId);
+      const settledWagers: any[] = [];
+
+      for (const wager of activeWagers) {
+        const isWinner = this.checkWagerWin(wager, winningSelection || resultText);
+        const payout = isWinner ? wager.potentialPayout : 0;
+
+        try {
+          const settled = await this.wagersService.settleWager(wager.id, {
+            resultText,
+            isWinner,
+            pointsWon: payout,
+          });
+          settledWagers.push(settled);
+        } catch (err) {
+          settledWagers.push({ id: wager.id, error: (err as Error).message });
+        }
+      }
+
+      res.json({
+        success: true,
+        data: {
+          totalSettled: settledWagers.length,
+          wagers: settledWagers,
+        },
+      });
+    } catch (error: any) {
+      res.status(500).json({ success: false, message: error.message });
+    }
+  }
+
+  private checkWagerWin(wager: any, resultText: string): boolean {
+    const resultDigits = resultText.replace(/\s/g, '').split('');
+    const selection = wager.selection.trim();
+
+    switch (wager.playType) {
+      case 'single':
+        return resultDigits.includes(selection);
+      case 'double':
+        return resultText.replace(/\s/g, '').includes(selection);
+      case 'jodi':
+        return resultText.replace(/\s/g, '').includes(selection);
+      case 'panel':
+        return selection.split('').every((digit: string) => resultDigits.includes(digit));
+      default:
+        return false;
     }
   }
 }
