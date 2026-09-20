@@ -22,16 +22,51 @@ class AuthController extends ChangeNotifier {
 
   Future<void> _checkAuthStatus() async {
     final token = await SecureStorage.readToken();
-    if (token != null && token.isNotEmpty) {
-      try {
-        await fetchCurrentUser();
-      } catch (_) {
-        await logout();
-      }
-    } else {
+    if (token == null || token.isEmpty) {
       _status = AuthStatus.unauthenticated;
       notifyListeners();
+      return;
     }
+
+    _status = AuthStatus.loading;
+    notifyListeners();
+
+    try {
+      await fetchCurrentUser();
+    } catch (_) {
+      final refreshed = await _tryRefresh();
+      if (refreshed) {
+        await fetchCurrentUser();
+      } else {
+        await _silentLogout();
+      }
+    }
+  }
+
+  Future<bool> _tryRefresh() async {
+    final refreshToken = await SecureStorage.readRefreshToken();
+    if (refreshToken == null || refreshToken.isEmpty) return false;
+
+    try {
+      final response = await ApiClient().dio.post('/auth/refresh', data: { 'refreshToken': refreshToken });
+      final data = response.data['data'];
+      await SecureStorage.writeToken(data['accessToken']);
+      await SecureStorage.writeRefreshToken(data['refreshToken']);
+      return true;
+    } catch (e) {
+      if (kDebugMode) {
+        print('AuthController: refresh failed - ${e.toString().replaceFirst("Exception: ", "")}');
+      }
+      return false;
+    }
+  }
+
+  Future<void> _silentLogout() async {
+    await SecureStorage.deleteAll();
+    _user = null;
+    _status = AuthStatus.unauthenticated;
+    _errorMessage = null;
+    notifyListeners();
   }
 
   Future<void> register({
@@ -111,21 +146,17 @@ class AuthController extends ChangeNotifier {
   }
 
   Future<void> fetchCurrentUser() async {
-    try {
-      final response = await ApiClient().dio.get('/users/me');
-      final data = response.data['data'];
-      _user = UserEntity(
-        id: data['id'],
-        name: data['name'],
-        mobile: data['mobile'],
-        email: data['email'],
-        referralCode: data['referral_code'],
-      );
-      _status = AuthStatus.authenticated;
-      notifyListeners();
-    } catch (e) {
-      await logout();
-    }
+    final response = await ApiClient().dio.get('/users/me');
+    final data = response.data['data'];
+    _user = UserEntity(
+      id: data['id'],
+      name: data['name'],
+      mobile: data['mobile'],
+      email: data['email'],
+      referralCode: data['referral_code'],
+    );
+    _status = AuthStatus.authenticated;
+    notifyListeners();
   }
 
   Future<void> forgotPassword(String mobile) async {
@@ -177,11 +208,7 @@ class AuthController extends ChangeNotifier {
     } catch (_) {
       // Ignore logout errors
     } finally {
-      await SecureStorage.deleteAll();
-      _user = null;
-      _status = AuthStatus.unauthenticated;
-      _errorMessage = null;
-      notifyListeners();
+      await _silentLogout();
     }
   }
 

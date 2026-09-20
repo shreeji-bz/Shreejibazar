@@ -6,7 +6,8 @@ class ProfileDatasource {
 
   Future<ProfileModel> getProfile() async {
     final response = await _apiClient.dio.get('/users/me');
-    return ProfileModel.fromJson(response.data['data']);
+    final data = response.data is Map<String, dynamic> ? response.data['data'] as Map<String, dynamic>? ?? response.data : response.data;
+    return ProfileModel.fromJson(data as Map<String, dynamic>);
   }
 
   Future<ProfileModel> updateProfile({String? name, String? email, String? mobile, String? avatar}) async {
@@ -17,7 +18,8 @@ class ProfileDatasource {
     if (avatar != null) body['avatar'] = avatar;
 
     final response = await _apiClient.dio.patch('/users/me', data: body);
-    return ProfileModel.fromJson(response.data['data']);
+    final data = response.data is Map<String, dynamic> ? response.data['data'] as Map<String, dynamic>? ?? response.data : response.data;
+    return ProfileModel.fromJson(data as Map<String, dynamic>);
   }
 
   Future<void> changePassword({required String currentPassword, required String newPassword}) async {

@@ -80,7 +80,8 @@ apiRouter.use('/notifications', authenticateToken, new NotificationsModule().rou
 apiRouter.use('/support', authenticateToken, new SupportModule().router);
 apiRouter.use('/banners', authenticateToken, new BannersModule().router);
 apiRouter.use('/settings', authenticateToken, new SettingsModule().router);
-apiRouter.use('/wagers', authenticateToken, new WagersModule().router);
+// Temporarily disabled to debug /admin/wagers auth collision
+// apiRouter.use('/wagers', authenticateToken, new WagersModule().router);
 apiRouter.use('/payments', authenticateToken, paymentsModule.router);
 apiRouter.use('/settlements', authenticateToken, new SettlementsModule().router);
 
@@ -89,6 +90,11 @@ apiRouter.use('/admin/auth', adminModule.publicRouter);
 apiRouter.use('/admin/wagers', authenticateAdmin, new WagersModule().adminRouter);
 apiRouter.use('/admin/payments', authenticateAdmin, paymentsModule.adminRouter);
 apiRouter.use('/admin', authenticateAdmin, adminModule.protectedRouter);
+
+// Diagnostic route
+apiRouter.get('/admin/wagers-test', (req: Request, res: Response) => {
+  res.json({ success: true, message: 'wagers-test reached' });
+});
 
 app.use('/api/v1', apiRouter);
 

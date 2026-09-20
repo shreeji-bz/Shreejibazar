@@ -5,8 +5,22 @@ import 'package:shri_ji_bazaar/core/theme/app_text_styles.dart';
 import 'package:shri_ji_bazaar/core/routes/route_names.dart';
 import '../controllers/profile_controller.dart';
 
-class ProfilePage extends StatelessWidget {
+class ProfilePage extends StatefulWidget {
   const ProfilePage({super.key});
+
+  @override
+  State<ProfilePage> createState() => _ProfilePageState();
+}
+
+class _ProfilePageState extends State<ProfilePage> {
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    final controller = Provider.of<ProfileController>(context, listen: false);
+    if (controller.status == ProfileStatus.initial && controller.profile == null) {
+      controller.loadProfile();
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -29,6 +43,10 @@ class ProfilePage extends StatelessWidget {
             final email = profileController.displayEmail;
             final referralCode = profileController.displayReferralCode;
             final points = profileController.displayPoints;
+
+            if (profileController.status == ProfileStatus.loading && profileController.profile == null) {
+              return const Center(child: CircularProgressIndicator());
+            }
 
             return SingleChildScrollView(
               padding: const EdgeInsets.all(16),

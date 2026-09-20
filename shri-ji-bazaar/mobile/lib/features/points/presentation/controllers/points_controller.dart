@@ -1,5 +1,4 @@
 import 'package:flutter/foundation.dart';
-import '../../domain/entities/points_entity.dart';
 import '../../domain/usecases/get_points_balance.dart';
 import '../../domain/usecases/get_points_history.dart';
 

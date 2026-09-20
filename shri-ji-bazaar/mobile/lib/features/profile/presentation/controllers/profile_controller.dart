@@ -1,16 +1,15 @@
 import 'package:flutter/foundation.dart';
 import '../../domain/entities/profile_entity.dart';
 import '../../domain/usecases/get_profile.dart';
-import '../../../authentication/presentation/controllers/auth_controller.dart';
+import '../../../../core/storage/secure_storage.dart';
 
 enum ProfileStatus { initial, loading, success, error }
 
 class ProfileController extends ChangeNotifier {
   final GetProfileUseCase _getProfile;
   final UpdateProfileUseCase _updateProfile;
-  final AuthController _authController;
 
-  ProfileController(this._getProfile, this._updateProfile, this._authController);
+  ProfileController(this._getProfile, this._updateProfile);
 
   ProfileEntity? _profile;
   ProfileEntity? get profile => _profile;
@@ -21,26 +20,31 @@ class ProfileController extends ChangeNotifier {
   String? _errorMessage;
   String? get errorMessage => _errorMessage;
 
-  bool get isAuthenticated => _authController.isAuthenticated;
+  bool get isAuthenticated => _profile != null;
 
   Future<void> loadProfile() async {
-    if (!_authController.isAuthenticated) return;
+    final token = await SecureStorage.readToken();
+    if (kDebugMode) print('ProfileController: token present=${token != null && token.isNotEmpty}');
+    if (token == null || token.isEmpty) return;
     _status = ProfileStatus.loading;
     _errorMessage = null;
     notifyListeners();
 
     try {
       _profile = await _getProfile.execute();
+      if (kDebugMode) print('ProfileController: loaded ${_profile?.name ?? 'no name'}');
       _status = ProfileStatus.success;
     } catch (e) {
       _status = ProfileStatus.error;
       _errorMessage = e.toString().replaceAll('Exception: ', '');
+      if (kDebugMode) print('ProfileController: loadProfile failed - $_errorMessage');
     }
     notifyListeners();
   }
 
   Future<void> updateProfileInfo({String? name, String? email}) async {
-    if (!_authController.isAuthenticated) return;
+    final token = await SecureStorage.readToken();
+    if (token == null || token.isEmpty) return;
     _status = ProfileStatus.loading;
     _errorMessage = null;
     notifyListeners();
@@ -64,7 +68,7 @@ class ProfileController extends ChangeNotifier {
   Future<void> logout() async {
     _status = ProfileStatus.loading;
     notifyListeners();
-    await _authController.logout();
+    await SecureStorage.deleteAll();
     _profile = null;
     _status = ProfileStatus.initial;
     notifyListeners();

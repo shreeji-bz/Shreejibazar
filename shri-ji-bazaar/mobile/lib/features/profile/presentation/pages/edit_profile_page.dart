@@ -8,7 +8,6 @@ import '../controllers/profile_controller.dart';
 import '../../../profile/domain/usecases/get_profile.dart';
 import '../../../profile/data/repositories/profile_repository.dart';
 import '../../../profile/data/datasources/profile_datasource.dart';
-import '../../../authentication/presentation/controllers/auth_controller.dart';
 
 class EditProfilePage extends StatelessWidget {
   const EditProfilePage({super.key});
@@ -19,7 +18,6 @@ class EditProfilePage extends StatelessWidget {
       create: (_) => ProfileController(
         GetProfileUseCase(ProfileRepository(ProfileDatasource())),
         UpdateProfileUseCase(ProfileRepository(ProfileDatasource())),
-        AuthController(),
       )..loadProfile(),
       child: const _EditProfileContent(),
     );
