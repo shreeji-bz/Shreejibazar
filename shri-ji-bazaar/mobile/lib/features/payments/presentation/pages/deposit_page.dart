@@ -2,8 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 import 'package:shri_ji_bazaar/core/theme/app_text_styles.dart';
+import 'package:shri_ji_bazaar/core/routes/route_names.dart';
 import '../controllers/payment_controller.dart';
-import 'imb_payment_page.dart';
 
 class DepositPage extends StatelessWidget {
   const DepositPage({super.key});
@@ -65,7 +65,7 @@ class _DepositFormState extends State<_DepositForm> {
               if (value == null || value.isEmpty) return 'Please enter amount';
               final amount = double.tryParse(value);
               if (amount == null || amount <= 0) return 'Enter a valid amount';
-              if (amount < 50) return 'Minimum deposit is ₹50';
+              if (amount < 1) return 'Minimum deposit is ₹1';
               return null;
             },
           ),

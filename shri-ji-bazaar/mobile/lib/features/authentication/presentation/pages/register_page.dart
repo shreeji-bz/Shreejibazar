@@ -1,8 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
-import '../../../../core/routes/route_names.dart';
 import '../controllers/auth_controller.dart';
 
 class RegisterPage extends StatelessWidget {
@@ -48,7 +46,7 @@ class RegisterPage extends StatelessWidget {
                     style: Theme.of(context).textTheme.bodyMedium,
                   ),
                   TextButton(
-                    onPressed: () => GoRouter.of(context).push(RouteNames.login),
+                    onPressed: () => Navigator.pop(context),
                     child: const Text('Login'),
                   ),
                 ],

@@ -1,8 +1,10 @@
 import { supabase } from '../../../config/database.config';
+import { invalidateSettingsCache } from '../../../common/utils/settings.util';
 
 export class SettingsRepository {
   async getAll() {
     const { data } = await supabase.from('settings').select('*').order('key');
+    invalidateSettingsCache();
     return (data || []).map((row: any) => ({
       key: row.key,
       value: row.value,
@@ -17,11 +19,15 @@ export class SettingsRepository {
   }
 
   async set(key: string, value: string) {
-    return supabase.from('settings').upsert({ key, value, updated_at: new Date().toISOString() }).select().single();
+    const result = await supabase.from('settings').upsert({ key, value, updated_at: new Date().toISOString() }).select().single();
+    invalidateSettingsCache();
+    return result;
   }
 
   async setMany(updates: Record<string, string>) {
     const rows = Object.entries(updates).map(([key, value]) => ({ key, value: String(value), updated_at: new Date().toISOString() }));
-    return supabase.from('settings').upsert(rows);
+    const result = await supabase.from('settings').upsert(rows);
+    invalidateSettingsCache();
+    return result;
   }
 }

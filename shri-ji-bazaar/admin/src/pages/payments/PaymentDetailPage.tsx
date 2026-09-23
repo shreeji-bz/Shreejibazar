@@ -89,33 +89,33 @@ export const PaymentDetailPage = () => {
               </div>
               <div>
                 <p className="text-text-muted text-sm">Amount</p>
-                <p className="text-sm mt-1 font-semibold">{payment.amount.toLocaleString('en-IN')}</p>
+                <p className="text-sm mt-1 font-semibold">{(payment.amount ?? 0).toLocaleString('en-IN')}</p>
               </div>
               <div>
                 <p className="text-text-muted text-sm">Method</p>
-                <p className="text-sm mt-1">{payment.method}</p>
+                <p className="text-sm mt-1">{payment.method || '-'}</p>
               </div>
               <div>
                 <p className="text-text-muted text-sm">Status</p>
                 <span className={`inline-block mt-1.5 px-2 py-0.5 rounded-full text-xs font-medium ${PAYMENT_STATUS_COLORS[payment.status]?.bg ?? 'bg-text-muted/15'} ${PAYMENT_STATUS_COLORS[payment.status]?.text ?? 'text-text-muted'}`}>
-                  {payment.status}
+                  {payment.status || '-'}
                 </span>
               </div>
               <div>
                 <p className="text-text-muted text-sm">Reference ID</p>
-                <p className="font-mono text-xs mt-1">{payment.referenceId}</p>
+                <p className="font-mono text-xs mt-1">{payment.referenceId || '-'}</p>
               </div>
               <div>
                 <p className="text-text-muted text-sm">Points Before</p>
-                <p className="text-sm mt-1">{payment.pointsBefore.toLocaleString('en-IN')}</p>
+                <p className="text-sm mt-1">{(payment.pointsBefore ?? 0).toLocaleString('en-IN')}</p>
               </div>
               <div>
                 <p className="text-text-muted text-sm">Points After</p>
-                <p className="text-sm mt-1">{payment.pointsAfter.toLocaleString('en-IN')}</p>
+                <p className="text-sm mt-1">{(payment.pointsAfter ?? 0).toLocaleString('en-IN')}</p>
               </div>
               <div>
                 <p className="text-text-muted text-sm">Points Deducted</p>
-                <p className="text-sm mt-1">{payment.pointsDeducted.toLocaleString('en-IN')}</p>
+                <p className="text-sm mt-1">{(payment.pointsDeducted ?? 0).toLocaleString('en-IN')}</p>
               </div>
               {payment.processedAt && (
                 <div>

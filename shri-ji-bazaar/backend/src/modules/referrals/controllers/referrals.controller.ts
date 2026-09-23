@@ -26,7 +26,8 @@ export class ReferralsController {
 
   async getStats(req: Request, res: Response) {
     try {
-      const data = await this.referralsService.getStats(req.body.userId);
+      const userId = (req as any).user?.id;
+      const data = await this.referralsService.getStats(userId);
       res.json({ success: true, data });
     } catch (error: any) {
       res.status(500).json({ success: false, message: error.message });
@@ -35,7 +36,8 @@ export class ReferralsController {
 
   async getList(req: Request, res: Response) {
     try {
-      const data = await this.referralsService.getList(req.body.userId);
+      const userId = (req as any).user?.id;
+      const data = await this.referralsService.getList(userId);
       res.json({ success: true, data });
     } catch (error: any) {
       res.status(500).json({ success: false, message: error.message });

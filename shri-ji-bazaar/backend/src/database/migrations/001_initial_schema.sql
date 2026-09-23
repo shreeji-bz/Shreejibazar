@@ -473,3 +473,40 @@ CREATE POLICY "support_messages_insert_own" ON support_messages FOR INSERT WITH 
 
 -- Audit logs: Admin only
 CREATE POLICY "audit_logs_select_admin" ON audit_logs FOR SELECT USING (auth.role() = 'authenticated');
+
+-- ============================================================
+-- PAYMENTS
+-- ============================================================
+CREATE TABLE IF NOT EXISTS payments (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  processed_by UUID REFERENCES admins(id),
+  type TEXT NOT NULL CHECK (type IN ('deposit', 'withdrawal', 'bonus', 'referral', 'admin_credit', 'admin_debit', 'refund', 'settlement')),
+  amount INTEGER NOT NULL,
+  currency TEXT NOT NULL DEFAULT 'INR',
+  method TEXT NOT NULL CHECK (method IN ('upi', 'bank_transfer', 'paytm', 'phonepe', 'cash', 'points', 'admin', 'imps')),
+  status TEXT NOT NULL DEFAULT 'pending' CHECK (status IN ('pending', 'approved', 'rejected', 'completed', 'failed', 'cancelled')),
+  reference_id TEXT,
+  reference_type TEXT,
+  notes TEXT,
+  admin_notes TEXT,
+  balance_before INTEGER NOT NULL,
+  balance_after INTEGER NOT NULL,
+  approved_at TIMESTAMPTZ,
+  completed_at TIMESTAMPTZ,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+CREATE INDEX IF NOT EXISTS idx_payments_user ON payments(user_id);
+CREATE INDEX IF NOT EXISTS idx_payments_type ON payments(type);
+CREATE INDEX IF NOT EXISTS idx_payments_status ON payments(status);
+CREATE INDEX IF NOT EXISTS idx_payments_created ON payments(created_at);
+
+-- Enable RLS
+ALTER TABLE payments ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "payments_select_own" ON payments FOR SELECT USING (auth.uid() = user_id);
+CREATE POLICY "payments_select_admin" ON payments FOR SELECT USING (auth.role() = 'authenticated');
+CREATE POLICY "payments_insert_admin" ON payments FOR INSERT WITH CHECK (auth.role() = 'authenticated');
+CREATE POLICY "payments_update_admin" ON payments FOR UPDATE USING (auth.role() = 'authenticated');

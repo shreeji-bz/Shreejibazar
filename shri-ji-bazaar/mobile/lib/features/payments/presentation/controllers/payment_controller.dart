@@ -4,6 +4,7 @@ import '../../domain/usecases/create_deposit.dart';
 import '../../domain/usecases/create_withdrawal.dart';
 import '../../domain/usecases/get_payment_history.dart';
 import '../../domain/usecases/create_imb_order.dart';
+import '../../../points/domain/usecases/get_wallet.dart';
 
 enum PaymentFilter { all, deposits, withdrawals }
 
@@ -12,12 +13,14 @@ class PaymentController extends ChangeNotifier {
   final CreateWithdrawal createWithdrawal;
   final GetPaymentHistory getPaymentHistory;
   final CreateImbOrder createImbOrder;
+  final GetWallet getWallet;
 
   PaymentController({
     required this.createDeposit,
     required this.createWithdrawal,
     required this.getPaymentHistory,
     required this.createImbOrder,
+    required this.getWallet,
   });
 
   // State
@@ -29,7 +32,7 @@ class PaymentController extends ChangeNotifier {
   List<PaymentEntity> _pendingWithdrawals = [];
   double _availableBalance = 0;
   double _minWithdrawal = 100;
-  double _minDeposit = 50;
+  double _minDeposit = 1;
   double _maxWithdrawal = 50000;
   PaymentFilter _currentFilter = PaymentFilter.all;
 
@@ -95,6 +98,16 @@ class PaymentController extends ChangeNotifier {
   }
 
   // Actions
+  Future<void> loadBalance() async {
+    try {
+      final points = await getWallet();
+      _availableBalance = points.balance.toDouble();
+      notifyListeners();
+    } catch (e) {
+      debugPrint('Failed to load wallet balance: $e');
+    }
+  }
+
   Future<bool> requestDeposit({
     required double amount,
     required String method,
@@ -119,6 +132,7 @@ class PaymentController extends ChangeNotifier {
       _history.insert(0, payment);
       _error = null;
       notifyListeners();
+      await loadBalance();
       return true;
     } catch (e) {
       _setError(e.toString());
@@ -153,6 +167,7 @@ class PaymentController extends ChangeNotifier {
       _availableBalance -= amount;
       _error = null;
       notifyListeners();
+      await loadBalance();
       return true;
     } catch (e) {
       _setError(e.toString());
@@ -181,6 +196,7 @@ class PaymentController extends ChangeNotifier {
       final results = await getPaymentHistory(page: page, limit: limit);
       _history = results;
       _error = null;
+      await loadBalance();
     } catch (e) {
       _setError(e.toString());
     } finally {

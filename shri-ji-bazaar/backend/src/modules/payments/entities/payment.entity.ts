@@ -17,4 +17,15 @@ export interface PaymentEntity {
   completedAt: string | null;
   createdAt: string;
   updatedAt: string;
+  // Deposit/withdrawal fields
+  txnId: string | null;
+  utrNumber: string | null;
+  screenshotUrl: string | null;
+  provider: string;
+  rejectionReason: string | null;
+  // Withdrawal fields
+  bankName: string | null;
+  accountNumber: string | null;
+  ifscCode: string | null;
+  accountHolderName: string | null;
 }

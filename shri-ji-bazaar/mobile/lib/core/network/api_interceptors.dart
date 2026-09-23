@@ -1,5 +1,6 @@
 import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
+import 'package:shri_ji_bazaar/core/routes/route_names.dart';
 import 'package:shri_ji_bazaar/core/storage/secure_storage.dart';
 
 class AuthInterceptor extends Interceptor {
@@ -41,6 +42,14 @@ class AuthInterceptor extends Interceptor {
         }
       }
     }
+
+    if (err.response?.statusCode == 503) {
+      final data = err.response?.data;
+      if (data is Map && data['code'] == 'MAINTENANCE_MODE') {
+        navigatorKey.currentState?.pushNamedAndRemoveUntil(RouteNames.maintenance, (route) => false);
+      }
+    }
+
     handler.next(err);
   }
 }

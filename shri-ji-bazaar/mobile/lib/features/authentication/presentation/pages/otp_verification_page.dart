@@ -3,6 +3,7 @@ import 'package:go_router/go_router.dart';
 import 'package:flutter/services.dart';
 import 'package:shri_ji_bazaar/core/theme/app_colors.dart';
 import 'package:shri_ji_bazaar/core/theme/app_text_styles.dart';
+import 'package:shri_ji_bazaar/core/routes/route_names.dart';
 import 'package:shri_ji_bazaar/shared/widgets/custom_button.dart';
 
 class OtpVerificationPage extends StatefulWidget {
@@ -123,7 +124,7 @@ class _OtpVerificationPageState extends State<OtpVerificationPage> {
     setState(() { _isLoading = true; _errorText = null; });
     try {
       await Future.delayed(const Duration(seconds: 1));
-      if (mounted) GoRouter.of(context).go('/login');
+      if (mounted) context.push(RouteNames.login);
     } finally {
       if (mounted) setState(() => _isLoading = false);
     }

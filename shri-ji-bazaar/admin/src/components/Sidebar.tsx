@@ -1,6 +1,6 @@
 import { NavLink } from 'react-router-dom';
 import { useAppStore } from '../store/appStore';
-import { LayoutDashboard, Users, Gamepad2, Timer, Trophy, Wallet, Gift, Users2, Bell, Ticket, Image, FileText, Settings, LogOut, Receipt, CreditCard } from 'lucide-react';
+import { LayoutDashboard, Users, Gamepad2, Timer, Trophy, Wallet, Gift, Users2, Bell, Ticket, Image, FileText, Settings, LogOut, Receipt, CreditCard, Shield } from 'lucide-react';
 import { useAuthStore } from '../store/authStore';
 
 const menuItems = [
@@ -19,6 +19,7 @@ const menuItems = [
   { to: '/support', icon: Ticket, label: 'Support' },
   { to: '/banners', icon: Image, label: 'Banners' },
   { to: '/settings', icon: Settings, label: 'Settings' },
+  { to: '/staff', icon: Shield, label: 'Staff' },
   { to: '/audit-logs', icon: FileText, label: 'Audit Logs' },
 ];
 

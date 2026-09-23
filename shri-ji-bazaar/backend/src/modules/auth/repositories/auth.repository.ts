@@ -152,6 +152,49 @@ export class AuthRepository {
       .eq('id', userId);
   }
 
+  async creditPoints(userId: string, amount: number, type: string, description: string): Promise<void> {
+    const walletResult = await supabase
+      .from('point_wallets')
+      .select('balance, total_earned, total_spent')
+      .eq('user_id', userId)
+      .maybeSingle();
+
+    const existing = walletResult.data;
+    const currentBalance = existing?.balance ?? 0;
+    const currentEarned = existing?.total_earned ?? 0;
+    const currentSpent = existing?.total_spent ?? 0;
+    const isCredit = type === 'credit' || type === 'bonus' || type === 'referral' || type === 'signup_bonus';
+    const newBalance = currentBalance + amount;
+    const newEarned = isCredit ? currentEarned + amount : currentEarned;
+    const newSpent = type === 'debit' ? currentSpent + Math.abs(amount) : currentSpent;
+
+    if (existing) {
+      await supabase
+        .from('point_wallets')
+        .update({ balance: newBalance, total_earned: newEarned, total_spent: newSpent, updated_at: new Date().toISOString() })
+        .eq('user_id', userId);
+    } else {
+      await supabase
+        .from('point_wallets')
+        .insert({ user_id: userId, balance: newBalance, total_earned: newEarned, total_spent: newSpent });
+    }
+
+    await supabase
+      .from('point_transactions')
+      .insert({
+        user_id: userId,
+        type,
+        amount,
+        description,
+        balance_after: newBalance,
+      });
+  }
+
+  async getSetting(key: string): Promise<string | null> {
+    const { data } = await supabase.from('settings').select('value').eq('key', key).maybeSingle();
+    return data?.value ?? null;
+  }
+
   private mapRow(row: any): UserEntity & { passwordHash: string } {
     return {
       id: row.id,

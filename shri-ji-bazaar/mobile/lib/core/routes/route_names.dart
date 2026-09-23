@@ -7,6 +7,7 @@ class RouteNames {
   static const String games = '/games';
   static const String gameDetails = '/game-details';
   static const String results = '/results';
+  static const String chart = '/chart';
   static const String resultDetail = '/result-detail';
   static const String myPlays = '/my-plays';
   static const String points = '/points';
@@ -27,4 +28,5 @@ class RouteNames {
   static const String settings = '/settings';
   static const String about = '/about';
   static const String terms = '/terms';
+  static const String maintenance = '/maintenance';
 }

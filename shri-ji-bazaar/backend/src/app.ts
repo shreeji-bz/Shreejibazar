@@ -31,6 +31,7 @@ import { SettlementsModule } from './modules/settlements/module';
 import { authenticateToken } from './common/middleware/auth.middleware';
 import { authenticateAdmin } from './common/middleware/admin.middleware';
 import { errorHandler } from './common/middleware/error.middleware';
+import { settingsMiddleware } from './common/middleware/settings.middleware';
 
 dotenv.config();
 
@@ -45,6 +46,9 @@ app.use(cors({ origin: config.corsOrigin, credentials: true }));
 // Body parsing
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true }));
+
+// Settings cache for global feature flags
+app.use(settingsMiddleware);
 
 // Serve uploaded files
 app.use('/uploads', express.static(path.join(process.cwd(), 'uploads')));
@@ -64,9 +68,64 @@ const apiRouter = Router();
 const authModule = new AuthModule();
 apiRouter.use('/auth', authModule.router);
 
-// Protected user routes
+// System status (public - needed for splash screen maintenance check)
+apiRouter.get('/system/status', async (_req: Request, res: Response) => {
+  try {
+    const { data, error } = await supabase
+      .from('settings')
+      .select('key, value')
+      .in('key', ['maintenance_mode', 'maintenance_message', 'latest_version', 'force_update']);
+
+    if (error) {
+      res.json({
+        success: true,
+        data: {
+          maintenance_mode: false,
+          maintenance_message: null,
+          latest_version: '1.0.0',
+          force_update: false,
+        },
+      });
+      return;
+    }
+
+    const settings: Record<string, any> = {};
+    (data || []).forEach((row: any) => {
+      settings[row.key] = row.value;
+    });
+
+    res.json({
+      success: true,
+      data: {
+        maintenance_mode: settings.maintenance_mode === true || settings.maintenance_mode === 'true',
+        maintenance_message: settings.maintenance_message || null,
+        latest_version: settings.latest_version || '1.0.0',
+        force_update: settings.force_update === true || settings.force_update === 'true',
+      },
+    });
+  } catch (error: any) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+});
+
+// Admin routes (no maintenance check so admins can access during maintenance)
 const adminModule = new AdminModule();
 const paymentsModule = new PaymentsModule();
+apiRouter.use('/admin/auth', adminModule.publicRouter);
+apiRouter.use('/admin/wagers', authenticateAdmin, new WagersModule().adminRouter);
+apiRouter.use('/admin/payments', authenticateAdmin, paymentsModule.adminRouter);
+apiRouter.use('/admin/referrals', authenticateAdmin, new ReferralsModule().adminRouter);
+apiRouter.use('/admin', authenticateAdmin, adminModule.protectedRouter);
+
+// Maintenance mode check for user-facing routes
+import { maintenanceModeMiddleware } from './common/middleware/maintenance.middleware';
+apiRouter.use(maintenanceModeMiddleware);
+
+// Public IMB payment gateway routes (must come before /payments to avoid auth middleware)
+apiRouter.use('/payments/imb/callback', paymentsModule.imbRouter);
+apiRouter.use('/payments/imb/webhook', paymentsModule.imbRouter);
+
+// Protected user routes
 apiRouter.use('/users', authenticateToken, new UsersModule().router);
 apiRouter.use('/games', authenticateToken, new GamesModule().router);
 apiRouter.use('/admin/games', authenticateAdmin, new GamesModule().adminRouter);
@@ -80,19 +139,9 @@ apiRouter.use('/notifications', authenticateToken, new NotificationsModule().rou
 apiRouter.use('/support', authenticateToken, new SupportModule().router);
 apiRouter.use('/banners', authenticateToken, new BannersModule().router);
 apiRouter.use('/settings', authenticateToken, new SettingsModule().router);
-// Temporarily disabled to debug /admin/wagers auth collision
-// apiRouter.use('/wagers', authenticateToken, new WagersModule().router);
+apiRouter.use('/wagers', authenticateToken, new WagersModule().router);
 apiRouter.use('/payments', authenticateToken, paymentsModule.router);
-apiRouter.use('/payments/imb/callback', paymentsModule.imbRouter);
-apiRouter.use('/payments/imb/webhook', paymentsModule.imbRouter);
 apiRouter.use('/settlements', authenticateToken, new SettlementsModule().router);
-
-// Admin protected routes (require admin JWT)
-apiRouter.use('/admin/auth', adminModule.publicRouter);
-apiRouter.use('/admin/wagers', authenticateAdmin, new WagersModule().adminRouter);
-apiRouter.use('/admin/payments', authenticateAdmin, paymentsModule.adminRouter);
-apiRouter.use('/admin/referrals', authenticateAdmin, new ReferralsModule().adminRouter);
-apiRouter.use('/admin', authenticateAdmin, adminModule.protectedRouter);
 
 app.use('/api/v1', apiRouter);
 

@@ -52,8 +52,11 @@ export class AuthService {
       status: 'active',
     });
 
-    // Initialize wallet with welcome bonus
+    // Initialize wallet with base welcome balance
     await this.authRepository.initializeWallet(user.id, 100);
+
+    // Apply signup bonus if configured in settings
+    await this.applySignupBonus(user.id);
 
     const tokens = this.generateTokens(user.id, user.referralCode);
     await this.authRepository.createRefreshToken(user.id, tokens.refreshToken, new Date(Date.now() + 7 * 24 * 60 * 60 * 1000));
@@ -216,5 +219,13 @@ export class AuthService {
 
   private generateResetCode(): string {
     return Math.floor(100000 + Math.random() * 900000).toString(); // 6-digit code
+  }
+
+  private async applySignupBonus(userId: string): Promise<void> {
+    const raw = await this.authRepository.getSetting('signup_bonus_points');
+    const amount = raw ? parseInt(raw, 10) : 0;
+    if (!amount || amount <= 0) return;
+
+    await this.authRepository.creditPoints(userId, amount, 'signup_bonus', `Welcome bonus: ${amount} points`);
   }
 }

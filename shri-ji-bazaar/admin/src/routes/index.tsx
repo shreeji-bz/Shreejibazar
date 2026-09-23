@@ -21,6 +21,7 @@ import { Wagers } from '../pages/wagers/Wagers';
 import { WagerDetailPage } from '../pages/wagers/WagerDetailPage';
 import { Payments } from '../pages/payments/Payments';
 import { PaymentDetailPage } from '../pages/payments/PaymentDetailPage';
+import { Staff } from '../pages/staff/Staff';
 
 const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
   const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
@@ -53,6 +54,7 @@ export const routes = [
       { path: 'wagers/:id', element: <WagerDetailPage /> },
       { path: 'payments', element: <Payments /> },
       { path: 'payments/:id', element: <PaymentDetailPage /> },
+      { path: 'staff', element: <Staff /> },
       { index: true, element: <Navigate to="/dashboard" replace /> },
     ],
   },

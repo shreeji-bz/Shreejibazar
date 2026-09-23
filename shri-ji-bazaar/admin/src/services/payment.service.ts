@@ -15,8 +15,9 @@ export const paymentService = {
   },
 
   async getPaymentById(id: string): Promise<Payment> {
-    const res = await get<Payment>(`/v1/admin/payments/${id}`);
-    return res;
+    const res = await get<{ success: boolean; data: Payment }>(`/v1/admin/payments/${id}`);
+    if (!res?.success) throw new Error('Payment not found');
+    return res.data;
   },
 
   async approvePayment(id: string, adminNote?: string): Promise<Payment> {

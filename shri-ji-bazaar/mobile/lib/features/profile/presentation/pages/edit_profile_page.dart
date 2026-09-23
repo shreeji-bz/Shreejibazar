@@ -53,7 +53,7 @@ class _EditProfileContentState extends State<_EditProfileContent> {
         backgroundColor: AppColors.background,
         elevation: 0,
         title: const Text('Edit Profile', style: TextStyle(color: AppColors.goldBright)),
-        leading: IconButton(onPressed: () => GoRouter.of(context).pop(), icon: const Icon(Icons.arrow_back, color: AppColors.textPrimary)),
+        leading: IconButton(onPressed: () => context.pop(), icon: const Icon(Icons.arrow_back, color: AppColors.textPrimary)),
       ),
       body: Consumer<ProfileController>(
         builder: (context, controller, _) {
@@ -128,7 +128,7 @@ class _EditProfileContentState extends State<_EditProfileContent> {
                       await controller.updateProfileInfo(name: name, email: email.isEmpty ? null : email);
                       if (controller.status == ProfileStatus.success && mounted) {
                         ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Profile updated successfully')));
-                        GoRouter.of(context).pop();
+                        context.pop();
                       }
                     },
                   ),

@@ -3,9 +3,19 @@ const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:3000/api';
 function getAuthHeaders(): Record<string, string> {
   try {
     const raw = localStorage.getItem('admin-auth');
-    if (!raw) return {};
-    const parsed = JSON.parse(raw);
-    const token = parsed?.token || parsed?.state?.token;
+    const altRaw = raw || localStorage.getItem('admin_token');
+    if (!altRaw) return {};
+
+    let token = altRaw;
+    if (raw) {
+      try {
+        const parsed = JSON.parse(raw);
+        token = parsed?.token || parsed?.state?.token || altRaw;
+      } catch {
+        token = altRaw;
+      }
+    }
+
     if (!token) return {};
     return { Authorization: `Bearer ${token}` };
   } catch {
@@ -34,25 +44,45 @@ function buildUrl(path: string, params?: Record<string, any>): string {
 
 export async function get<T>(path: string, params?: Record<string, any>): Promise<T> {
   const res = await fetch(buildUrl(path, params), { headers: getAuthHeaders() });
+  if (!res.ok) {
+    const body = await res.json().catch(() => ({}));
+    throw new Error(body?.message || `Request failed: ${res.status}`);
+  }
   return (await res.json()) as T;
 }
 
 export async function post<T>(path: string, body: any): Promise<T> {
   const res = await fetch(`${API_BASE}${path}`, { method: 'POST', headers: { 'Content-Type': 'application/json', ...getAuthHeaders() }, body: JSON.stringify(body) });
+  if (!res.ok) {
+    const body = await res.json().catch(() => ({}));
+    throw new Error(body?.message || `Request failed: ${res.status}`);
+  }
   return (await res.json()) as T;
 }
 
 export async function put<T>(path: string, body: any): Promise<T> {
   const res = await fetch(`${API_BASE}${path}`, { method: 'PUT', headers: { 'Content-Type': 'application/json', ...getAuthHeaders() }, body: JSON.stringify(body) });
+  if (!res.ok) {
+    const body = await res.json().catch(() => ({}));
+    throw new Error(body?.message || `Request failed: ${res.status}`);
+  }
   return (await res.json()) as T;
 }
 
 export async function del<T>(path: string): Promise<T> {
   const res = await fetch(`${API_BASE}${path}`, { method: 'DELETE', headers: getAuthHeaders() });
+  if (!res.ok) {
+    const body = await res.json().catch(() => ({}));
+    throw new Error(body?.message || `Request failed: ${res.status}`);
+  }
   return (await res.json()) as T;
 }
 
 export async function patch<T>(path: string, body: any): Promise<T> {
   const res = await fetch(`${API_BASE}${path}`, { method: 'PATCH', headers: { 'Content-Type': 'application/json', ...getAuthHeaders() }, body: JSON.stringify(body) });
+  if (!res.ok) {
+    const body = await res.json().catch(() => ({}));
+    throw new Error(body?.message || `Request failed: ${res.status}`);
+  }
   return (await res.json()) as T;
 }

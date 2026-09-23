@@ -31,4 +31,9 @@ class PaymentRepository implements IPaymentRepository {
   Future<List<PaymentEntity>> getPendingWithdrawals() async {
     return await _datasource.getPendingWithdrawals();
   }
+
+  @override
+  Future<Map<String, dynamic>> createImbOrder(double amount, {String? description}) {
+    throw UnsupportedError('Use ImbPaymentRepository for IMB payments');
+  }
 }

@@ -52,7 +52,7 @@ export class UsersController {
 
       // Fetch wallet balance from points_wallet table
       const { data: wallet } = await supabase
-        .from('points_wallet')
+        .from('point_wallets')
         .select('balance')
         .eq('user_id', req.user.id)
         .maybeSingle();

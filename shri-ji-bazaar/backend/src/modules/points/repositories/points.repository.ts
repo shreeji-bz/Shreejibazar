@@ -3,10 +3,10 @@ import { supabase } from '../../../config/database.config';
 
 export class PointsRepository {
   async getWallet(userId: string): Promise<PointsWallet | null> {
-    const { data } = await supabase.from('points_wallet').select('*').eq('user_id', userId).single();
+    const { data } = await supabase.from('point_wallets').select('*').eq('user_id', userId).single();
 
     if (!data) {
-      const { data: newWallet } = await supabase.from('points_wallet').insert({ user_id: userId }).select().single();
+      const { data: newWallet } = await supabase.from('point_wallets').insert({ user_id: userId }).select().single();
       return newWallet ? this.mapWallet(newWallet) : null;
     }
 
@@ -40,7 +40,7 @@ export class PointsRepository {
     if (newBalance < 0) throw new Error('Insufficient points');
 
     await supabase
-      .from('points_wallet')
+      .from('point_wallets')
       .update({
         balance: newBalance,
         total_earned: (type === 'credit' || type === 'bonus' || type === 'referral') ? wallet.totalEarned + amount : wallet.totalEarned,

@@ -38,11 +38,30 @@
             </intent-filter>
 
             <!-- Deep links for Supabase auth callbacks -->
-            <intent-filter>
+            <intent-filter android:autoVerify="true">
                 <action android:name="android.intent.action.VIEW" />
                 <category android:name="android.intent.category.DEFAULT" />
                 <category android:name="android.intent.category.BROWSABLE" />
                 <data android:scheme="shrijibazaar" />
+            </intent-filter>
+
+            <!-- Referral link: https://shrijibazaar.app/register?ref=... -->
+            <intent-filter android:autoVerify="true">
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data android:scheme="https"
+                      android:host="shrijibazaar.app"
+                      android:pathPrefix="/register" />
+            </intent-filter>
+
+            <!-- Catch-all for app domain deep links -->
+            <intent-filter android:autoVerify="true">
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data android:scheme="https"
+                      android:host="shrijibazaar.app" />
             </intent-filter>
         </activity>
 

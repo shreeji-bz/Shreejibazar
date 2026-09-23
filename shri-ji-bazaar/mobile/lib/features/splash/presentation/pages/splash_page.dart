@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 import '../../../../core/routes/route_names.dart';
 import '../../../../features/authentication/presentation/controllers/auth_controller.dart';
+import '../controllers/splash_controller.dart';
 
 class SplashPage extends StatefulWidget {
   const SplashPage({super.key});
@@ -25,6 +26,7 @@ class _SplashPageState extends State<SplashPage> {
 
     if (!mounted) return;
 
+    final splashController = Provider.of<SplashController>(context, listen: false);
     final auth = Provider.of<AuthController>(context, listen: false);
 
     // Wait for auth check to complete if still loading
@@ -34,6 +36,17 @@ class _SplashPageState extends State<SplashPage> {
     }
 
     if (!mounted) return;
+
+    // Check maintenance mode before routing
+    try {
+      final entity = await splashController.getSettings();
+      if (entity?.maintenanceMode == true && mounted) {
+        context.go(RouteNames.maintenance);
+        return;
+      }
+    } catch (_) {
+      // If settings fetch fails, continue normally
+    }
 
     if (auth.isAuthenticated) {
       context.go(RouteNames.home);

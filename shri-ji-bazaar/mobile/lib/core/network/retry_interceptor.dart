@@ -12,17 +12,21 @@ class RetryInterceptor extends Interceptor {
 
   @override
   void onError(DioException err, ErrorInterceptorHandler handler) async {
-    if (_shouldRetry(err) && retryDelays.isNotEmpty) {
-      final delay = retryDelays.first;
-      final remainingDelays = List<Duration>.from(retryDelays);
-      remainingDelays.removeAt(0);
+    if (!_shouldRetry(err)) {
+      handler.next(err);
+      return;
+    }
+
+    final attempts = retryDelays.length;
+    for (var i = 0; i < attempts; i++) {
+      final delay = retryDelays[i];
       await Future.delayed(delay);
       try {
         final response = await Dio().fetch(err.requestOptions);
         handler.resolve(response);
         return;
       } catch (_) {
-        // fall through to next handler
+        // fall through and retry or fail
       }
     }
     handler.next(err);
@@ -36,7 +40,13 @@ class RetryInterceptor extends Interceptor {
     if (err.type == DioExceptionType.unknown) return true;
     if (err.response?.statusCode == 500) return true;
     if (err.response?.statusCode == 502) return true;
-    if (err.response?.statusCode == 503) return true;
+    if (err.response?.statusCode == 503) {
+      final data = err.response?.data;
+      if (data is Map && data['code'] == 'MAINTENANCE_MODE') {
+        return false;
+      }
+      return true;
+    }
     return false;
   }
 }

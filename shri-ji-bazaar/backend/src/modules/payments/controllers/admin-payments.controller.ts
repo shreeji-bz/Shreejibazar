@@ -8,6 +8,7 @@ export class AdminPaymentsController {
 
   initializeRoutes() {
     this.router.get('/', this.getAllPayments.bind(this));
+    this.router.get('/:id', this.getPaymentById.bind(this));
     this.router.get('/pending/deposits', this.getPendingDeposits.bind(this));
     this.router.get('/pending/withdrawals', this.getPendingWithdrawals.bind(this));
     this.router.post('/:id/approve', this.approvePayment.bind(this));
@@ -61,9 +62,19 @@ export class AdminPaymentsController {
 
   async approvePayment(req: Request, res: Response) {
     try {
-      const { adminNotes } = req.body;
-      const payment = await this.paymentsService.approveDeposit(req.params.id, req.admin!.id, adminNotes);
-      res.json({ success: true, data: payment, message: 'Payment approved successfully' });
+      const adminNotes = req.body.adminNotes ?? req.body.adminNote;
+      const payment = await this.paymentsService.getPaymentById(req.params.id);
+      if (!payment) {
+        return res.status(404).json({ success: false, message: 'Payment not found' });
+      }
+
+      if (payment.type === 'withdrawal') {
+        const updated = await this.paymentsService.approveWithdrawal(req.params.id, req.admin!.id, adminNotes);
+        res.json({ success: true, data: updated, message: 'Withdrawal approved successfully' });
+      } else {
+        const updated = await this.paymentsService.approveDeposit(req.params.id, req.admin!.id, adminNotes);
+        res.json({ success: true, data: updated, message: 'Payment approved successfully' });
+      }
     } catch (error: any) {
       const statusCode = error.message === 'Payment not found' ? 404 : 400;
       res.status(statusCode).json({ success: false, message: error.message });
@@ -72,7 +83,7 @@ export class AdminPaymentsController {
 
   async rejectPayment(req: Request, res: Response) {
     try {
-      const { adminNotes } = req.body;
+      const adminNotes = req.body.adminNotes ?? req.body.adminNote;
       if (!adminNotes) {
         res.status(400).json({ success: false, message: 'Admin notes are required for rejection' });
         return;
@@ -91,6 +102,19 @@ export class AdminPaymentsController {
       res.json({ success: true, data: stats });
     } catch (error: any) {
       res.status(500).json({ success: false, message: error.message });
+    }
+  }
+
+  async getPaymentById(req: Request, res: Response) {
+    try {
+      const payment = await this.paymentsService.getPaymentById(req.params.id);
+      if (!payment) {
+        return res.status(404).json({ success: false, message: 'Payment not found' });
+      }
+      res.json({ success: true, data: payment });
+    } catch (error: any) {
+      const statusCode = error.message === 'Payment not found' ? 404 : 500;
+      res.status(statusCode).json({ success: false, message: error.message });
     }
   }
 }

@@ -1,10 +1,26 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import 'package:shri_ji_bazaar/core/theme/app_text_styles.dart';
 import '../controllers/referral_controller.dart';
 
-class ReferralsPage extends StatelessWidget {
+class ReferralsPage extends StatefulWidget {
   const ReferralsPage({super.key});
+
+  @override
+  State<ReferralsPage> createState() => _ReferralsPageState();
+}
+
+class _ReferralsPageState extends State<ReferralsPage> {
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) {
+        context.read<ReferralController>().loadReferralData();
+      }
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -13,9 +29,7 @@ class ReferralsPage extends StatelessWidget {
       body: SafeArea(
         child: Consumer<ReferralController>(
           builder: (context, referralController, _) {
-            final totalReferrals = 3;
-            final totalEarned = 450;
-            final referralCode = 'SJB2026';
+            final referralCode = referralController.referralCode ?? 'SJB2026';
 
             return SingleChildScrollView(
               padding: const EdgeInsets.all(16),
@@ -49,15 +63,36 @@ class ReferralsPage extends StatelessWidget {
                           ),
                         ),
                         const SizedBox(height: 16),
-                        ElevatedButton.icon(
-                          onPressed: () {
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              const SnackBar(content: Text('Referral code copied!'), backgroundColor: Color(0xFF25C85A)),
-                            );
-                          },
-                          icon: const Icon(Icons.copy_rounded, size: 18),
-                          label: const Text('Copy Code'),
-                          style: ElevatedButton.styleFrom(backgroundColor: Colors.white.withValues(alpha: 0.2)),
+                        Row(
+                          children: [
+                            Expanded(
+                              child: ElevatedButton.icon(
+                                onPressed: () {
+                                  final code = referralController.referralCode;
+                                  if (code != null && code.isNotEmpty) {
+                                    Clipboard.setData(ClipboardData(text: code));
+                                    if (mounted) {
+                                      ScaffoldMessenger.of(context).showSnackBar(
+                                        const SnackBar(content: Text('Referral code copied!'), backgroundColor: Color(0xFF25C85A)),
+                                      );
+                                    }
+                                  }
+                                },
+                                icon: const Icon(Icons.copy_rounded, size: 18),
+                                label: const Text('Copy Code'),
+                                style: ElevatedButton.styleFrom(backgroundColor: Colors.white.withValues(alpha: 0.2)),
+                              ),
+                            ),
+                            const SizedBox(width: 12),
+                            Expanded(
+                              child: ElevatedButton.icon(
+                                onPressed: referralController.shareReferralLink,
+                                icon: const Icon(Icons.share_rounded, size: 18),
+                                label: const Text('Share'),
+                                style: ElevatedButton.styleFrom(backgroundColor: Colors.white.withValues(alpha: 0.2)),
+                              ),
+                            ),
+                          ],
                         ),
                       ],
                     ),
@@ -65,9 +100,9 @@ class ReferralsPage extends StatelessWidget {
                   const SizedBox(height: 24),
                   Row(
                     children: [
-                      Expanded(child: _StatCard(icon: Icons.people_rounded, label: 'Referrals', value: '$totalReferrals')),
+                      Expanded(child: _StatCard(icon: Icons.people_rounded, label: 'Referrals', value: '${referralController.totalReferrals}')),
                       const SizedBox(width: 12),
-                      Expanded(child: _StatCard(icon: Icons.stars_rounded, label: 'Points Earned', value: '$totalEarned')),
+                      Expanded(child: _StatCard(icon: Icons.stars_rounded, label: 'Points Earned', value: '${referralController.totalPointsEarned}')),
                     ],
                   ),
                   const SizedBox(height: 24),

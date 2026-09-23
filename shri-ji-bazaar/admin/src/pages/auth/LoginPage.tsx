@@ -7,14 +7,14 @@ export const LoginPage = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const navigate = useNavigate();
-  const { login } = useAuthStore();
+  const { login: setAuth } = useAuthStore();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
       const res = (await loginAdmin({ email, password })) as any;
-      if (res.success) {
-        login(res.data.token, res.data.admin);
+      if (res?.success) {
+        setAuth(res.data.token, res.data.admin);
         navigate('/dashboard');
       }
     } catch (err: any) { console.error(err); }

@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useNavigate, Navigate } from 'react-router-dom';
 import { useAuthStore } from '../../store/authStore';
-import { login } from '../../services/authService';
+import { login as loginApi } from '../../services/authService';
 import { Lock, Mail } from 'lucide-react';
 import { Input } from '../../components/common/Input';
 import { Button } from '../../components/common/Button';
@@ -21,7 +21,7 @@ export const Login = () => {
     setLoading(true);
     setError('');
     try {
-      const response = (await login(email, password)) as any;
+      const response = (await loginApi(email, password)) as any;
       if (response.success) {
         setAuth(response.data.token, response.data.admin);
         navigate('/dashboard');

@@ -27,5 +27,7 @@ export class WagersModule {
     this.router.use(authenticateToken);
     this.router.get('/', userController.getUserWagers.bind(userController));
     this.router.get('/stats', userController.getWagerStats.bind(userController));
+    this.router.get('/:id', userController.getWagerById.bind(userController));
+    this.router.get('/round/:roundId', userController.getWagersByRound.bind(userController));
   }
 }

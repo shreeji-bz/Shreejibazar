@@ -1,5 +1,6 @@
 import { WagersRepository } from '../repositories/wagers.repository';
 import { supabase } from '../../../config/database.config';
+import { getSettingsMap } from '../../../common/utils/settings.util';
 
 export class WagersService {
   constructor(private wagersRepo: WagersRepository) {}
@@ -14,6 +15,13 @@ export class WagersService {
     pointsStaked: number;
     idempotencyKey?: string;
   }): Promise<any> {
+    // Enforce minimum stake from settings
+    const settings = await getSettingsMap();
+    const minStake = parseInt(settings.min_play_points || '0', 10) || 0;
+    if (minStake > 0 && data.pointsStaked < minStake) {
+      throw new Error(`Minimum stake is ${minStake} points`);
+    }
+
     // Check for idempotency
     if (data.idempotencyKey) {
       const existing = await this.wagersRepo.findByIdempotencyKey(data.idempotencyKey);

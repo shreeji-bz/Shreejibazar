@@ -76,6 +76,31 @@ class AppTextStyles {
     height: 1.3,
   );
 
+  // App name / brand
+  static const TextStyle appName = TextStyle(
+    fontSize: 20,
+    fontWeight: FontWeight.w800,
+    color: AppColors.gold,
+    height: 1.2,
+    letterSpacing: 2,
+  );
+
+  // Banner title
+  static const TextStyle bannerTitle = TextStyle(
+    fontSize: 20,
+    fontWeight: FontWeight.w800,
+    color: Colors.white,
+    height: 1.3,
+  );
+
+  // Market title
+  static const TextStyle marketTitle = TextStyle(
+    fontSize: 16,
+    fontWeight: FontWeight.w700,
+    color: AppColors.goldBright,
+    height: 1.3,
+  );
+
   // Points display
   static const TextStyle points = TextStyle(
     fontSize: 20,

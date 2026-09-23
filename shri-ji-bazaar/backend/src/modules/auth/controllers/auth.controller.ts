@@ -15,6 +15,11 @@ export class AuthController {
 
   async register(req: Request, res: Response) {
     try {
+      const { allowRegistration } = (req as any).appSettings || {};
+      if (allowRegistration === 'false') {
+        res.status(403).json({ success: false, message: 'Registration is currently disabled', code: 'REGISTRATION_DISABLED' });
+        return;
+      }
       const result = await this.authService.register(req.body);
       res.status(201).json({ success: true, data: result });
     } catch (error: any) {

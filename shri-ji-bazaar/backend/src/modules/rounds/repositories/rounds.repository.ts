@@ -21,7 +21,7 @@ export class RoundsRepository {
   async findUpcoming(gameId?: string): Promise<RoundEntity[]> {
     let query = supabase.from('rounds').select('*, games(name)').gte('start_time', new Date().toISOString()).in('status', ['pending', 'open']);
     if (gameId) query = query.eq('game_id', gameId);
-    const { data } = await query.order('start_time').limit(10);
+    const { data } = await query.order('start_time').limit(100);
     return (data || []).map((row: any) => this.mapRow(row, row.games?.name));
   }
 

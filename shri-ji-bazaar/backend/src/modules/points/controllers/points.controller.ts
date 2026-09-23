@@ -17,7 +17,12 @@ export class PointsController {
 
   async getWallet(req: Request, res: Response) {
     try {
-      const data = await this.pointsService.getWallet(req.body.userId);
+      const userId = (req as any).user?.id;
+      if (!userId) {
+        res.status(401).json({ success: false, message: 'Unauthorized' });
+        return;
+      }
+      const data = await this.pointsService.getWallet(userId);
       res.json({ success: true, data });
     } catch (error: any) {
       res.status(500).json({ success: false, message: error.message });
@@ -26,7 +31,12 @@ export class PointsController {
 
   async getTransactions(req: Request, res: Response) {
     try {
-      const result = await this.pointsService.getTransactions(req.body.userId, req.query);
+      const userId = (req as any).user?.id;
+      if (!userId) {
+        res.status(401).json({ success: false, message: 'Unauthorized' });
+        return;
+      }
+      const result = await this.pointsService.getTransactions(userId, req.query);
       res.json({ success: true, ...result });
     } catch (error: any) {
       res.status(500).json({ success: false, message: error.message });

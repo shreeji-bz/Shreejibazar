@@ -135,7 +135,7 @@ export const Payments = () => {
                 <div className="text-center py-8 text-text-muted">Loading payments...</div>
               </TableCell>
             </TableRow>
-          ) : list.length === 0 ? (
+          ) : !list || list.length === 0 ? (
             <TableRow>
               <TableCell colSpan={9}>
                 <div className="text-center py-8 text-text-muted">No payments found</div>
@@ -144,33 +144,35 @@ export const Payments = () => {
           ) : (
             list.map((p) => (
               <TableRow key={p.id}>
-                <TableCell className="font-mono text-xs">{p.id.slice(0, 8)}</TableCell>
+                <TableCell className="font-mono text-xs">{p.id ? p.id.slice(0, 8) : '-'}</TableCell>
                 <TableCell>
                   <div>
-                    <p className="font-medium text-text-primary text-sm">{p.userName}</p>
-                    <p className="text-xs text-text-muted">{p.userMobile}</p>
+                    <p className="font-medium text-text-primary text-sm">{p.userName || '-'}</p>
+                    <p className="text-xs text-text-muted">{p.userMobile || '-'}</p>
                   </div>
                 </TableCell>
                 <TableCell>
                   <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${PAYMENT_TYPE_COLORS[p.type]?.bg ?? 'bg-text-muted/15'} ${PAYMENT_TYPE_COLORS[p.type]?.text ?? 'text-text-muted'}`}>
-                    {p.type}
+                    {p.type || '-'}
                   </span>
                 </TableCell>
-                <TableCell className="text-sm font-semibold">{p.amount.toLocaleString('en-IN')}</TableCell>
-                <TableCell className="text-sm">{p.method}</TableCell>
+                <TableCell className="text-sm font-semibold">{(p.amount ?? 0).toLocaleString('en-IN')}</TableCell>
+                <TableCell className="text-sm">{p.method || '-'}</TableCell>
                 <TableCell>
                   <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${PAYMENT_STATUS_COLORS[p.status]?.bg ?? 'bg-text-muted/15'} ${PAYMENT_STATUS_COLORS[p.status]?.text ?? 'text-text-muted'}`}>
-                    {p.status}
+                    {p.status || '-'}
                   </span>
                 </TableCell>
-                <TableCell className="font-mono text-xs">{p.referenceId}</TableCell>
-                <TableCell className="text-xs text-text-muted">{new Date(p.createdAt).toLocaleDateString('en-IN')}</TableCell>
+                <TableCell className="font-mono text-xs">{p.referenceId || '-'}</TableCell>
+                <TableCell className="text-xs text-text-muted">{p.createdAt ? new Date(p.createdAt).toLocaleDateString('en-IN') : '-'}</TableCell>
                 <TableCell>
                   <div className="flex gap-2">
-                    <Link to={`/payments/${p.id}`}>
-                      <Button variant="outline" className="text-xs px-3 py-1.5">View</Button>
-                    </Link>
-                    {p.status === 'pending' && (
+                    {p.id ? (
+                      <Link to={`/payments/${p.id}`}>
+                        <Button variant="outline" className="text-xs px-3 py-1.5">View</Button>
+                      </Link>
+                    ) : null}
+                    {p.status === 'pending' && p.id ? (
                       <>
                         <Link to={`/payments/${p.id}?action=approve`}>
                           <Button variant="primary" className="text-xs px-3 py-1.5">Approve</Button>
@@ -179,7 +181,7 @@ export const Payments = () => {
                           <Button variant="outline" className="text-xs px-3 py-1.5 border-error/30 text-error hover:bg-error/10">Reject</Button>
                         </Link>
                       </>
-                    )}
+                    ) : null}
                   </div>
                 </TableCell>
               </TableRow>

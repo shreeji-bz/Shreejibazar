@@ -17,8 +17,26 @@ export class PaymentsController {
 
   async createDeposit(req: Request, res: Response) {
     try {
+      const userId = (req as any).user?.id;
+      if (!userId) {
+        res.status(401).json({ success: false, message: 'Unauthorized' });
+        return;
+      }
       const { amount, method, referenceId, notes } = req.body;
-      const data = await this.paymentsService.createDeposit(req.body.userId, amount, method, referenceId, notes);
+      const methodMap: Record<string, string> = {
+        'upi': 'upi',
+        'bank transfer': 'bank_transfer',
+        'paytm': 'paytm',
+        'phonepe': 'phonepe',
+        'cash': 'cash',
+        'points': 'points',
+        'admin': 'admin',
+        'imps (imb)': 'imps',
+        'imps': 'imps',
+      };
+      const methodKey = typeof method === 'string' ? method.toLowerCase().trim() : method;
+      const normalizedMethod = methodMap[methodKey] || methodKey;
+      const data = await this.paymentsService.createDeposit(userId, amount, normalizedMethod, referenceId, notes);
       res.status(201).json({ success: true, data });
     } catch (error: any) {
       res.status(400).json({ success: false, message: error.message });
@@ -27,8 +45,26 @@ export class PaymentsController {
 
   async createWithdrawal(req: Request, res: Response) {
     try {
-      const { amount, method, referenceId, notes } = req.body;
-      const data = await this.paymentsService.createWithdrawal(req.body.userId, amount, method, referenceId, notes);
+      const userId = (req as any).user?.id;
+      if (!userId) {
+        res.status(401).json({ success: false, message: 'Unauthorized' });
+        return;
+      }
+      const { amount, method, referenceId, notes, bankDetails } = req.body;
+      const methodMap: Record<string, string> = {
+        'upi': 'upi',
+        'bank transfer': 'bank_transfer',
+        'paytm': 'paytm',
+        'phonepe': 'phonepe',
+        'cash': 'cash',
+        'points': 'points',
+        'admin': 'admin',
+        'imps (imb)': 'imps',
+        'imps': 'imps',
+      };
+      const methodKey = typeof method === 'string' ? method.toLowerCase().trim() : method;
+      const normalizedMethod = methodMap[methodKey] || methodKey;
+      const data = await this.paymentsService.createWithdrawal(userId, amount, normalizedMethod, referenceId, notes, bankDetails);
       res.json({ success: true, data });
     } catch (error: any) {
       res.status(400).json({ success: false, message: error.message });
@@ -37,7 +73,11 @@ export class PaymentsController {
 
   async getHistory(req: Request, res: Response) {
     try {
-      const userId = req.body.userId;
+      const userId = (req as any).user?.id;
+      if (!userId) {
+        res.status(401).json({ success: false, message: 'Unauthorized' });
+        return;
+      }
       const page = Math.max(1, parseInt(req.query.page as string) || 1);
       const limit = Math.min(100, parseInt(req.query.limit as string) || 20);
       const type = req.query.type as string | undefined;
@@ -55,7 +95,12 @@ export class PaymentsController {
 
   async getById(req: Request, res: Response) {
     try {
-      const payment = await this.paymentsService.getPaymentHistory(req.body.userId, 1, 100);
+      const userId = (req as any).user?.id;
+      if (!userId) {
+        res.status(401).json({ success: false, message: 'Unauthorized' });
+        return;
+      }
+      const payment = await this.paymentsService.getPaymentHistory(userId, 1, 100);
       const found = payment.data.find((p) => p.id === req.params.id);
       if (!found) {
         res.status(404).json({ success: false, message: 'Payment not found' });
@@ -98,7 +143,7 @@ export class PaymentsController {
         user.id,
         amount,
         'imps',
-        result.orderId,
+        undefined,
         `IMPS payment via IMB gateway - Order: ${result.orderId}`
       );
 
@@ -192,31 +237,26 @@ export class PaymentsController {
   async imbWebhook(req: Request, res: Response) {
     try {
       const imbService = new ImbPaymentService();
-      const signature = req.headers['x-imb-signature'] as string;
-      const rawBody = JSON.stringify(req.body);
 
-      // Verify webhook signature
-      if (signature && !imbService.verifyWebhookSignature(rawBody, signature)) {
-        console.error('IMB webhook signature verification failed');
-        res.status(401).json({ success: false, message: 'Invalid signature' });
-        return;
-      }
+      // IMB sends form-urlencoded data; express json parser won't parse it
+      // Use req.body directly (express.urlencoded() should be configured in app.ts)
+      console.log('IMB webhook received:', JSON.stringify(req.body));
 
       const payload = imbService.parseWebhookPayload(req.body);
-      console.log(`IMB webhook: order=${payload.orderId}, status=${payload.status}, amount=${payload.amount}`);
+      console.log(`IMB webhook: order=${payload.orderId}, status=${payload.status}, amount=${payload.amount}, txnId=${payload.transactionId}`);
 
-      // Look up payment by reference ID (which stores the IMB order ID)
+      // Look up payment by notes (which contains the IMB order ID)
       const { supabase } = require('../../../config/database.config');
       const { data: payment } = await supabase
         .from('payments')
         .select('*')
-        .eq('reference_id', payload.orderId)
+        .ilike('notes', `%${payload.orderId}%`)
         .eq('type', 'deposit')
         .eq('status', 'pending')
         .maybeSingle();
 
       if (!payment) {
-        console.log(`IMB webhook: no pending deposit found for order ${payload.orderId}`);
+        console.log(`IMB webhook: no pending deposit found for order ${payload.orderId} - already processed or not found`);
         res.status(200).json({ success: true });
         return;
       }

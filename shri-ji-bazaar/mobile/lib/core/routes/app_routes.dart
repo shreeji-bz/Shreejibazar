@@ -3,13 +3,14 @@ import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 import '../../features/authentication/presentation/controllers/auth_controller.dart';
 import '../../features/splash/presentation/pages/splash_page.dart';
+import '../../features/splash/presentation/pages/maintenance_page.dart';
 import '../../features/authentication/presentation/pages/login_page.dart';
 import '../../features/authentication/presentation/pages/register_page.dart';
 import '../../features/authentication/presentation/pages/forgot_password_page.dart';
 import '../../features/home/presentation/pages/home_page.dart';
 import '../../features/games/presentation/pages/games_page.dart';
 import '../../features/game_details/presentation/pages/game_details_page.dart';
-import '../../features/results/presentation/pages/results_page.dart';
+import '../../features/results/presentation/pages/chart_page.dart';
 import '../../features/my_activity/presentation/pages/my_activity_page.dart';
 import '../../features/points/presentation/pages/points_page.dart';
 import '../../features/wager/presentation/pages/play_page.dart';
@@ -56,6 +57,7 @@ GoRouter createRouter(BuildContext context) {
     },
     routes: [
       GoRoute(path: RouteNames.splash, builder: (_, __) => const SplashPage()),
+      GoRoute(path: RouteNames.maintenance, builder: (_, __) => const MaintenancePage()),
       GoRoute(path: RouteNames.login, builder: (_, __) => const LoginPage()),
       GoRoute(path: RouteNames.register, builder: (_, __) => const RegisterPage()),
       GoRoute(path: RouteNames.forgotPassword, builder: (_, __) => const ForgotPasswordPage()),
@@ -68,7 +70,8 @@ GoRouter createRouter(BuildContext context) {
             final id = state.pathParameters['id'] ?? '';
             return GameDetailsPage(gameId: id);
           }),
-          GoRoute(path: RouteNames.results, builder: (_, __) => const ResultsPage()),
+          GoRoute(path: RouteNames.results, builder: (_, __) => const ChartPage()),
+          GoRoute(path: RouteNames.chart, builder: (_, __) => const ChartPage()),
           GoRoute(path: RouteNames.myPlays, builder: (_, __) => const MyActivityPage()),
           GoRoute(path: RouteNames.points, builder: (_, __) => const PointsPage()),
           GoRoute(path: RouteNames.wallet, builder: (_, __) => const WalletPage()),

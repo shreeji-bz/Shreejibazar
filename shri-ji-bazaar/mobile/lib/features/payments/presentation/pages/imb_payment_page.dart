@@ -3,7 +3,6 @@ import 'package:flutter/material.dart';
 import 'package:fluttertoast/fluttertoast.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
-import 'package:shri_ji_bazaar/core/routes/route_names.dart';
 import 'package:shri_ji_bazaar/features/payments/presentation/controllers/payment_controller.dart';
 import 'package:webview_flutter/webview_flutter.dart';
 
@@ -48,6 +47,23 @@ class _ImbPaymentPageState extends State<ImbPaymentPage> {
             }
             _startPollingForResult();
           },
+          onNavigationRequest: (request) {
+            // Fallback: if IMB redirects to callback, detect it from URL params
+            final uri = Uri.tryParse(request.url);
+            if (uri != null && (uri.host.contains('imb') || uri.path.contains('/callback'))) {
+              final status = uri.queryParameters['status'];
+              if (status == 'success' || status == 'completed') {
+                _pollTimer?.cancel();
+                _handlePaymentSuccess();
+                return NavigationDecision.prevent;
+              } else if (status == 'failed') {
+                _pollTimer?.cancel();
+                _handlePaymentFailed();
+                return NavigationDecision.prevent;
+              }
+            }
+            return NavigationDecision.navigate;
+          },
           onWebResourceError: (error) {
             if (mounted && _isLoading) {
               setState(() {
@@ -62,30 +78,47 @@ class _ImbPaymentPageState extends State<ImbPaymentPage> {
   }
 
   void _startPollingForResult() {
-    // Poll localStorage for payment result via JavaScript
     _pollTimer = Timer.periodic(const Duration(milliseconds: 500), (timer) async {
-      final result = await _webViewController.runJavaScriptReturningResult('''
-        (function() {
-          var status = localStorage.getItem('imb_payment_status');
-          var orderId = localStorage.getItem('imb_order_id');
-          if (status && orderId) {
-            return JSON.stringify({status: status, orderId: orderId});
-          }
-          return null;
-        })()
-      ''');
+      try {
+        final result = await _webViewController.runJavaScriptReturningResult('''
+          (function() {
+            var status = localStorage.getItem('imb_payment_status');
+            var orderId = localStorage.getItem('imb_order_id');
+            if (status && orderId) {
+              return JSON.stringify({status: status, orderId: orderId});
+            }
+            return null;
+          })()
+        ''');
 
-      final resultStr = result.toString();
-      if (resultStr != 'null' && resultStr.isNotEmpty) {
-        // Clean up the result string (WebView wraps it in quotes)
-        final cleanResult = resultStr.replaceAll('"', '').replaceAll("'", '');
-        if (cleanResult.contains('"success"')) {
-          timer.cancel();
-          _handlePaymentSuccess();
-        } else if (cleanResult.contains('"failed"')) {
-          timer.cancel();
-          _handlePaymentFailed();
+        // WebView wraps JS return in an extra layer; extract the actual string
+        String? jsonStr;
+        if (result is String) {
+          jsonStr = result;
         }
+
+        if (jsonStr != null && jsonStr != 'null' && jsonStr.isNotEmpty) {
+          jsonStr = jsonStr.trim();
+
+          // Remove the outer quotes WebView adds (e.g. "\"{...}\"" -> "{...}")
+          if ((jsonStr.startsWith('"') && jsonStr.endsWith('"')) ||
+              (jsonStr.startsWith("'") && jsonStr.endsWith("'"))) {
+            jsonStr = jsonStr.substring(1, jsonStr.length - 1);
+          }
+
+          // Unescape the inner content
+          jsonStr = jsonStr.replaceAll(r'\"', '"').replaceAll(r"\'", "'");
+
+          if (jsonStr.contains('"success"') || jsonStr.contains('"completed"')) {
+            timer.cancel();
+            _handlePaymentSuccess();
+          } else if (jsonStr.contains('"failed"')) {
+            timer.cancel();
+            _handlePaymentFailed();
+          }
+        }
+      } catch (e) {
+        // Silently continue polling on transient errors
       }
     });
 

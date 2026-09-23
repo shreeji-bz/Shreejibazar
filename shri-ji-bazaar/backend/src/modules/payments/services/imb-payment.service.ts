@@ -1,8 +1,12 @@
 import crypto from 'crypto';
+import FormData from 'form-data';
 
 export interface ImbCreateOrderResponse {
   orderId: string;
   paymentUrl: string;
+  paytmLink?: string;
+  bhimLink?: string;
+  checkLink?: string;
   status: string;
 }
 
@@ -17,16 +21,16 @@ export interface ImbWebhookPayload {
 
 export class ImbPaymentService {
   private readonly baseUrl: string;
-  private readonly apiKey: string;
-  private readonly merchantId: string;
-  private readonly callbackUrl: string;
+  private readonly userToken: string;
+  private readonly redirectUrl: string;
+  private readonly webhookUrl: string;
   private readonly webhookSecret: string;
 
   constructor() {
-    this.baseUrl = process.env.IMB_BASE_URL || 'https://api.imbpayment.com/v1';
-    this.apiKey = process.env.IMB_API_KEY || '';
-    this.merchantId = process.env.IMB_MERCHANT_ID || '';
-    this.callbackUrl = process.env.IMB_CALLBACK_URL || `${process.env.BASE_URL || 'http://localhost:3000'}/api/v1/payments/imb/callback`;
+    this.baseUrl = process.env.IMB_BASE_URL || 'https://api.imbpay.in';
+    this.userToken = process.env.IMB_USER_TOKEN || '';
+    this.redirectUrl = process.env.IMB_REDIRECT_URL || `${process.env.BASE_URL || 'http://localhost:3000'}/api/v1/payments/imb/callback`;
+    this.webhookUrl = process.env.IMB_WEBHOOK_URL || `${process.env.BASE_URL || 'http://localhost:3000'}/api/v1/payments/imb/webhook`;
     this.webhookSecret = process.env.IMB_WEBHOOK_SECRET || '';
   }
 
@@ -38,48 +42,66 @@ export class ImbPaymentService {
     userEmail?: string;
     description?: string;
   }): Promise<ImbCreateOrderResponse> {
-    if (!this.apiKey || !this.merchantId) {
+    if (!this.userToken) {
       throw new Error('IMB payment gateway is not configured');
     }
 
     const orderId = this.generateOrderId(params.userId);
 
-    const payload = {
-      merchant_id: this.merchantId,
-      order_id: orderId,
-      amount: Math.round(params.amount * 100), // Convert to paise
-      currency: 'INR',
-      customer: {
-        name: params.userName,
-        mobile: params.userMobile,
-        email: params.userEmail || '',
-      },
-      description: params.description || `Deposit for user ${params.userMobile}`,
-      callback_url: this.callbackUrl,
-      payment_method: 'imps',
-    };
+    const form = new FormData();
+    form.append('customer_mobile', params.userMobile);
+    form.append('user_token', this.userToken);
+    form.append('amount', params.amount.toFixed(2));
+    form.append('order_id', orderId);
+    form.append('redirect_url', this.redirectUrl);
+    form.append('remark1', params.userEmail || params.userMobile);
+    form.append('remark2', params.userName);
 
     try {
-      const response = await fetch(`${this.baseUrl}/payment/create`, {
+      console.log(`IMB create order: ${this.baseUrl}/v2/create-order, amount=${params.amount.toFixed(2)}, order=${orderId}`);
+
+      // Try url-encoded first (many Indian payment gateways prefer this over multipart)
+      const urlEncodedBody = new URLSearchParams();
+      urlEncodedBody.set('customer_mobile', params.userMobile);
+      urlEncodedBody.set('user_token', this.userToken);
+      urlEncodedBody.set('amount', params.amount.toFixed(2));
+      urlEncodedBody.set('order_id', orderId);
+      urlEncodedBody.set('redirect_url', this.redirectUrl);
+      urlEncodedBody.set('remark1', params.userEmail || params.userMobile);
+      urlEncodedBody.set('remark2', params.userName);
+
+      const response = await fetch(`${this.baseUrl}/v2/create-order`, {
         method: 'POST',
         headers: {
-          'Content-Type': 'application/json',
-          'X-API-Key': this.apiKey,
-          'X-Merchant-Id': this.merchantId,
+          'Content-Type': 'application/x-www-form-urlencoded',
+          'Accept': 'application/json',
         },
-        body: JSON.stringify(payload),
+        body: urlEncodedBody.toString(),
       });
 
-      const data = await response.json() as any;
+      const responseText = await response.text();
+      console.log('IMB create order raw response status:', response.status);
+      console.log('IMB create order raw response body:', responseText);
 
-      if (!response.ok || !data.payment_url || !data.order_id) {
+      let data: any = {};
+      try {
+        data = JSON.parse(responseText);
+      } catch (e) {
+        console.error('IMB create order: response is not JSON');
+        throw new Error('Invalid response from IMB payment gateway: non-JSON response');
+      }
+
+      if (!response.ok || !data.result?.payment_url || !data.result?.orderId) {
         throw new Error(data.message || 'Invalid response from IMB payment gateway');
       }
 
       return {
-        orderId: data.order_id,
-        paymentUrl: data.payment_url,
-        status: data.status || 'created',
+        orderId: data.result.orderId,
+        paymentUrl: data.result.payment_url,
+        paytmLink: data.result.paytm_link,
+        bhimLink: data.result.bhim_link,
+        checkLink: data.result.check_link,
+        status: data.result.status || 'created',
       };
     } catch (error: any) {
       console.error('IMB create order error:', error);
@@ -88,7 +110,7 @@ export class ImbPaymentService {
   }
 
   verifyWebhookSignature(payload: string, signature: string): boolean {
-    if (!this.webhookSecret) return true; // Skip verification if no secret configured
+    if (!this.webhookSecret) return true;
     const expectedSignature = crypto
       .createHmac('sha256', this.webhookSecret)
       .update(payload)
@@ -100,13 +122,44 @@ export class ImbPaymentService {
   }
 
   parseWebhookPayload(body: any): ImbWebhookPayload {
+    // IMB sends form-urlencoded; body may already be parsed by express, or result may be a JSON string
+    const raw = body as Record<string, any>;
+
+    // Parse the 'result' field if it's a JSON string (IMB sends it this way for form-urlencoded webhooks)
+    let result: Record<string, any> = {};
+    if (raw.result) {
+      if (typeof raw.result === 'string') {
+        try {
+          result = JSON.parse(raw.result);
+        } catch {
+          result = {};
+        }
+      } else if (typeof raw.result === 'object') {
+        result = raw.result;
+      }
+    }
+
+    // IMB uses uppercase status: SUCCESS / FAILED / PENDING
+    const rawStatus = (raw.status || '').toString().toUpperCase();
+    const txnStatus = (result.txnStatus || '').toString().toUpperCase();
+    let status: 'success' | 'failed' | 'pending' = 'pending';
+    if (rawStatus === 'SUCCESS' && txnStatus === 'COMPLETED') {
+      status = 'success';
+    } else if (rawStatus === 'FAILED' || txnStatus === 'FAILED' || txnStatus === 'FAILED') {
+      status = 'failed';
+    }
+
+    // Amount may be integer (rupees) or string
+    const rawAmount = result.amount ?? raw.amount;
+    const amount = typeof rawAmount === 'number' ? rawAmount : parseFloat(rawAmount || '0');
+
     return {
-      orderId: body.order_id || body.orderId,
-      paymentId: body.payment_id || body.paymentId,
-      status: body.status === 'success' ? 'success' : body.status === 'failed' ? 'failed' : 'pending',
-      amount: body.amount ? body.amount / 100 : 0, // Convert from paise
-      transactionId: body.transaction_id || body.transactionId,
-      timestamp: body.timestamp || new Date().toISOString(),
+      orderId: raw.order_id || raw.orderId || result.orderId,
+      paymentId: raw.payment_id || result.txnId,
+      status,
+      amount: isNaN(amount) ? 0 : amount,
+      transactionId: raw.transaction_id || result.utr || result.txnId,
+      timestamp: raw.date || raw.timestamp || result.date || new Date().toISOString(),
     };
   }
 
@@ -117,6 +170,6 @@ export class ImbPaymentService {
   }
 
   isConfigured(): boolean {
-    return !!(this.apiKey && this.merchantId);
+    return !!this.userToken;
   }
 }

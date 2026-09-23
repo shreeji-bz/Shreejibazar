@@ -2,15 +2,61 @@ import { PaymentEntity } from '../entities/payment.entity';
 import { IPaymentsRepository } from '../interfaces/payments.interface';
 import { supabase } from '../../../config/database.config';
 
+function toIso(value: any): string | null {
+  if (!value) return null;
+  if (value instanceof Date) return value.toISOString();
+  return value;
+}
+
+function mapAdminPayment(row: any, user?: any): any {
+  const balanceBefore = row.balance_before ?? 0;
+  const balanceAfter = row.balance_after ?? 0;
+  return {
+    id: row.id,
+    userId: row.user_id,
+    userName: user?.name || null,
+    userMobile: user?.mobile || null,
+    type: row.type,
+    amount: row.amount,
+    method: row.method,
+    status: row.status,
+    referenceId: row.reference_id,
+    pointsBefore: balanceBefore,
+    pointsAfter: balanceAfter,
+    pointsDeducted: balanceAfter < balanceBefore ? balanceBefore - balanceAfter : 0,
+    notes: row.notes,
+    adminNote: row.admin_notes,
+    processedBy: row.processed_by,
+    processedAt: toIso(row.approved_at || row.completed_at),
+    createdAt: toIso(row.created_at) || new Date().toISOString(),
+    currency: row.currency,
+    provider: row.provider,
+    rejectionReason: row.rejection_reason,
+    bankName: row.bank_name,
+    accountNumber: row.account_number,
+    ifscCode: row.ifsc_code,
+    accountHolderName: row.account_holder_name,
+  };
+}
+
 export class PaymentsService {
   constructor(private paymentsRepo: IPaymentsRepository) {}
 
-  async createDeposit(userId: string, amount: number, method: string, referenceId?: string, notes?: string): Promise<PaymentEntity> {
+  private async enrichWithUser(payments: any[]): Promise<any[]> {
+    const userIds = Array.from(new Set(payments.map((p) => p.userId).filter(Boolean)));
+    if (!userIds.length) return payments.map((p) => mapAdminPayment(p));
+
+    const { data: users } = await supabase.from('users').select('id, name, mobile').in('id', userIds);
+    const userMap = new Map((users || []).map((u: any) => [u.id, u]));
+
+    return payments.map((row: any) => mapAdminPayment(row, userMap.get(row.userId)));
+  }
+
+  async createDeposit(userId: string, amount: number, method: string, referenceId?: string, notes?: string, extra?: { txnId?: string; utrNumber?: string; screenshotUrl?: string; provider?: string }): Promise<PaymentEntity> {
     if (amount <= 0) {
       throw new Error('Deposit amount must be greater than 0');
     }
 
-    // Check for idempotency: if a pending deposit with this referenceId already exists, return it
     if (referenceId) {
       const { data: existing } = await supabase
         .from('payments')
@@ -41,14 +87,21 @@ export class PaymentsService {
           completedAt: existing.completed_at,
           createdAt: existing.created_at,
           updatedAt: existing.updated_at,
+          txnId: existing.txn_id ?? null,
+          utrNumber: existing.utr_number ?? null,
+          screenshotUrl: existing.screenshot_url ?? null,
+          provider: existing.provider ?? 'manual',
+          rejectionReason: null,
+          bankName: null,
+          accountNumber: null,
+          ifscCode: null,
+          accountHolderName: null,
         };
       }
     }
 
-    // Get current wallet balance
     const balanceBefore = await this.paymentsRepo.getWalletBalance(userId);
 
-    // Create a point_transaction record for idempotency tracking
     const { data: transaction, error: txnError } = await supabase
       .from('point_transactions')
       .insert({
@@ -57,13 +110,15 @@ export class PaymentsService {
         amount,
         description: `Pending deposit via ${method}${notes ? `: ${notes}` : ''}`,
         reference_id: referenceId,
-        reference_type: 'payment_deposit',
+        reference_type: 'play',
+        balance_before: balanceBefore,
         balance_after: balanceBefore,
       })
       .select()
       .single();
 
     if (txnError || !transaction) {
+      console.error('Deposit point_transactions insert error:', JSON.stringify(txnError));
       throw new Error(`Failed to create deposit transaction: ${txnError?.message || 'Unknown error'}`);
     }
 
@@ -75,19 +130,22 @@ export class PaymentsService {
       method: method as PaymentEntity['method'],
       status: 'pending',
       referenceId: referenceId || transaction.id,
-      referenceType: 'point_transaction',
+      referenceType: 'play',
       notes,
       balanceBefore,
       balanceAfter: balanceBefore,
+      txnId: extra?.txnId,
+      utrNumber: extra?.utrNumber,
+      screenshotUrl: extra?.screenshotUrl,
+      provider: extra?.provider || 'manual',
     });
   }
 
-  async createWithdrawal(userId: string, amount: number, method: string, referenceId?: string, notes?: string): Promise<PaymentEntity> {
+  async createWithdrawal(userId: string, amount: number, method: string, referenceId?: string, notes?: string, bankDetails?: { bankName?: string; accountNumber?: string; ifscCode?: string; accountHolderName?: string }): Promise<PaymentEntity> {
     if (amount <= 0) {
       throw new Error('Withdrawal amount must be greater than 0');
     }
 
-    // Check for idempotency
     if (referenceId) {
       const { data: existing } = await supabase
         .from('payments')
@@ -118,19 +176,26 @@ export class PaymentsService {
           completedAt: existing.completed_at,
           createdAt: existing.created_at,
           updatedAt: existing.updated_at,
+          txnId: null,
+          utrNumber: null,
+          screenshotUrl: null,
+          provider: 'manual',
+          rejectionReason: null,
+          bankName: existing.bank_name ?? null,
+          accountNumber: existing.account_number ?? null,
+          ifscCode: existing.ifsc_code ?? null,
+          accountHolderName: existing.account_holder_name ?? null,
         };
       }
     }
 
-    // Check minimum withdrawal from settings
-    const { data: minSetting } = await supabase.from('settings').select('value').eq('key', 'min_withdrawal_amount').single();
-    const minWithdrawal = parseInt(minSetting?.value || '100', 10);
+    const minWithdrawalSetting = await supabase.from('settings').select('value').eq('key', 'min_withdrawal_amount').single();
+    const minWithdrawal = parseInt(minWithdrawalSetting.data?.value || '100', 10);
 
     if (amount < minWithdrawal) {
       throw new Error(`Minimum withdrawal amount is ${minWithdrawal} INR`);
     }
 
-    // Validate sufficient balance
     const currentBalance = await this.paymentsRepo.getWalletBalance(userId);
     if (currentBalance < amount) {
       throw new Error(`Insufficient balance. Available: ${currentBalance} INR`);
@@ -138,7 +203,6 @@ export class PaymentsService {
 
     const balanceBefore = currentBalance;
 
-    // Create a point_transaction record for idempotency tracking
     const { data: transaction, error: txnError } = await supabase
       .from('point_transactions')
       .insert({
@@ -147,8 +211,9 @@ export class PaymentsService {
         amount: -amount,
         description: `Pending withdrawal via ${method}${notes ? `: ${notes}` : ''}`,
         reference_id: referenceId,
-        reference_type: 'payment_withdrawal',
+        reference_type: 'point_transaction',
         balance_after: currentBalance,
+        balance_before: currentBalance,
       })
       .select()
       .single();
@@ -169,16 +234,20 @@ export class PaymentsService {
       notes,
       balanceBefore,
       balanceAfter: currentBalance,
+      bankName: bankDetails?.bankName,
+      accountNumber: bankDetails?.accountNumber,
+      ifscCode: bankDetails?.ifscCode,
+      accountHolderName: bankDetails?.accountHolderName,
     });
   }
 
   async approveDeposit(id: string, adminId: string, adminNotes?: string): Promise<PaymentEntity> {
     const payment = await this.paymentsRepo.findById(id);
     if (!payment) throw new Error('Payment not found');
-    if (payment.type !== 'deposit') throw new Error('Payment is not a deposit');
-    if (payment.status !== 'pending') throw new Error('Payment is not pending');
+    if (payment.type !== 'deposit') throw new Error(`Payment is not a deposit, it's ${payment.type}`);
+    if (payment.status !== 'pending') throw new Error(`Payment is not pending, it's ${payment.status}`);
 
-    // Credit wallet via RPC
+    console.log(`[approveDeposit] crediting wallet for user ${payment.userId}, amount ${payment.amount}`);
     await this.paymentsRepo.creditWallet(
       payment.userId,
       payment.amount,
@@ -186,7 +255,7 @@ export class PaymentsService {
       `Deposit approved${adminNotes ? `: ${adminNotes}` : ''}`,
     );
 
-    // Update payment to completed
+    console.log(`[approveDeposit] approving payment ${id}`);
     return this.paymentsRepo.approve(id, adminId, adminNotes);
   }
 
@@ -196,13 +265,11 @@ export class PaymentsService {
     if (payment.type !== 'withdrawal') throw new Error('Payment is not a withdrawal');
     if (payment.status !== 'pending') throw new Error('Payment is not pending');
 
-    // Check balance one more time before deducting
     const currentBalance = await this.paymentsRepo.getWalletBalance(payment.userId);
     if (currentBalance < payment.amount) {
       throw new Error(`Insufficient balance for withdrawal. Available: ${currentBalance}, Required: ${payment.amount}`);
     }
 
-    // Deduct from wallet
     await this.paymentsRepo.debitWallet(
       payment.userId,
       payment.amount,
@@ -210,7 +277,6 @@ export class PaymentsService {
       `Withdrawal approved${adminNotes ? `: ${adminNotes}` : ''}`,
     );
 
-    // Update payment to completed
     return this.paymentsRepo.approve(id, adminId, adminNotes);
   }
 
@@ -219,7 +285,6 @@ export class PaymentsService {
     if (!payment) throw new Error('Payment not found');
     if (payment.status !== 'pending') throw new Error('Payment is not pending');
 
-    // For withdrawals, if the wallet was already debited (edge case), refund it
     if (payment.type === 'withdrawal') {
       const currentBalance = await this.paymentsRepo.getWalletBalance(payment.userId);
       if (currentBalance < payment.balanceAfter) {
@@ -251,6 +316,13 @@ export class PaymentsService {
     return this.paymentsRepo.getStats();
   }
 
+  async getPaymentById(id: string): Promise<any> {
+    const { data, error } = await supabase.from('payments').select('*').eq('id', id).single();
+    if (error || !data) return null;
+    const mapped = mapAdminPayment(data);
+    return this.enrichWithUser([mapped]).then((enriched) => enriched[0] ?? null);
+  }
+
   async getAllPayments({ page, limit, type, status, dateFrom, dateTo, search }: {
     page: number;
     limit: number;
@@ -259,7 +331,7 @@ export class PaymentsService {
     dateFrom?: string;
     dateTo?: string;
     search?: string;
-  }): Promise<{ data: PaymentEntity[]; total: number; page: number; limit: number }> {
+  }): Promise<{ data: any[]; total: number; page: number; limit: number }> {
     const from = (page - 1) * limit;
     const to = from + limit - 1;
 
@@ -275,27 +347,11 @@ export class PaymentsService {
 
     const { data, count } = await query.order('created_at', { ascending: false }).range(from, to);
 
+    const mapped = (data || []).map((row: any) => mapAdminPayment(row));
+    const enriched = await this.enrichWithUser(mapped);
+
     return {
-      data: (data || []).map((row: any) => ({
-        id: row.id,
-        userId: row.user_id,
-        processedBy: row.processed_by,
-        type: row.type,
-        amount: row.amount,
-        currency: row.currency,
-        method: row.method,
-        status: row.status,
-        referenceId: row.reference_id,
-        referenceType: row.reference_type,
-        notes: row.notes,
-        adminNotes: row.admin_notes,
-        balanceBefore: row.balance_before,
-        balanceAfter: row.balance_after,
-        approvedAt: row.approved_at,
-        completedAt: row.completed_at,
-        createdAt: row.created_at,
-        updatedAt: row.updated_at,
-      })),
+      data: enriched,
       total: count || 0,
       page,
       limit,

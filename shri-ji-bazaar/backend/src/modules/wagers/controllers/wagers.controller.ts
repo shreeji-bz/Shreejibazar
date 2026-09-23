@@ -138,7 +138,8 @@ export class WagersController {
 
   async getWagerStats(req: Request, res: Response) {
     try {
-      const data = await this.wagersService.getWagerStats();
+      const userId = (req.query as any).userId as string | undefined;
+      const data = await this.wagersService.getWagerStats(userId);
       res.json({ success: true, data });
     } catch (error: any) {
       res.status(500).json({ success: false, message: error.message });
@@ -214,16 +215,6 @@ export class WagersController {
           wagers: settledWagers,
         },
       });
-    } catch (error: any) {
-      res.status(500).json({ success: false, message: error.message });
-    }
-  }
-
-  async getWagerStats(req: Request, res: Response) {
-    try {
-      const userId = req.query.userId as string | undefined;
-      const data = await this.wagersService.getWagerStats(userId);
-      res.json({ success: true, data });
     } catch (error: any) {
       res.status(500).json({ success: false, message: error.message });
     }

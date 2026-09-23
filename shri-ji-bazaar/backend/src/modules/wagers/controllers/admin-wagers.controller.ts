@@ -1,4 +1,4 @@
-import { Router } from 'express';
+import { Router, Request, Response } from 'express';
 import { WagersService } from '../services/wagers.service';
 import { WagersRepository } from '../repositories/wagers.repository';
 import { supabase } from '../../../config/database.config';

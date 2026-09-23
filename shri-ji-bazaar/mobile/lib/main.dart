@@ -1,5 +1,3 @@
-import 'dart:async';
-
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
@@ -27,6 +25,7 @@ import 'features/bonuses/data/repositories/bonus_repository.dart';
 import 'features/bonuses/data/datasources/bonus_datasource.dart';
 import 'features/referrals/presentation/controllers/referral_controller.dart';
 import 'features/referrals/domain/usecases/get_referral_stats.dart';
+import 'features/referrals/domain/usecases/get_referral_list.dart';
 import 'features/referrals/data/repositories/referral_repository.dart';
 import 'features/referrals/data/datasources/referral_datasource.dart';
 import 'features/notifications/presentation/controllers/notification_controller.dart';
@@ -71,8 +70,11 @@ import 'features/payments/presentation/controllers/payment_controller.dart';
 import 'features/payments/domain/usecases/create_deposit.dart';
 import 'features/payments/domain/usecases/create_withdrawal.dart';
 import 'features/payments/domain/usecases/get_payment_history.dart';
+import 'features/payments/domain/usecases/create_imb_order.dart';
 import 'features/payments/data/repositories/payment_repository.dart';
 import 'features/payments/data/datasources/payment_datasource.dart';
+import 'features/payments/data/repositories/imb_payment_repository.dart';
+import 'features/payments/data/datasources/imb_payment_datasource.dart';
 
 final navigatorKey = GlobalKey<NavigatorState>();
 
@@ -121,7 +123,9 @@ class ShriJiBazaarApp extends StatelessWidget {
         ),
         ChangeNotifierProvider(
           create: (_) => ReferralController(
-            GetReferralStats(ReferralRepository(ReferralDatasource())),
+            getReferralStats: GetReferralStats(ReferralRepository(ReferralDatasource())),
+            getReferralList: GetReferralList(ReferralRepository(ReferralDatasource())),
+            getProfile: GetProfileUseCase(ProfileRepository(ProfileDatasource())),
           ),
         ),
         ChangeNotifierProvider(
@@ -161,6 +165,7 @@ class ShriJiBazaarApp extends StatelessWidget {
             createWithdrawal: CreateWithdrawal(PaymentRepository(PaymentDatasource())),
             getPaymentHistory: GetPaymentHistory(PaymentRepository(PaymentDatasource())),
             createImbOrder: CreateImbOrder(ImbPaymentRepository(ImbPaymentDatasource())),
+            getWallet: GetWallet(PointsRepository(PointsDatasource())),
           ),
         ),
         ChangeNotifierProvider(

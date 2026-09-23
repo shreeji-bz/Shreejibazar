@@ -72,14 +72,14 @@ class LoginPage extends StatelessWidget {
                     style: Theme.of(context).textTheme.bodyMedium,
                   ),
                   TextButton(
-                    onPressed: () => GoRouter.of(context).push(RouteNames.register),
+                    onPressed: () => context.push(RouteNames.register),
                     child: const Text('Register'),
                   ),
                 ],
               ),
               // Forgot password link
               TextButton(
-                onPressed: () => GoRouter.of(context).push(RouteNames.forgotPassword),
+                onPressed: () => context.push(RouteNames.forgotPassword),
                 child: const Text('Forgot Password?'),
               ),
             ],

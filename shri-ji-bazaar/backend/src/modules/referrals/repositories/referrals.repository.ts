@@ -8,7 +8,19 @@ export class ReferralsRepository {
     const { count: total } = await supabase.from('referrals').select('*', { count: 'exact', head: true }).eq('referrer_id', userId);
     const { count: completed } = await supabase.from('referrals').select('*', { count: 'exact', head: true }).eq('referrer_id', userId).eq('status', 'completed');
 
-    return { referralCode: user?.referral_code, totalReferrals: total || 0, completedReferrals: completed || 0 };
+    let totalPointsEarned = 0;
+    const { data: completedRows } = await supabase
+      .from('referrals')
+      .select('reward_points')
+      .eq('referrer_id', userId)
+      .eq('status', 'completed')
+      .not('reward_points', 'is', null);
+
+    if (completedRows && completedRows.length) {
+      totalPointsEarned = completedRows.reduce((sum, row: any) => sum + (row.reward_points || 0), 0);
+    }
+
+    return { referralCode: user?.referral_code, totalReferrals: total || 0, completedReferrals: completed || 0, totalPointsEarned };
   }
 
   async getList(userId: string) {

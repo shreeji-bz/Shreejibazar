@@ -19,11 +19,21 @@ export class PaymentsRepository {
         admin_notes: data.adminNotes,
         balance_before: data.balanceBefore,
         balance_after: data.balanceAfter,
+        txn_id: data.txnId,
+        utr_number: data.utrNumber,
+        screenshot_url: data.screenshotUrl,
+        provider: data.provider || 'manual',
+        rejection_reason: data.rejectionReason,
+        bank_name: data.bankName,
+        account_number: data.accountNumber,
+        ifsc_code: data.ifscCode,
+        account_holder_name: data.accountHolderName,
       })
       .select()
       .single();
 
     if (error || !record) {
+      console.error('Payments insert error:', JSON.stringify(error));
       throw new Error(`Failed to create payment: ${error?.message || 'Unknown error'}`);
     }
 
@@ -186,51 +196,39 @@ export class PaymentsRepository {
   }
 
   async creditWallet(userId: string, amount: number, paymentId: string, description: string): Promise<void> {
-    try {
-      const { error } = await supabase.rpc('credit_wallet_points', {
-        p_user_id: userId,
-        p_amount: amount,
-      });
+    const { data: wallet } = await supabase
+      .from('point_wallets')
+      .select('balance, total_earned')
+      .eq('user_id', userId)
+      .single();
 
-      if (error) {
-        throw new Error(`RPC credit_wallet_points failed: ${error.message}`);
-      }
-    } catch {
-      // Fallback: manually credit wallet if RPC is unavailable
-      const { data: wallet } = await supabase
-        .from('points_wallet')
-        .select('*')
-        .eq('user_id', userId)
-        .single();
+    if (!wallet) throw new Error('Wallet not found');
 
-      if (!wallet) throw new Error('Wallet not found');
+    const newBalance = wallet.balance + amount;
 
-      const newBalance = wallet.balance + amount;
+    await supabase
+      .from('point_wallets')
+      .update({
+        balance: newBalance,
+        total_earned: wallet.total_earned + amount,
+        updated_at: new Date().toISOString(),
+      })
+      .eq('user_id', userId);
 
-      await supabase
-        .from('points_wallet')
-        .update({
-          balance: newBalance,
-          total_earned: wallet.total_earned + amount,
-          updated_at: new Date().toISOString(),
-        })
-        .eq('user_id', userId);
-
-      await supabase.from('point_transactions').insert({
-        user_id: userId,
-        type: 'credit',
-        amount,
-        description,
-        reference_id: paymentId,
-        balance_after: newBalance,
-      });
-    }
+    await supabase.from('point_transactions').insert({
+      user_id: userId,
+      type: 'credit',
+      amount,
+      description,
+      reference_id: paymentId,
+      balance_after: newBalance,
+    });
   }
 
   async debitWallet(userId: string, amount: number, paymentId: string, description: string): Promise<void> {
     const { data: wallet } = await supabase
-      .from('points_wallet')
-      .select('*')
+      .from('point_wallets')
+      .select('balance, total_spent')
       .eq('user_id', userId)
       .single();
 
@@ -240,7 +238,7 @@ export class PaymentsRepository {
     if (newBalance < 0) throw new Error('Insufficient points balance');
 
     await supabase
-      .from('points_wallet')
+      .from('point_wallets')
       .update({
         balance: newBalance,
         total_spent: wallet.total_spent + amount,
@@ -260,8 +258,8 @@ export class PaymentsRepository {
 
   async refundWallet(userId: string, amount: number, paymentId: string, description: string): Promise<void> {
     const { data: wallet } = await supabase
-      .from('points_wallet')
-      .select('*')
+      .from('point_wallets')
+      .select('balance, total_earned')
       .eq('user_id', userId)
       .single();
 
@@ -270,7 +268,7 @@ export class PaymentsRepository {
     const newBalance = wallet.balance + amount;
 
     await supabase
-      .from('points_wallet')
+      .from('point_wallets')
       .update({
         balance: newBalance,
         total_earned: wallet.total_earned + amount,
@@ -290,12 +288,18 @@ export class PaymentsRepository {
 
   async getWalletBalance(userId: string): Promise<number> {
     const { data } = await supabase
-      .from('points_wallet')
+      .from('point_wallets')
       .select('balance')
       .eq('user_id', userId)
       .single();
 
     return data?.balance || 0;
+  }
+
+  private toIso(value: any): string | null {
+    if (!value) return null;
+    if (value instanceof Date) return value.toISOString();
+    return value;
   }
 
   private mapRow(row: any): PaymentEntity {
@@ -314,10 +318,19 @@ export class PaymentsRepository {
       adminNotes: row.admin_notes,
       balanceBefore: row.balance_before,
       balanceAfter: row.balance_after,
-      approvedAt: row.approved_at,
-      completedAt: row.completed_at,
-      createdAt: row.created_at,
-      updatedAt: row.updated_at,
+      approvedAt: row.approved_at ? new Date(row.approved_at) : null,
+      completedAt: row.completed_at ? new Date(row.completed_at) : null,
+      createdAt: row.created_at ? new Date(row.created_at) : new Date(),
+      updatedAt: row.updated_at ? new Date(row.updated_at) : null,
+      txnId: row.txn_id ?? null,
+      utrNumber: row.utr_number ?? null,
+      screenshotUrl: row.screenshot_url ?? null,
+      provider: row.provider,
+      rejectionReason: row.rejection_reason ?? null,
+      bankName: row.bank_name ?? null,
+      accountNumber: row.account_number ?? null,
+      ifscCode: row.ifsc_code ?? null,
+      accountHolderName: row.account_holder_name ?? null,
     };
   }
 }

@@ -23,8 +23,8 @@ export class PointsService {
 
   async getLeaderboard(limit = 100) {
     const { data } = await supabase
-      .from('points_wallet')
-      .select('user_id, balance, total_earned, auth.users(name)')
+      .from('point_wallets')
+      .select('user_id, balance, total_earned')
       .order('balance', { ascending: false })
       .limit(limit);
 

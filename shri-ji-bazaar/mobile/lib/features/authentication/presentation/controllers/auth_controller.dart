@@ -148,6 +148,18 @@ class AuthController extends ChangeNotifier {
       await SecureStorage.writeToken(data['accessToken']);
       await SecureStorage.writeRefreshToken(data['refreshToken']);
 
+      // If a referral code was used, trigger referral bonus for the referrer
+      if (referralCode != null && referralCode.isNotEmpty) {
+        try {
+          await ApiClient().dio.post('/referrals/apply', data: {
+            'userId': data['user']['id'],
+            'referralCode': referralCode,
+          });
+        } catch (_) {
+          // Non-blocking: referral bonus failure should not fail registration
+        }
+      }
+
       _user = UserEntity(
         id: data['user']['id'],
         name: data['user']['name'],
