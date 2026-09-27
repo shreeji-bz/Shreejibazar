@@ -71,7 +71,6 @@ GoRouter createRouter(BuildContext context) {
             return GameDetailsPage(gameId: id);
           }),
           GoRoute(path: RouteNames.results, builder: (_, __) => const ChartPage()),
-          GoRoute(path: RouteNames.chart, builder: (_, __) => const ChartPage()),
           GoRoute(path: RouteNames.myPlays, builder: (_, __) => const MyActivityPage()),
           GoRoute(path: RouteNames.points, builder: (_, __) => const PointsPage()),
           GoRoute(path: RouteNames.wallet, builder: (_, __) => const WalletPage()),

@@ -6,25 +6,12 @@ import {
 } from "lucide-react";
 import "./styles.css";
 
-type RelatedApp = {
-  name: string;
-  developer: string;
-  icon: string;
-};
 
 const screenshots = [
-  "/assets/screenshot-1.png",
-  "/assets/screenshot-2.png",
-  "/assets/screenshot-3.png",
-  "/assets/screenshot-4.png",
-];
-
-const relatedApps: RelatedApp[] = [
-  { name: "Koshur Academy", developer: "Sachiva Web & Security", icon: "/assets/related-1.svg" },
-  { name: "Namaste Shastri Ji", developer: "Sachiva Web & Security", icon: "/assets/related-2.svg" },
-  { name: "ServeGo Provider", developer: "Sachiva Web & Security", icon: "/assets/related-3.svg" },
-  { name: "ServeGo Service", developer: "Sachiva Web & Security", icon: "/assets/related-4.svg" },
-  { name: "11Acre.ai", developer: "Sachiva Web & Security", icon: "/assets/related-5.svg" },
+  "/assets/screenshot-1.webp",
+  "/assets/screenshot-2.webp",
+  "/assets/screenshot-3.webp",
+  "/assets/screenshot-4.webp",
 ];
 
 function App() {
@@ -48,11 +35,11 @@ function App() {
   };
 
   const share = async () => {
-    const data = { title: "ServeGo", text: "ServeGo — Home Services", url: window.location.href };
+    const data = { title: "Shree Ji Bazar", text: "Shree Ji Bazar — Home Services", url: "https://playstore.shreejibazar.com/" };
     if (navigator.share) {
       try { await navigator.share(data); } catch {}
     } else {
-      await navigator.clipboard?.writeText(window.location.href);
+      await navigator.clipboard?.writeText("https://playstore.shreejibazar.com/");
       notify("Link copied");
     }
   };
@@ -64,7 +51,7 @@ function App() {
     <div className="page">
       <header className="topbar">
         <div className="topbar-inner">
-          <div className="brand">MyStore</div>
+          <a href="/store/games" aria-label="Google Play logo" className="f0UV3d"><svg className="kOqhQd" aria-hidden="true" viewBox="0 0 40 40" xmlns="http://www.w3.org/2000/svg"><path fill="none" d="M0,0h40v40H0V0z"></path><g><path d="M19.7,19.2L4.3,35.3c0,0,0,0,0,0c0.5,1.7,2.1,3,4,3c0.8,0,1.5-0.2,2.1-0.6l0,0l17.4-9.9L19.7,19.2z" fill="#EA4335"></path><path d="M35.3,16.4L35.3,16.4l-7.5-4.3l-8.4,7.4l8.5,8.3l7.5-4.2c1.3-0.7,2.2-2.1,2.2-3.6C37.5,18.5,36.6,17.1,35.3,16.4z" fill="#FBBC04"></path><path d="M4.3,4.7C4.2,5,4.2,5.4,4.2,5.8v28.5c0,0.4,0,0.7,0.1,1.1l16-15.7L4.3,4.7z" fill="#4285F4"></path><path d="M19.8,20l8-7.9L10.5,2.3C9.9,1.9,9.1,1.7,8.3,1.7c-1.9,0-3.6,1.3-4,3c0,0,0,0,0,0L19.8,20z" fill="#34A853"></path></g></svg><span aria-hidden="true">google_logo Play</span></a>
           <nav className={`main-nav ${mobileMenu ? "open" : ""}`}>
             <a href="#">Games</a>
             <a className="active" href="#">Apps</a>
@@ -85,9 +72,9 @@ function App() {
       <main className="content">
         <section className="hero">
           <div className="hero-copy">
-            <h1>ServeGo</h1>
-            <a className="developer" href="#">Sachiva Web &amp; Security</a>
-            <div className="downloads"><strong>10+</strong><span>Downloads</span></div>
+            <h1>Shree Ji Bazar</h1>
+            <a className="developer" href="#">Shree Ji Bazar</a>
+            <div className="downloads"><strong>100+</strong><span>Downloads</span></div>
             <div className="hero-buttons">
               <button className={`install ${installed ? "installed" : ""}`} onClick={install}>
                 {installed ? "Installed" : "Install"}
@@ -101,7 +88,7 @@ function App() {
             <div className="device-note"><Smartphone size={15}/> This app is available for your device</div>
           </div>
           <div className="hero-icon">
-            <img src="/assets/app-icon.png" alt="ServeGo app icon"/>
+            <img src="/assets/app-icon.webp" alt="Shree Ji Bazar app icon"/>
           </div>
         </section>
 
@@ -109,7 +96,7 @@ function App() {
           <div className="main-column">
             <div className="gallery">
               <div className="gallery-window">
-                <img src={screenshots[activeShot]} alt={`ServeGo screenshot ${activeShot + 1}`}/>
+                <img src={screenshots[activeShot]} alt={`Shree Ji Bazar screenshot ${activeShot + 1}`}/>
                 <button className="gallery-arrow left" onClick={previous} aria-label="Previous"><ChevronLeft size={25}/></button>
                 <button className="gallery-arrow right" onClick={next} aria-label="Next"><ChevronRight size={25}/></button>
               </div>
@@ -125,11 +112,11 @@ function App() {
             <section className="section about">
               <SectionTitle title="About this app" onClick={() => setAboutOpen(!aboutOpen)} />
               <p>
-                ServeGo is your trusted platform for booking professional home services quickly and conveniently.
+                Shree Ji Bazar is your trusted platform for booking professional home services quickly and conveniently.
               </p>
               <p>
                 Whether you need home cleaning, plumbing, electrical repairs, appliance servicing, beauty services,
-                carpentry, painting, or other household solutions, ServeGo connects you with verified service
+                carpentry, painting, or other household solutions, Shree Ji Bazar connects you with verified service
                 professionals in your area.
               </p>
               {aboutOpen && (
@@ -197,15 +184,6 @@ function App() {
               )}
             </div>
 
-            <div className="related">
-              <div className="related-title"><strong>More by Sachiva Web &amp;<br/>Security</strong><ChevronRight size={18}/></div>
-              {relatedApps.map(app => (
-                <a className="related-app" href="#" key={app.name}>
-                  <img src={app.icon} alt=""/>
-                  <div><strong>{app.name}</strong><span>{app.developer}</span></div>
-                </a>
-              ))}
-            </div>
           </aside>
         </section>
       </main>

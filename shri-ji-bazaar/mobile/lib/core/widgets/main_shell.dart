@@ -13,7 +13,7 @@ class MainShell extends StatelessWidget {
 
   int _calculateIndex(GoRouterState state) {
     final location = state.matchedLocation;
-    if (location == RouteNames.myPlays || location == RouteNames.resultDetail) return 0;
+    if (location == RouteNames.myPlays) return 0;
     if (location == RouteNames.wallet) return 1;
     if (location == RouteNames.games || location.startsWith('${RouteNames.games}/')) return 2;
     if (location == RouteNames.results) return 3;

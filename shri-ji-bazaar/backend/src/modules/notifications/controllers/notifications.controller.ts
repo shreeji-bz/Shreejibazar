@@ -16,7 +16,10 @@ export class NotificationsController {
 
   async getUserNotifications(req: Request, res: Response) {
     try {
-      const userId = req.body.userId;
+      const userId = req.user?.id;
+      if (!userId) {
+        return res.status(401).json({ success: false, message: 'Unauthorized' });
+      }
       const page = Math.max(1, parseInt(req.query.page as string) || 1);
       const limit = Math.min(100, parseInt(req.query.limit as string) || 20);
       const from = (page - 1) * limit;
@@ -41,10 +44,15 @@ export class NotificationsController {
 
   async getUnreadCount(req: Request, res: Response) {
     try {
+      const userId = req.user?.id;
+      if (!userId) {
+        return res.status(401).json({ success: false, message: 'Unauthorized' });
+      }
+
       const { count } = await supabase
         .from('notifications')
         .select('*', { count: 'exact', head: true })
-        .or(`user_id.eq.${req.body.userId},user_id.is.null`)
+        .or(`user_id.eq.${userId},user_id.is.null`)
         .eq('is_read', false);
 
       res.json({ success: true, count: count || 0 });
@@ -64,10 +72,15 @@ export class NotificationsController {
 
   async markAllAsRead(req: Request, res: Response) {
     try {
+      const userId = req.user?.id;
+      if (!userId) {
+        return res.status(401).json({ success: false, message: 'Unauthorized' });
+      }
+
       await supabase
         .from('notifications')
         .update({ is_read: true, read_at: new Date().toISOString() })
-        .or(`user_id.eq.${req.body.userId},user_id.is.null`)
+        .or(`user_id.eq.${userId},user_id.is.null`)
         .eq('is_read', false);
 
       res.json({ success: true, message: 'All marked as read' });

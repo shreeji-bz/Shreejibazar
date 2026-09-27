@@ -87,7 +87,7 @@ class _ProfilePageState extends State<ProfilePage> {
                   SizedBox(
                     width: double.infinity,
                     child: ElevatedButton.icon(
-                      onPressed: () => context.push(RouteNames.editProfile),
+                      onPressed: () => context.push(RouteNames.settings),
                       icon: const Icon(Icons.edit_rounded),
                       label: const Text('Edit Profile'),
                     ),

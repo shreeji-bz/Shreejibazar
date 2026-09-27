@@ -1,8 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:go_router/go_router.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:shri_ji_bazaar/core/theme/app_text_styles.dart';
-import 'package:shri_ji_bazaar/core/routes/route_names.dart';
 
 class AboutPage extends StatelessWidget {
   const AboutPage({super.key});
@@ -23,6 +21,15 @@ class AboutPage extends StatelessWidget {
         );
       }
     }
+  }
+
+  void _showPrivacyDialog(BuildContext context) {
+    showAboutDialog(
+      context: context,
+      applicationName: _appName,
+      applicationVersion: _version,
+      applicationIcon: Icon(Icons.casino_rounded, color: Theme.of(context).colorScheme.primary, size: 48),
+    );
   }
 
   @override
@@ -85,19 +92,7 @@ class AboutPage extends StatelessWidget {
               ),
               const SizedBox(height: 24),
               TextButton.icon(
-                onPressed: () => context.push(RouteNames.terms),
-                icon: const Icon(Icons.description_rounded, size: 18),
-                label: const Text('Terms & Conditions'),
-              ),
-              TextButton.icon(
-                onPressed: () {
-                  showAboutDialog(
-                    context: context,
-                    applicationName: _appName,
-                    applicationVersion: _version,
-                    applicationIcon: Icon(Icons.casino_rounded, color: Theme.of(context).colorScheme.primary, size: 48),
-                  );
-                },
+                onPressed: () => _showPrivacyDialog(context),
                 icon: const Icon(Icons.privacy_tip_rounded, size: 18),
                 label: const Text('Privacy Policy'),
               ),

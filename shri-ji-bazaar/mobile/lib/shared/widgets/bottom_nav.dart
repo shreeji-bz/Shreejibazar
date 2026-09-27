@@ -28,7 +28,7 @@ class BottomNav extends StatelessWidget {
               context.go(RouteNames.wallet);
               break;
             case 2:
-              context.go(RouteNames.play);
+              context.go(RouteNames.games);
               break;
             case 3:
               context.go(RouteNames.results);

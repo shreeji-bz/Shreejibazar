@@ -13,7 +13,10 @@ export class ActivitiesController {
 
   async getUserActivities(req: Request, res: Response) {
     try {
-      const userId = req.body.userId;
+      const userId = req.user?.id;
+      if (!userId) {
+        return res.status(401).json({ success: false, message: 'Unauthorized' });
+      }
       const result = await this.activitiesService.getUserActivities(userId, req.query);
       res.json({ success: true, data: result.data, meta: result.meta });
     } catch (error: any) {

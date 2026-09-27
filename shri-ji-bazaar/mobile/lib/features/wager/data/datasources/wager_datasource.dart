@@ -16,16 +16,14 @@ class WagerDatasource {
       queryParameters: {'page': page, 'limit': limit},
     );
 
-    final responseMap = data as Map<String, dynamic>;
-    final items = responseMap['wagers'] as List<dynamic>;
-    final pagination = responseMap['pagination'] as Map<String, dynamic>;
+    final items = (data as List<dynamic>).map((e) => WagerModel.fromJson(e as Map<String, dynamic>)).toList();
 
     return WagerListResponse(
-      wagers: items.map((e) => WagerModel.fromJson(e as Map<String, dynamic>)).toList(),
-      page: pagination['page'] as int,
-      limit: pagination['limit'] as int,
-      total: pagination['total'] as int,
-      totalPages: pagination['total_pages'] as int,
+      wagers: items,
+      page: page,
+      limit: limit,
+      total: items.length,
+      totalPages: 1,
     );
   }
 

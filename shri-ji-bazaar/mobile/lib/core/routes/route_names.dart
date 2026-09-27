@@ -7,11 +7,8 @@ class RouteNames {
   static const String games = '/games';
   static const String gameDetails = '/game-details';
   static const String results = '/results';
-  static const String chart = '/chart';
-  static const String resultDetail = '/result-detail';
   static const String myPlays = '/my-plays';
   static const String points = '/points';
-  static const String pointsHistory = '/points-history';
   static const String wallet = '/wallet';
   static const String deposit = '/deposit';
   static const String withdraw = '/withdraw';
@@ -22,11 +19,8 @@ class RouteNames {
   static const String referrals = '/referrals';
   static const String notifications = '/notifications';
   static const String profile = '/profile';
-  static const String editProfile = '/edit-profile';
   static const String support = '/support';
-  static const String ticketDetail = '/ticket-detail';
   static const String settings = '/settings';
   static const String about = '/about';
-  static const String terms = '/terms';
   static const String maintenance = '/maintenance';
 }

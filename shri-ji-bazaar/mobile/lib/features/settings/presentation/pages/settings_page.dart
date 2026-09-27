@@ -56,7 +56,7 @@ class SettingsPage extends StatelessWidget {
                 _SettingsTile(
                   icon: Icons.description_rounded,
                   title: 'Terms & Conditions',
-                  onTap: () => context.push(RouteNames.terms),
+                  onTap: () => _showPrivacyDialog(context),
                 ),
                 const Divider(height: 1),
                 _SettingsTile(
