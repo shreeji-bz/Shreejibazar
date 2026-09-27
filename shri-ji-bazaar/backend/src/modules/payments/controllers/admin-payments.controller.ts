@@ -8,12 +8,12 @@ export class AdminPaymentsController {
 
   initializeRoutes() {
     this.router.get('/', this.getAllPayments.bind(this));
-    this.router.get('/:id', this.getPaymentById.bind(this));
+    this.router.get('/stats', this.getStats.bind(this));
     this.router.get('/pending/deposits', this.getPendingDeposits.bind(this));
     this.router.get('/pending/withdrawals', this.getPendingWithdrawals.bind(this));
+    this.router.get('/:id', this.getPaymentById.bind(this));
     this.router.post('/:id/approve', this.approvePayment.bind(this));
     this.router.post('/:id/reject', this.rejectPayment.bind(this));
-    this.router.get('/stats', this.getStats.bind(this));
   }
 
   async getPendingDeposits(req: Request, res: Response) {
