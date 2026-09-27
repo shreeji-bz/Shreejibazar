@@ -17,12 +17,12 @@ export class AdminController {
 
     // Staff management routes
     const staffService = new StaffService();
-    this.protectedRouter.get('/staff', this.getAllStaff.bind(this, staffService));
-    this.protectedRouter.get('/staff/:id', this.getStaffById.bind(this, staffService));
-    this.protectedRouter.post('/staff', this.createStaff.bind(this, staffService));
-    this.protectedRouter.patch('/staff/:id', this.updateStaff.bind(this, staffService));
-    this.protectedRouter.delete('/staff/:id', this.deleteStaff.bind(this, staffService));
-    this.protectedRouter.patch('/staff/:id/toggle-status', this.toggleStaffStatus.bind(this, staffService));
+    this.protectedRouter.get('/staff', (req, res) => this.getAllStaff(req, res, staffService));
+    this.protectedRouter.get('/staff/:id', (req, res) => this.getStaffById(req, res, staffService));
+    this.protectedRouter.post('/staff', (req, res) => this.createStaff(req, res, staffService));
+    this.protectedRouter.patch('/staff/:id', (req, res) => this.updateStaff(req, res, staffService));
+    this.protectedRouter.delete('/staff/:id', (req, res) => this.deleteStaff(req, res, staffService));
+    this.protectedRouter.patch('/staff/:id/toggle-status', (req, res) => this.toggleStaffStatus(req, res, staffService));
   }
 
   async login(req: Request, res: Response) {

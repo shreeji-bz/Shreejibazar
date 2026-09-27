@@ -102,17 +102,19 @@ export class PaymentsService {
 
     const balanceBefore = await this.paymentsRepo.getWalletBalance(userId);
 
+    const newBalance = balanceBefore + amount;
+
     const { data: transaction, error: txnError } = await supabase
       .from('point_transactions')
       .insert({
         user_id: userId,
         type: 'credit',
         amount,
-        description: `Pending deposit via ${method}${notes ? `: ${notes}` : ''}`,
+        description: `Deposit via ${method}${notes ? `: ${notes}` : ''}`,
         reference_id: referenceId,
         reference_type: 'play',
         balance_before: balanceBefore,
-        balance_after: balanceBefore,
+        balance_after: newBalance,
       })
       .select()
       .single();
@@ -122,23 +124,32 @@ export class PaymentsService {
       throw new Error(`Failed to create deposit transaction: ${txnError?.message || 'Unknown error'}`);
     }
 
-    return this.paymentsRepo.create({
+    const payment = await this.paymentsRepo.create({
       userId,
       type: 'deposit',
       amount,
       currency: 'INR',
       method: method as PaymentEntity['method'],
-      status: 'pending',
+      status: 'completed',
       referenceId: referenceId || transaction.id,
       referenceType: 'play',
       notes,
       balanceBefore,
-      balanceAfter: balanceBefore,
+      balanceAfter: newBalance,
       txnId: extra?.txnId,
       utrNumber: extra?.utrNumber,
       screenshotUrl: extra?.screenshotUrl,
       provider: extra?.provider || 'manual',
     });
+
+    await this.paymentsRepo.creditWallet(
+      userId,
+      amount,
+      payment.id,
+      `Deposit via ${method}${notes ? `: ${notes}` : ''}`,
+    );
+
+    return payment;
   }
 
   async createWithdrawal(userId: string, amount: number, method: string, referenceId?: string, notes?: string, bankDetails?: { bankName?: string; accountNumber?: string; ifscCode?: string; accountHolderName?: string }): Promise<PaymentEntity> {
