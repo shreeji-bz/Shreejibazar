@@ -86,7 +86,7 @@ const paymentSlice = createSlice({
         state.pagination = {
           total: action.payload.total,
           page: action.payload.page,
-          totalPages: action.payload.totalPages,
+          totalPages: Math.max(1, Math.ceil((action.payload.total || 0) / (action.payload.limit || 1))),
         };
       })
       .addCase(fetchPayments.rejected, (state, action) => {

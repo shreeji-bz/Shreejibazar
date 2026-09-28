@@ -21,12 +21,14 @@ export const paymentService = {
   },
 
   async approvePayment(id: string, adminNote?: string): Promise<Payment> {
-    const res = await post<Payment>(`/v1/admin/payments/${id}/approve`, { adminNote });
-    return res;
+    const res = await post<{ success: boolean; data: Payment }>(`/v1/admin/payments/${id}/approve`, { adminNote });
+    if (!res?.success) throw new Error('Failed to approve payment');
+    return res.data;
   },
 
   async rejectPayment(id: string, adminNote?: string): Promise<Payment> {
-    const res = await post<Payment>(`/v1/admin/payments/${id}/reject`, { adminNote });
-    return res;
+    const res = await post<{ success: boolean; data: Payment }>(`/v1/admin/payments/${id}/reject`, { adminNote });
+    if (!res?.success) throw new Error('Failed to reject payment');
+    return res.data;
   },
 };
