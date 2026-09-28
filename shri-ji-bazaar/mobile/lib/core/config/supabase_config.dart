@@ -7,15 +7,15 @@ class SupabaseConfig {
     defaultValue: 'https://your-project.supabase.co',
   );
 
-  static const String supabaseAnonKey = String.fromEnvironment(
-    'SUPABASE_ANON_KEY',
-    defaultValue: 'your-anon-key',
+  static const String supabasePublishableKey = String.fromEnvironment(
+    'SUPABASE_PUBLISHABLE_KEY',
+    defaultValue: 'your-publishable-key',
   );
 
   static Future<void> initialize() async {
     await Supabase.initialize(
       url: supabaseUrl,
-      anonKey: supabaseAnonKey,
+      publishableKey: supabasePublishableKey,
       debug: kDebugMode,
     );
   }
@@ -24,5 +24,5 @@ class SupabaseConfig {
 
   static bool get isConfigured =>
       supabaseUrl != 'https://your-project.supabase.co' &&
-      supabaseAnonKey != 'your-anon-key';
+      supabasePublishableKey != 'your-publishable-key';
 }
