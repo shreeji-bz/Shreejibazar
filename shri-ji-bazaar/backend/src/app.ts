@@ -130,6 +130,8 @@ apiRouter.use('/users', authenticateToken, new UsersModule().router);
 apiRouter.use('/games', authenticateToken, new GamesModule().router);
 apiRouter.use('/admin/games', authenticateAdmin, new GamesModule().adminRouter);
 apiRouter.use('/rounds', authenticateToken, new RoundsModule().router);
+// Results - public read access
+apiRouter.use('/results', new ResultsModule().router);
 apiRouter.use('/results', authenticateToken, new ResultsModule().router);
 apiRouter.use('/activities', authenticateToken, new ActivitiesModule().router);
 apiRouter.use('/points', authenticateToken, new PointsModule().router);
