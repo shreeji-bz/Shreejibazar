@@ -1,5 +1,5 @@
 import '../../domain/entities/banner_entity.dart';
-import '../../../games/domain/entities/game_entity.dart';
+import '../../domain/entities/game_entity.dart';
 import '../../domain/repositories/ihome_repository.dart';
 import '../datasources/home_datasource.dart';
 

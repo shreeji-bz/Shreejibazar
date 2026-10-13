@@ -4,11 +4,11 @@ class BonusModel extends BonusEntity {
   BonusModel({
     required super.id,
     required super.name,
-    required super.slug,
     required super.description,
-    required super.points,
+    required super.slug,
     required super.type,
     required super.status,
+    required super.points,
     super.startDate,
     super.endDate,
     required super.claimed,
@@ -17,19 +17,20 @@ class BonusModel extends BonusEntity {
   });
 
   factory BonusModel.fromJson(Map<String, dynamic> json) {
+    final raw = json['bonus_type'] as String?;
     return BonusModel(
       id: json['id'] as String,
       name: json['name'] as String,
-      slug: json['slug'] as String,
       description: json['description'] as String? ?? '',
-      points: json['points'] as int,
-      type: json['type'] as String,
-      status: json['status'] as String,
-      startDate: json['start_date'] != null ? DateTime.parse(json['start_date'] as String) : null,
-      endDate: json['end_date'] != null ? DateTime.parse(json['end_date'] as String) : null,
+      slug: json['slug'] as String? ?? (raw ?? 'general'),
+      type: raw ?? 'general',
+      status: json['is_active'] == true ? 'active' : (json['status'] as String? ?? 'active'),
+      points: json['points_amount'] as int? ?? json['points'] as int? ?? 0,
+      startDate: json['valid_from'] != null ? DateTime.tryParse(json['valid_from']) : null,
+      endDate: json['valid_until'] != null ? DateTime.tryParse(json['valid_until']) : null,
       claimed: json['claimed'] as bool? ?? false,
-      claimedAt: json['claimed_at'] != null ? DateTime.parse(json['claimed_at'] as String) : null,
-      createdAt: DateTime.parse(json['created_at'] as String),
+      claimedAt: json['claimed_at'] != null ? DateTime.tryParse(json['claimed_at']) : null,
+      createdAt: json['created_at'] != null ? DateTime.parse(json['created_at']) : DateTime.now(),
     );
   }
 }

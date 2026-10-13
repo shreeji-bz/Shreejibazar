@@ -7,6 +7,7 @@ class ActivityDatasource {
 
   Future<List<ActivityEntity>> getUserActivities({int page = 1, int limit = 20}) async {
     final data = await _api.get('/activities', queryParameters: {'page': page, 'limit': limit});
-    return (data as List).map((e) => ActivityModel.fromJson(e)).toList();
+    final list = data is List ? data : (data['data'] as List? ?? []);
+    return list.map((e) => ActivityModel.fromJson(e)).toList();
   }
 }

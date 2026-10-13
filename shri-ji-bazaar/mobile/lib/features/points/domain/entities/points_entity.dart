@@ -8,32 +8,32 @@ class PointsEntity {
   PointsEntity({
     required this.id,
     required this.balance,
-    required this.totalEarned,
-    required this.totalSpent,
-    required this.transactions,
+    this.totalEarned = 0,
+    this.totalSpent = 0,
+    this.transactions = const [],
   });
 }
 
 class PointTransactionEntity {
   final String id;
+  final String userId;
   final String type;
   final int amount;
-  final int balanceBefore;
-  final int balanceAfter;
+  final String description;
   final String? referenceId;
   final String? referenceType;
-  final String description;
+  final int balanceAfter;
   final DateTime createdAt;
 
   PointTransactionEntity({
     required this.id,
+    required this.userId,
     required this.type,
     required this.amount,
-    required this.balanceBefore,
-    required this.balanceAfter,
+    required this.description,
     this.referenceId,
     this.referenceType,
-    required this.description,
+    required this.balanceAfter,
     required this.createdAt,
   });
 }

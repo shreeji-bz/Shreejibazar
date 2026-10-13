@@ -111,10 +111,26 @@ apiRouter.get('/system/status', async (_req: Request, res: Response) => {
 // Admin routes (no maintenance check so admins can access during maintenance)
 const adminModule = new AdminModule();
 const paymentsModule = new PaymentsModule();
+const gamesModule = new GamesModule();
+const roundsModule = new RoundsModule();
+const resultsModule = new ResultsModule();
+const bannersModule = new BannersModule();
+const settingsModule = new SettingsModule();
+const activitiesModule = new ActivitiesModule();
+const pointsModule = new PointsModule();
+const notificationsModule = new NotificationsModule();
 apiRouter.use('/admin/auth', adminModule.publicRouter);
 apiRouter.use('/admin/wagers', authenticateAdmin, new WagersModule().adminRouter);
 apiRouter.use('/admin/payments', authenticateAdmin, paymentsModule.adminRouter);
 apiRouter.use('/admin/referrals', authenticateAdmin, new ReferralsModule().adminRouter);
+apiRouter.use('/admin/games', authenticateAdmin, gamesModule.adminRouter);
+apiRouter.use('/admin/rounds', authenticateAdmin, roundsModule.adminRouter);
+apiRouter.use('/admin/results', authenticateAdmin, resultsModule.adminRouter);
+apiRouter.use('/admin/banners', authenticateAdmin, bannersModule.adminRouter);
+apiRouter.use('/admin/settings', authenticateAdmin, settingsModule.adminRouter);
+apiRouter.use('/admin/activities', authenticateAdmin, activitiesModule.adminRouter);
+apiRouter.use('/admin/points', authenticateAdmin, pointsModule.adminRouter);
+apiRouter.use('/admin/notifications', authenticateAdmin, notificationsModule.adminRouter);
 apiRouter.use('/admin', authenticateAdmin, adminModule.protectedRouter);
 
 // Maintenance mode check for user-facing routes

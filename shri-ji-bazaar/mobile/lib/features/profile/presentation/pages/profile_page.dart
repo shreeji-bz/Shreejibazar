@@ -3,6 +3,7 @@ import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 import 'package:shri_ji_bazaar/core/theme/app_text_styles.dart';
 import 'package:shri_ji_bazaar/core/routes/route_names.dart';
+import 'package:shri_ji_bazaar/core/widgets/sidebar_toggle.dart';
 import '../controllers/profile_controller.dart';
 
 class ProfilePage extends StatefulWidget {
@@ -26,6 +27,7 @@ class _ProfilePageState extends State<ProfilePage> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
+        leading: const SidebarToggle(),
         title: const Text('Profile'),
         actions: [
           IconButton(

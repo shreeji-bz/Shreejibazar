@@ -1,27 +1,40 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:shri_ji_bazaar/core/theme/app_text_styles.dart';
+import 'package:shri_ji_bazaar/core/widgets/sidebar_toggle.dart';
 import '../controllers/notification_controller.dart';
 
-class NotificationsPage extends StatelessWidget {
+class NotificationsPage extends StatefulWidget {
   const NotificationsPage({super.key});
 
-  static const _placeholderNotifications = [
-    {'title': 'Welcome to Shri Ji Bazaar!', 'body': 'Start playing and win big. Check out the latest games.', 'time': '2 hours ago', 'read': false},
-    {'title': 'Round Result', 'body': 'Lucky 7 Round 12 result is out. Check if you won!', 'time': '5 hours ago', 'read': false},
-    {'title': 'Deposit Successful', 'body': 'Your deposit of \$500 has been processed.', 'time': '1 day ago', 'read': true},
-    {'title': 'Referral Bonus', 'body': 'You earned 100 points from a referral!', 'time': '2 days ago', 'read': true},
-    {'title': 'Weekend Special', 'body': 'Double points on all games this weekend.', 'time': '3 days ago', 'read': true},
-  ];
+  @override
+  State<NotificationsPage> createState() => _NotificationsPageState();
+}
+
+class _NotificationsPageState extends State<NotificationsPage> {
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      context.read<NotificationController>().loadNotifications();
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Notifications')),
+      appBar: AppBar(
+        leading: const SidebarToggle(),
+        title: const Text('Notifications'),
+      ),
       body: SafeArea(
         child: Consumer<NotificationController>(
           builder: (context, notificationController, _) {
-            final notifications = _placeholderNotifications;
+            final notifications = notificationController.notifications;
+
+            if (notificationController.isLoading && notifications.isEmpty) {
+              return const Center(child: CircularProgressIndicator());
+            }
 
             if (notifications.isEmpty) {
               return Center(
@@ -43,7 +56,7 @@ class NotificationsPage extends StatelessWidget {
               itemCount: notifications.length,
               itemBuilder: (context, index) {
                 final notification = notifications[index];
-                final isRead = notification['read'] as bool;
+                final isRead = notification.isRead;
                 return Card(
                   margin: const EdgeInsets.only(bottom: 10),
                   color: isRead ? Theme.of(context).colorScheme.surface : Theme.of(context).colorScheme.primary.withValues(alpha: 0.08),
@@ -62,16 +75,16 @@ class NotificationsPage extends StatelessWidget {
                       ),
                     ),
                     title: Text(
-                      notification['title'] as String,
+                      notification.title,
                       style: isRead ? AppTextStyles.body : AppTextStyles.cardTitle.copyWith(color: Theme.of(context).colorScheme.primary),
                     ),
                     subtitle: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         const SizedBox(height: 4),
-                        Text(notification['body'] as String, style: AppTextStyles.bodySmall),
+                        Text(notification.message, style: AppTextStyles.bodySmall),
                         const SizedBox(height: 4),
-                        Text(notification['time'] as String, style: AppTextStyles.caption),
+                        Text(_formatDate(notification.createdAt), style: AppTextStyles.caption),
                       ],
                     ),
                   ),
@@ -82,5 +95,15 @@ class NotificationsPage extends StatelessWidget {
         ),
       ),
     );
+  }
+
+  String _formatDate(DateTime date) {
+    final now = DateTime.now();
+    final diff = now.difference(date);
+    if (diff.inMinutes < 1) return 'Just now';
+    if (diff.inMinutes < 60) return '${diff.inMinutes} min ago';
+    if (diff.inHours < 24) return '${diff.inHours} hours ago';
+    if (diff.inDays < 7) return '${diff.inDays} days ago';
+    return '${date.day}/${date.month}/${date.year}';
   }
 }

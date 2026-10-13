@@ -2,7 +2,7 @@ import 'dart:async';
 import 'package:flutter/foundation.dart';
 import '../../domain/usecases/get_home_data.dart';
 import '../../../points/domain/usecases/get_wallet.dart';
-import '../../../games/domain/entities/game_entity.dart';
+import '../../domain/entities/game_entity.dart';
 import '../../domain/entities/banner_entity.dart';
 import '../../../points/domain/entities/points_entity.dart';
 

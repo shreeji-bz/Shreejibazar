@@ -15,7 +15,7 @@ class MainShell extends StatelessWidget {
     final location = state.matchedLocation;
     if (location == RouteNames.myPlays) return 0;
     if (location == RouteNames.wallet) return 1;
-    if (location == RouteNames.games || location.startsWith('${RouteNames.games}/')) return 2;
+    if (location == RouteNames.home) return 2;
     if (location == RouteNames.results) return 3;
     if (location == RouteNames.referrals) return 4;
     return 0;

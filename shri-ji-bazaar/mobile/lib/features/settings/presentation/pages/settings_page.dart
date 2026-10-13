@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 import 'package:shri_ji_bazaar/core/theme/app_text_styles.dart';
+import 'package:shri_ji_bazaar/core/widgets/sidebar_toggle.dart';
 import 'package:shri_ji_bazaar/core/routes/route_names.dart';
 import '../controllers/settings_controller.dart';
 
@@ -11,7 +12,10 @@ class SettingsPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Settings')),
+      appBar: AppBar(
+        leading: const SidebarToggle(),
+        title: const Text('Settings'),
+      ),
       body: SafeArea(
         child: Consumer<SettingsController>(
           builder: (context, settingsController, _) {

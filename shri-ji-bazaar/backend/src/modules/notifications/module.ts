@@ -1,11 +1,14 @@
 import { Router } from 'express';
 import { NotificationsController } from './controllers/notifications.controller';
-import { NotificationsService } from './services/notifications.service';
-import { NotificationsRepository } from './repositories/notifications.repository';
+import { authenticateAdmin } from '../../common/middleware/admin.middleware';
 
 export class NotificationsModule {
   public router = Router();
+  public adminRouter = Router();
+
   constructor() {
-    const controller = new NotificationsController(this.router);
+    new NotificationsController(this.router);
+    this.adminRouter.use(authenticateAdmin);
+    new NotificationsController(this.adminRouter);
   }
 }

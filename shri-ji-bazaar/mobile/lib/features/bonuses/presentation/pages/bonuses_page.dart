@@ -1,34 +1,62 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:shri_ji_bazaar/core/theme/app_text_styles.dart';
+import 'package:shri_ji_bazaar/core/widgets/sidebar_toggle.dart';
 import '../controllers/bonus_controller.dart';
 
-class BonusesPage extends StatelessWidget {
+class BonusesPage extends StatefulWidget {
   const BonusesPage({super.key});
 
-  static const _placeholderBonuses = [
-    {'title': 'Welcome Bonus', 'desc': 'Get 200 bonus points on your first deposit!', 'points': 200, 'claimed': false},
-    {'title': 'Daily Login', 'desc': 'Claim 50 points for logging in today.', 'points': 50, 'claimed': false},
-    {'title': 'Referral Bonus', 'desc': 'Earn 100 points for each friend who joins.', 'points': 100, 'claimed': false},
-    {'title': 'Weekend Special', 'desc': 'Double points on all games this weekend!', 'points': 300, 'claimed': true},
-    {'title': 'First Win Bonus', 'desc': 'Extra 150 points for your first game win.', 'points': 150, 'claimed': false},
-  ];
+  @override
+  State<BonusesPage> createState() => _BonusesPageState();
+}
+
+class _BonusesPageState extends State<BonusesPage> {
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      context.read<BonusController>().loadBonuses();
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Bonuses')),
+      appBar: AppBar(
+        leading: const SidebarToggle(),
+        title: const Text('Bonuses'),
+      ),
       body: SafeArea(
         child: Consumer<BonusController>(
           builder: (context, bonusController, _) {
-            final bonuses = _placeholderBonuses;
+            final bonuses = bonusController.bonuses;
+
+            if (bonusController.isLoading && bonuses.isEmpty) {
+              return const Center(child: CircularProgressIndicator());
+            }
+
+            if (bonuses.isEmpty) {
+              return Center(
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Icon(Icons.card_giftcard_rounded, size: 64, color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.3)),
+                    const SizedBox(height: 16),
+                    Text('No bonuses available', style: Theme.of(context).textTheme.titleMedium),
+                    const SizedBox(height: 8),
+                    Text('Check back later for new bonuses!', style: Theme.of(context).textTheme.bodySmall),
+                  ],
+                ),
+              );
+            }
 
             return ListView.builder(
               padding: const EdgeInsets.all(16),
               itemCount: bonuses.length,
               itemBuilder: (context, index) {
                 final bonus = bonuses[index];
-                final claimed = bonus['claimed'] as bool;
+                final claimed = bonus.claimed;
                 return Card(
                   margin: const EdgeInsets.only(bottom: 12),
                   child: Padding(
@@ -53,9 +81,9 @@ class BonusesPage extends StatelessWidget {
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              Text(bonus['title'] as String, style: AppTextStyles.cardTitle),
+                              Text(bonus.name, style: AppTextStyles.cardTitle),
                               const SizedBox(height: 4),
-                              Text(bonus['desc'] as String, style: AppTextStyles.bodySmall, maxLines: 2, overflow: TextOverflow.ellipsis),
+                              Text(bonus.description, style: AppTextStyles.bodySmall, maxLines: 2, overflow: TextOverflow.ellipsis),
                             ],
                           ),
                         ),
@@ -70,12 +98,17 @@ class BonusesPage extends StatelessWidget {
                                 child: Text('Claimed', style: AppTextStyles.caption.copyWith(color: const Color(0xFF25C85A))),
                               )
                             : ElevatedButton(
-                                onPressed: () {
+                                onPressed: () async {
+                                  final success = await context.read<BonusController>().claimBonus(bonus.id);
+                                  if (!mounted) return;
                                   ScaffoldMessenger.of(context).showSnackBar(
-                                    SnackBar(content: Text('${bonus['title']} claimed!'), backgroundColor: const Color(0xFF25C85A)),
+                                    SnackBar(
+                                      content: Text(success ? '${bonus.name} claimed!' : 'Failed to claim bonus'),
+                                      backgroundColor: success ? const Color(0xFF25C85A) : const Color(0xFFE53935),
+                                    ),
                                   );
                                 },
-                                child: Text('+${bonus['points']}', style: const TextStyle(fontSize: 12)),
+                                child: Text('+${bonus.points}', style: const TextStyle(fontSize: 12)),
                               ),
                       ],
                     ),

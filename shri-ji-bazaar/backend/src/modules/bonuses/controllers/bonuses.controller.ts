@@ -44,7 +44,11 @@ export class BonusesController {
 
   async claim(req: Request, res: Response) {
     try {
-      const data = await this.bonusesService.claim(req.body.userId, req.params.id);
+      const userId = req.user?.id;
+      if (!userId) {
+        return res.status(401).json({ success: false, message: 'Unauthorized' });
+      }
+      const data = await this.bonusesService.claim(userId, req.params.id);
       res.json({ success: true, data });
     } catch (error: any) {
       res.status(400).json({ success: false, message: error.message });

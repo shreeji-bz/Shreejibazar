@@ -1,8 +1,8 @@
-import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:shri_ji_bazaar/core/theme/app_colors.dart';
 import 'package:shri_ji_bazaar/core/theme/app_text_styles.dart';
+import 'package:shri_ji_bazaar/core/widgets/sidebar_toggle.dart';
 import '../controllers/result_controller.dart';
 import '../../domain/entities/result_entity.dart';
 
@@ -136,10 +136,7 @@ class _ChartPageState extends State<ChartPage> {
             ),
             child: Row(
               children: [
-                IconButton(
-                  onPressed: () => Navigator.pop(context),
-                  icon: const Icon(Icons.arrow_back_rounded, color: AppColors.textPrimary),
-                ),
+                const SidebarToggle(),
                 const SizedBox(width: 8),
                 Expanded(
                   child: Text(

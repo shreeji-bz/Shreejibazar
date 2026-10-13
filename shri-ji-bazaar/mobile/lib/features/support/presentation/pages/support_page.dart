@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:shri_ji_bazaar/core/theme/app_text_styles.dart';
+import 'package:shri_ji_bazaar/core/widgets/sidebar_toggle.dart';
 import '../controllers/support_controller.dart';
 
 class SupportPage extends StatelessWidget {
@@ -12,6 +13,7 @@ class SupportPage extends StatelessWidget {
       length: 2,
       child: Scaffold(
         appBar: AppBar(
+          leading: const SidebarToggle(),
           title: const Text('Support'),
           bottom: const TabBar(
             tabs: [

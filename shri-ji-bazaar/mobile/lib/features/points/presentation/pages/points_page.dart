@@ -2,29 +2,42 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 import 'package:shri_ji_bazaar/core/theme/app_text_styles.dart';
+import 'package:shri_ji_bazaar/core/widgets/sidebar_toggle.dart';
 import 'package:shri_ji_bazaar/core/routes/route_names.dart';
 import '../controllers/points_controller.dart';
 
-class PointsPage extends StatelessWidget {
+class PointsPage extends StatefulWidget {
   const PointsPage({super.key});
 
-  static const _placeholderHistory = [
-    {'type': 'Won - Lucky 7', 'round': 'Round 12', 'amount': 350, 'time': 'Today, 9:05 PM'},
-    {'type': 'Entry - Lucky 7', 'round': 'Round 12', 'amount': -50, 'time': 'Today, 9:00 PM'},
-    {'type': 'Won - Diamond Rush', 'round': 'Round 5', 'amount': 500, 'time': 'Today, 3:05 PM'},
-    {'type': 'Entry - Diamond Rush', 'round': 'Round 5', 'amount': -100, 'time': 'Today, 3:00 PM'},
-    {'type': 'Welcome Bonus', 'round': '-', 'amount': 200, 'time': 'Yesterday'},
-    {'type': 'Lost - Golden Wheel', 'round': 'Round 8', 'amount': -100, 'time': 'Yesterday'},
-  ];
+  @override
+  State<PointsPage> createState() => _PointsPageState();
+}
+
+class _PointsPageState extends State<PointsPage> {
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      context.read<PointsController>().loadPoints();
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Points')),
+      appBar: AppBar(
+        leading: const SidebarToggle(),
+        title: const Text('Points'),
+      ),
       body: SafeArea(
         child: Consumer<PointsController>(
           builder: (context, pointsController, _) {
-            final balance = 1250;
+            final balance = pointsController.balance;
+            final transactions = pointsController.transactions;
+
+            if (pointsController.isLoading && transactions.isEmpty) {
+              return const Center(child: CircularProgressIndicator());
+            }
 
             return SingleChildScrollView(
               padding: const EdgeInsets.all(16),
@@ -56,9 +69,9 @@ class PointsPage extends StatelessWidget {
                                 onPressed: () => context.push(RouteNames.wallet),
                                 style: ElevatedButton.styleFrom(
                                   backgroundColor: Colors.white,
-                                foregroundColor: Theme.of(context).colorScheme.primary,
-                                padding: const EdgeInsets.symmetric(vertical: 12),
-                                shadowColor: Colors.transparent,
+                                  foregroundColor: Theme.of(context).colorScheme.primary,
+                                  padding: const EdgeInsets.symmetric(vertical: 12),
+                                  shadowColor: Colors.transparent,
                                   surfaceTintColor: Colors.transparent,
                                 ),
                                 child: const Text('Add Points'),
@@ -84,33 +97,32 @@ class PointsPage extends StatelessWidget {
                   const SizedBox(height: 28),
                   Text('Points History', style: AppTextStyles.sectionHeading),
                   const SizedBox(height: 12),
-                  ...List.generate(_placeholderHistory.length, (index) {
-                    final entry = _placeholderHistory[index];
-                    final amount = entry['amount'] as int;
-                    final isPositive = amount >= 0;
-                    return Card(
-                      margin: const EdgeInsets.only(bottom: 10),
-                      child: ListTile(
-                        contentPadding: const EdgeInsets.all(14),
-                        title: Text(entry['type'] as String, style: AppTextStyles.cardTitle),
-                        subtitle: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            if (entry['round'] != '-' && entry['round'] != null)
-                              Text(entry['round'] as String, style: AppTextStyles.bodySmall),
-                            Text(entry['time'] as String, style: AppTextStyles.caption),
-                          ],
-                        ),
-                        trailing: Text(
-                          '${isPositive ? '+' : ''}$amount',
-                          style: AppTextStyles.points.copyWith(
-                            color: isPositive ? const Color(0xFF25C85A) : const Color(0xFFE53935),
-                            fontSize: 16,
+                  if (transactions.isEmpty)
+                    Center(
+                      child: Text('No transactions yet', style: AppTextStyles.body.copyWith(color: Colors.grey)),
+                    )
+                  else
+                    ...transactions.map((tx) {
+                      final isPositive = tx.amount >= 0;
+                      return Card(
+                        margin: const EdgeInsets.only(bottom: 10),
+                        child: ListTile(
+                          contentPadding: const EdgeInsets.all(14),
+                          title: Text(tx.description, style: AppTextStyles.cardTitle),
+                          subtitle: Text(
+                            '${tx.type.toUpperCase()} - ${tx.createdAt.day}/${tx.createdAt.month}/${tx.createdAt.year}',
+                            style: AppTextStyles.bodySmall,
+                          ),
+                          trailing: Text(
+                            '${isPositive ? '+' : ''}${tx.amount}',
+                            style: AppTextStyles.points.copyWith(
+                              color: isPositive ? const Color(0xFF25C85A) : const Color(0xFFE53935),
+                              fontSize: 16,
+                            ),
                           ),
                         ),
-                      ),
-                    );
-                  }),
+                      );
+                    }),
                 ],
               ),
             );

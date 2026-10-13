@@ -52,20 +52,6 @@ import 'features/profile/presentation/controllers/profile_controller.dart';
 import 'features/profile/domain/usecases/get_profile.dart';
 import 'features/profile/data/repositories/profile_repository.dart';
 import 'features/profile/data/datasources/profile_datasource.dart';
-import 'features/wager/presentation/controllers/wager_controller.dart';
-import 'features/wager/domain/usecases/place_wager.dart';
-import 'features/wager/domain/usecases/get_wager_history.dart';
-import 'features/wager/data/repositories/wager_repository.dart';
-import 'features/wager/data/datasources/wager_datasource.dart';
-import 'features/games/presentation/controllers/game_controller.dart';
-import 'features/games/domain/usecases/get_games.dart';
-import 'features/games/domain/usecases/get_popular_games.dart';
-import 'features/games/data/repositories/game_repository.dart';
-import 'features/games/data/datasources/game_datasource.dart';
-import 'features/game_details/presentation/controllers/game_details_controller.dart';
-import 'features/game_details/domain/usecases/get_game_detail.dart';
-import 'features/game_details/data/repositories/game_detail_repository.dart';
-import 'features/game_details/data/datasources/game_detail_datasource.dart';
 import 'features/payments/presentation/controllers/payment_controller.dart';
 import 'features/payments/domain/usecases/create_deposit.dart';
 import 'features/payments/domain/usecases/create_withdrawal.dart';
@@ -149,29 +135,12 @@ class ShriJiBazaarApp extends StatelessWidget {
           ),
         ),
         ChangeNotifierProvider(
-          create: (_) => GameController(
-            GetGames(GameRepository(GameDatasource())),
-            GetPopularGames(GameRepository(GameDatasource())),
-          ),
-        ),
-        ChangeNotifierProvider(
-          create: (_) => GameDetailsController(
-            GetGameDetail(GameDetailRepository(GameDetailDatasource())),
-          ),
-        ),
-        ChangeNotifierProvider(
           create: (_) => PaymentController(
             createDeposit: CreateDeposit(PaymentRepository(PaymentDatasource())),
             createWithdrawal: CreateWithdrawal(PaymentRepository(PaymentDatasource())),
             getPaymentHistory: GetPaymentHistory(PaymentRepository(PaymentDatasource())),
             createImbOrder: CreateImbOrder(ImbPaymentRepository(ImbPaymentDatasource())),
             getWallet: GetWallet(PointsRepository(PointsDatasource())),
-          ),
-        ),
-        ChangeNotifierProvider(
-          create: (_) => WagerController(
-            PlaceWager(WagerRepository(WagerDatasource())),
-            GetWagerHistory(WagerRepository(WagerDatasource())),
           ),
         ),
         ChangeNotifierProvider(

@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 import 'package:shri_ji_bazaar/features/payments/presentation/controllers/payment_controller.dart';
 import 'package:webview_flutter/webview_flutter.dart';
+import '../../../../core/widgets/sidebar_toggle.dart';
 
 class ImbPaymentPage extends StatefulWidget {
   final String paymentUrl;
@@ -182,6 +183,7 @@ class _ImbPaymentPageState extends State<ImbPaymentPage> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
+        leading: const SidebarToggle(),
         title: const Text('Pay via IMPS'),
         automaticallyImplyLeading: false,
         actions: [

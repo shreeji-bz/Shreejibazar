@@ -8,12 +8,9 @@ import '../../features/authentication/presentation/pages/login_page.dart';
 import '../../features/authentication/presentation/pages/register_page.dart';
 import '../../features/authentication/presentation/pages/forgot_password_page.dart';
 import '../../features/home/presentation/pages/home_page.dart';
-import '../../features/games/presentation/pages/games_page.dart';
-import '../../features/game_details/presentation/pages/game_details_page.dart';
 import '../../features/results/presentation/pages/chart_page.dart';
 import '../../features/my_activity/presentation/pages/my_activity_page.dart';
 import '../../features/points/presentation/pages/points_page.dart';
-import '../../features/wager/presentation/pages/play_page.dart';
 import '../../features/payments/presentation/pages/wallet_page.dart';
 import '../../features/payments/presentation/pages/deposit_page.dart';
 import '../../features/payments/presentation/pages/withdraw_page.dart';
@@ -65,11 +62,6 @@ GoRouter createRouter(BuildContext context) {
         builder: (context, state, child) => MainShell(child: child),
         routes: [
           GoRoute(path: RouteNames.home, builder: (_, __) => const HomePage()),
-          GoRoute(path: RouteNames.games, builder: (_, __) => const GamesPage()),
-          GoRoute(path: '${RouteNames.gameDetails}/:id', builder: (context, state) {
-            final id = state.pathParameters['id'] ?? '';
-            return GameDetailsPage(gameId: id);
-          }),
           GoRoute(path: RouteNames.results, builder: (_, __) => const ChartPage()),
           GoRoute(path: RouteNames.myPlays, builder: (_, __) => const MyActivityPage()),
           GoRoute(path: RouteNames.points, builder: (_, __) => const PointsPage()),
@@ -77,13 +69,6 @@ GoRouter createRouter(BuildContext context) {
           GoRoute(path: RouteNames.deposit, builder: (_, __) => const DepositPage()),
           GoRoute(path: RouteNames.withdraw, builder: (_, __) => const WithdrawPage()),
           GoRoute(path: RouteNames.paymentHistory, builder: (_, __) => const PaymentHistoryPage()),
-          GoRoute(path: RouteNames.play, builder: (context, state) {
-            final extra = state.extra as Map<String, String>? ?? {};
-            final gameId = extra['gameId'] ?? '';
-            final gameName = extra['gameName'] ?? '';
-            final roundId = extra['roundId'] ?? '';
-            return PlayPage(gameId: gameId, gameName: gameName, roundId: roundId);
-          }),
           GoRoute(path: RouteNames.bonuses, builder: (_, __) => const BonusesPage()),
           GoRoute(path: RouteNames.referrals, builder: (_, __) => const ReferralsPage()),
           GoRoute(path: RouteNames.notifications, builder: (_, __) => const NotificationsPage()),

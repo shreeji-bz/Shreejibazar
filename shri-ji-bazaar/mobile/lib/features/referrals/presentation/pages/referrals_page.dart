@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import 'package:shri_ji_bazaar/core/theme/app_text_styles.dart';
+import 'package:shri_ji_bazaar/core/widgets/sidebar_toggle.dart';
 import '../controllers/referral_controller.dart';
 
 class ReferralsPage extends StatefulWidget {
@@ -25,7 +26,10 @@ class _ReferralsPageState extends State<ReferralsPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Referrals')),
+      appBar: AppBar(
+        leading: const SidebarToggle(),
+        title: const Text('Referrals'),
+      ),
       body: SafeArea(
         child: Consumer<ReferralController>(
           builder: (context, referralController, _) {

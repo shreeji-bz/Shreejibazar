@@ -11,7 +11,8 @@ class PointsDatasource {
   }
 
   Future<List<PointTransactionEntity>> getTransactions({int page = 1, int limit = 20}) async {
-    final data = await _api.get('/points/transactions', queryParameters: {'page': page, 'limit': limit});
-    return (data as List).map((e) => PointTransactionModel.fromJson(e)).toList();
+    final response = await _api.get('/points/transactions', queryParameters: {'page': page, 'limit': limit});
+    final list = response is List ? response : (response['data'] as List? ?? []);
+    return list.map((e) => PointTransactionModel.fromJson(e)).toList();
   }
 }

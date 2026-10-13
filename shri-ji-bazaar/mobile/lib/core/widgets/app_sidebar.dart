@@ -70,11 +70,67 @@ class AppSidebar extends StatelessWidget {
               padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
               children: [
                 _SidebarTile(
-                  label: 'Change Password',
-                  icon: Icons.lock_outline_rounded,
+                  label: 'Home',
+                  icon: Icons.home_rounded,
                   onTap: () {
                     Navigator.pop(context);
-                    context.push(RouteNames.settings);
+                    context.go(RouteNames.home);
+                  },
+                ),
+                _SidebarTile(
+                  label: 'Results',
+                  icon: Icons.show_chart_rounded,
+                  onTap: () {
+                    Navigator.pop(context);
+                    context.go(RouteNames.results);
+                  },
+                ),
+                _SidebarTile(
+                  label: 'My Plays',
+                  icon: Icons.history_rounded,
+                  onTap: () {
+                    Navigator.pop(context);
+                    context.go(RouteNames.myPlays);
+                  },
+                ),
+                _SidebarTile(
+                  label: 'Points',
+                  icon: Icons.stars_rounded,
+                  onTap: () {
+                    Navigator.pop(context);
+                    context.go(RouteNames.points);
+                  },
+                ),
+                _SidebarTile(
+                  label: 'Bonuses',
+                  icon: Icons.card_giftcard_rounded,
+                  onTap: () {
+                    Navigator.pop(context);
+                    context.go(RouteNames.bonuses);
+                  },
+                ),
+                _SidebarTile(
+                  label: 'Referrals',
+                  icon: Icons.share_rounded,
+                  onTap: () {
+                    Navigator.pop(context);
+                    context.go(RouteNames.referrals);
+                  },
+                ),
+                _SidebarTile(
+                  label: 'Notifications',
+                  icon: Icons.notifications_rounded,
+                  onTap: () {
+                    Navigator.pop(context);
+                    context.go(RouteNames.notifications);
+                  },
+                ),
+                _SidebarTile(
+                  label: 'Profile',
+                  icon: Icons.person_rounded,
+                  onTap: () {
+                    Navigator.pop(context);
+                    context.go(RouteNames.profile);
                   },
                 ),
                 _SidebarTile(
@@ -102,19 +158,35 @@ class AppSidebar extends StatelessWidget {
                   },
                 ),
                 _SidebarTile(
+                  label: 'Support',
+                  icon: Icons.headset_mic_outlined,
+                  onTap: () {
+                    Navigator.pop(context);
+                    context.push(RouteNames.support);
+                  },
+                ),
+                _SidebarTile(
+                  label: 'Settings',
+                  icon: Icons.settings_rounded,
+                  onTap: () {
+                    Navigator.pop(context);
+                    context.push(RouteNames.settings);
+                  },
+                ),
+                _SidebarTile(
+                  label: 'About',
+                  icon: Icons.info_outline_rounded,
+                  onTap: () {
+                    Navigator.pop(context);
+                    context.go(RouteNames.about);
+                  },
+                ),
+                _SidebarTile(
                   label: 'Share Now',
                   icon: Icons.share_rounded,
                   onTap: () async {
                     Navigator.pop(context);
                     await _shareApp(context);
-                  },
-                ),
-                _SidebarTile(
-                  label: 'Contact Us',
-                  icon: Icons.headset_mic_outlined,
-                  onTap: () {
-                    Navigator.pop(context);
-                    context.push(RouteNames.support);
                   },
                 ),
               ],
@@ -167,7 +239,7 @@ class AppSidebar extends StatelessWidget {
               Navigator.pop(context);
               await auth.logout();
               if (context.mounted) {
-                GoRouter.of(context).go(RouteNames.login);
+                context.go(RouteNames.login);
               }
             },
             child: Container(

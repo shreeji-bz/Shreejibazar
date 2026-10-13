@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:shri_ji_bazaar/core/theme/app_text_styles.dart';
+import 'package:shri_ji_bazaar/core/widgets/sidebar_toggle.dart';
 import '../controllers/payment_controller.dart';
 
 class PaymentHistoryPage extends StatelessWidget {
@@ -9,7 +10,10 @@ class PaymentHistoryPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Payment History')),
+      appBar: AppBar(
+        leading: const SidebarToggle(),
+        title: const Text('Payment History'),
+      ),
       body: SafeArea(
         child: Consumer<PaymentController>(
           builder: (context, paymentController, _) {
