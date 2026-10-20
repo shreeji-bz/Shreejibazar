@@ -19,7 +19,9 @@ export class RoundsRepository {
   }
 
   async findUpcoming(gameId?: string): Promise<RoundEntity[]> {
-    let query = supabase.from('rounds').select('*, games(name)').gte('start_time', new Date().toISOString()).in('status', ['pending', 'open']);
+    // Join games and filter to active games only, so rounds of games that an
+    // admin set to inactive/maintenance stop showing on the home page.
+    let query = supabase.from('rounds').select('*, games(name, status)').gte('start_time', new Date().toISOString()).in('status', ['pending', 'open']).eq('games.status', 'active');
     if (gameId) query = query.eq('game_id', gameId);
     const { data } = await query.order('start_time').limit(100);
     return (data || []).map((row: any) => this.mapRow(row, row.games?.name));
@@ -51,10 +53,12 @@ export class RoundsRepository {
 
   async findActive(gameId?: string): Promise<RoundEntity | null> {
     const now = new Date().toISOString();
-    let query = supabase.from('rounds').select('*').lte('start_time', now).gte('end_time', now).eq('status', 'open');
+    // Also require the game to be active so deactivated games vanish from
+    // the LIVE MARKET card immediately (join the game and its status).
+    let query = supabase.from('rounds').select('*, games(name, status)').lte('start_time', now).gte('end_time', now).eq('status', 'open').eq('games.status', 'active');
     if (gameId) query = query.eq('game_id', gameId);
     const { data } = await query.order('start_time', { ascending: false }).limit(1);
-    if (data && data.length > 0) return this.mapRow(data[0]);
+    if (data && data.length > 0) return this.mapRow(data[0], data[0].games?.name);
     return null;
   }
 

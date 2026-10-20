@@ -42,7 +42,11 @@
       "Bash(awk '/CREATE TABLE IF NOT EXISTS point_wallets/,/^\\\\\\);/' backend/src/database/migrations/001_initial_schema.sql)",
       "Bash(awk '/CREATE TABLE IF NOT EXISTS public.settlements/,/^\\\\\\);/' database/schemas/012_wagering_system.sql)",
       "Bash(awk '/CREATE TABLE IF NOT EXISTS public.settlement_items/,/^\\\\\\);/' database/schemas/012_wagering_system.sql)",
-      "Bash(awk '/CREATE TABLE IF NOT EXISTS bonuses/,/^\\\\\\);/' backend/src/database/migrations/001_initial_schema.sql)"
+      "Bash(awk '/CREATE TABLE IF NOT EXISTS bonuses/,/^\\\\\\);/' backend/src/database/migrations/001_initial_schema.sql)",
+      "Bash(curl -s -X POST \"http://localhost:3000/api/v1/admin/auth/login\" -H \"Content-Type: application/json\" -d '{\"email\":\"admin@shrijibazaar.com\",\"password\":\"admin123\"}' -o /tmp/admin.json -w \"%{http_code}\\\\n\")",
+      "Bash(python3 -c ' *)",
+      "Bash(npx ts-node *)",
+      "Bash(echo \"=== tsc exit: $? ===\")"
     ]
   }
 }
