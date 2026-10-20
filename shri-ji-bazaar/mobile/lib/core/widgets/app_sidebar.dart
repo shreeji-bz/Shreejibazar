@@ -64,11 +64,12 @@ class AppSidebar extends StatelessWidget {
             ),
           ),
 
-          // Menu items
+          // Menu items — grouped: navigate, money, profile, more
           Expanded(
             child: ListView(
               padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
               children: [
+                _SectionLabel('MENU'),
                 _SidebarTile(
                   label: 'Home',
                   icon: Icons.home_rounded,
@@ -101,20 +102,38 @@ class AppSidebar extends StatelessWidget {
                     context.go(RouteNames.points);
                   },
                 ),
+                _SectionLabel('MONETARY'),
                 _SidebarTile(
-                  label: 'Bonuses',
-                  icon: Icons.card_giftcard_rounded,
+                  label: 'Add Money',
+                  icon: Icons.account_balance_wallet_rounded,
                   onTap: () {
                     Navigator.pop(context);
-                    context.go(RouteNames.bonuses);
+                    context.push(RouteNames.deposit);
                   },
                 ),
                 _SidebarTile(
-                  label: 'Referrals',
-                  icon: Icons.share_rounded,
+                  label: 'Withdraw',
+                  icon: Icons.swap_vert_rounded,
                   onTap: () {
                     Navigator.pop(context);
-                    context.go(RouteNames.referrals);
+                    context.push(RouteNames.withdraw);
+                  },
+                ),
+                _SidebarTile(
+                  label: 'Transactions',
+                  icon: Icons.receipt_long_rounded,
+                  onTap: () {
+                    Navigator.pop(context);
+                    context.push(RouteNames.paymentHistory);
+                  },
+                ),
+                _SectionLabel('PROFILE'),
+                _SidebarTile(
+                  label: 'Profile',
+                  icon: Icons.person_rounded,
+                  onTap: () {
+                    Navigator.pop(context);
+                    context.go(RouteNames.profile);
                   },
                 ),
                 _SidebarTile(
@@ -126,43 +145,11 @@ class AppSidebar extends StatelessWidget {
                   },
                 ),
                 _SidebarTile(
-                  label: 'Profile',
-                  icon: Icons.person_rounded,
+                  label: 'Referrals',
+                  icon: Icons.groups_rounded,
                   onTap: () {
                     Navigator.pop(context);
-                    context.go(RouteNames.profile);
-                  },
-                ),
-                _SidebarTile(
-                  label: 'Add Money',
-                  icon: Icons.account_balance_wallet_outlined,
-                  onTap: () {
-                    Navigator.pop(context);
-                    context.push(RouteNames.deposit);
-                  },
-                ),
-                _SidebarTile(
-                  label: 'Withdraw Money',
-                  icon: Icons.swap_vert_rounded,
-                  onTap: () {
-                    Navigator.pop(context);
-                    context.push(RouteNames.withdraw);
-                  },
-                ),
-                _SidebarTile(
-                  label: 'Transaction',
-                  icon: Icons.receipt_long_outlined,
-                  onTap: () {
-                    Navigator.pop(context);
-                    context.push(RouteNames.paymentHistory);
-                  },
-                ),
-                _SidebarTile(
-                  label: 'Support',
-                  icon: Icons.headset_mic_outlined,
-                  onTap: () {
-                    Navigator.pop(context);
-                    context.push(RouteNames.support);
+                    context.go(RouteNames.referrals);
                   },
                 ),
                 _SidebarTile(
@@ -173,9 +160,18 @@ class AppSidebar extends StatelessWidget {
                     context.push(RouteNames.settings);
                   },
                 ),
+                _SectionLabel('MORE'),
+                _SidebarTile(
+                  label: 'Support',
+                  icon: Icons.headset_mic_rounded,
+                  onTap: () {
+                    Navigator.pop(context);
+                    context.push(RouteNames.support);
+                  },
+                ),
                 _SidebarTile(
                   label: 'About',
-                  icon: Icons.info_outline_rounded,
+                  icon: Icons.info_rounded,
                   onTap: () {
                     Navigator.pop(context);
                     context.go(RouteNames.about);
@@ -195,7 +191,7 @@ class AppSidebar extends StatelessWidget {
 
           // Referral Code section
           Container(
-            margin: const EdgeInsets.fromLTRB(12, 0, 12, 12),
+            margin: const EdgeInsets.fromLTRB(12, 0, 12, 8),
             padding: const EdgeInsets.all(14),
             decoration: BoxDecoration(
               color: AppColors.cardSecondary,
@@ -233,7 +229,7 @@ class AppSidebar extends StatelessWidget {
             ),
           ),
 
-          // Logout
+          // Logout — same padding as menu tiles, no extra gap
           InkWell(
             onTap: () async {
               Navigator.pop(context);
@@ -243,12 +239,15 @@ class AppSidebar extends StatelessWidget {
               }
             },
             child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+              margin: const EdgeInsets.symmetric(horizontal: 8),
+              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
               child: Row(
                 children: [
                   const Icon(Icons.logout_rounded, color: Colors.redAccent, size: 22),
-                  const SizedBox(width: 12),
-                  Text('Logout', style: AppTextStyles.body.copyWith(color: Colors.redAccent, fontWeight: FontWeight.w700)),
+                  const SizedBox(width: 14),
+                  Expanded(
+                    child: Text('Logout', style: AppTextStyles.body.copyWith(color: Colors.redAccent, fontWeight: FontWeight.w700)),
+                  ),
                 ],
               ),
             ),
@@ -261,13 +260,30 @@ class AppSidebar extends StatelessWidget {
   Future<void> _shareApp(BuildContext context) async {
     final auth = Provider.of<AuthController>(context, listen: false);
     final code = auth.user?.referralCode ?? '';
-    final baseUrl = const String.fromEnvironment('API_BASE_URL', defaultValue: 'http://10.97.119.19:3000');
-    final link = '$baseUrl/register?ref=$code';
+    // Deep-link so the invite opens the app (install from the store when not
+    // installed) instead of the web register page.
+    final link = 'shrijibazaar://register?ref=$code';
 
     await SharePlus.instance.share(
       ShareParams(
         text: 'Join Shri Ji Bazaar using my referral code $code and earn bonus points!\n\nRegister here: $link',
         subject: 'Join Shri Ji Bazaar',
+      ),
+    );
+  }
+}
+
+class _SectionLabel extends StatelessWidget {
+  final String text;
+  const _SectionLabel(this.text);
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(14, 16, 14, 6),
+      child: Text(
+        text,
+        style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w700, color: AppColors.textSecondary, letterSpacing: 1.2),
       ),
     );
   }
@@ -293,8 +309,14 @@ class _SidebarTile extends StatelessWidget {
             Icon(icon, size: 22, color: AppColors.textPrimary),
             const SizedBox(width: 14),
             Expanded(
-              child: Text(label, style: AppTextStyles.body.copyWith(color: AppColors.textPrimary, fontWeight: FontWeight.w600)),
+              child: Text(
+                label,
+                style: AppTextStyles.body.copyWith(color: AppColors.textPrimary, fontWeight: FontWeight.w600),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+              ),
             ),
+            const SizedBox(width: 4),
             Icon(Icons.chevron_right_rounded, color: AppColors.textSecondary, size: 20),
           ],
         ),

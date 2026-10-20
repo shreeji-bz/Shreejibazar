@@ -42,9 +42,18 @@ class ReferralController extends ChangeNotifier {
     final code = referralCode;
     if (code == null || code.isEmpty) return;
 
-    final baseUrl = const String.fromEnvironment('API_BASE_URL', defaultValue: 'http://10.97.119.19:3000');
-    final link = '$baseUrl/register?ref=$code';
+    // App deep-link so the invite opens the app (install from the store when
+    // not installed) instead of the web register page. The DeepLinkService
+    // already handles /register?ref=CODE.
+    final appLink = 'shrijibazaar://register?ref=$code';
 
-    await SharePlus.instance.share(ShareParams(text: 'Join Shri Ji Bazaar using my referral code $code and earn bonus points!\n\nRegister here: $link', subject: 'Join Shri Ji Bazaar'));
+    // share_plus: [text] and [uri] are mutually exclusive, so share the
+    // deep-link; the referral code stays in the link as ?ref=CODE, and
+    // non-URI platforms fall back to sharing it as plain text.
+    await SharePlus.instance.share(ShareParams(
+      text: 'Join Shri Ji Bazaar using my referral code $code and earn bonus points!\n\n'
+          'Open in app: $appLink',
+      subject: 'Join Shri Ji Bazaar',
+    ));
   }
 }

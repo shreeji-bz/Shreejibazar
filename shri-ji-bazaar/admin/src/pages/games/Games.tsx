@@ -48,9 +48,12 @@ export const Games = () => {
     try {
       const params: Record<string, string> = { page: '1', limit: '100' };
       if (statusFilter !== 'all') params.status = statusFilter;
-      const result = (await fetchGames()) as any;
-      if (result.success) {
-        dispatch(setGames(result.data));
+      const result = (await fetchGames(params)) as any;
+      console.log('[Games] fetchGames response:', result);
+      if (result?.success) {
+        dispatch(setGames(result.data ?? []));
+      } else {
+        console.warn('[Games] API returned non-success:', result);
       }
     } catch (e: any) {
       setError(e.message || 'Failed to load games');

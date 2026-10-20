@@ -1,5 +1,6 @@
 import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
+import 'package:shri_ji_bazaar/core/constants/app_constants.dart';
 import 'package:shri_ji_bazaar/core/routes/route_names.dart';
 import 'package:shri_ji_bazaar/core/storage/secure_storage.dart';
 
@@ -24,7 +25,7 @@ class AuthInterceptor extends Interceptor {
       if (refreshToken != null && refreshToken.isNotEmpty) {
         try {
           final dio = Dio(BaseOptions(
-            baseUrl: 'http://10.97.119.19:3000/api/v1',
+            baseUrl: AppConstants.apiBaseUrl,
             headers: {'Content-Type': 'application/json'},
           ));
           final response = await dio.post('/auth/refresh', data: { 'refreshToken': refreshToken });

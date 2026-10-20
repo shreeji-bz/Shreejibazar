@@ -15,7 +15,10 @@ export async function getSettingsMap(): Promise<SettingsMap> {
   const { data, error } = await supabase.from('settings').select('key,value');
   if (error) {
     console.error('Settings fetch error:', JSON.stringify(error));
-    return cache || {};
+    // Serve the last known settings for one grace period; fall back to {} so
+    // the API stays available while Supabase is unreachable.
+    if (cache) return cache;
+    return {};
   }
 
   cache = {};

@@ -2,6 +2,7 @@ import 'dart:io';
 import 'package:dio/dio.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:shri_ji_bazaar/core/constants/app_constants.dart';
 import 'api_interceptors.dart';
 import 'retry_interceptor.dart';
 
@@ -20,7 +21,7 @@ class ApiService {
   void _init() {
     dio = Dio(
       BaseOptions(
-        baseUrl: 'http://10.97.119.19:3000/api/v1',
+        baseUrl: AppConstants.apiBaseUrl,
         connectTimeout: const Duration(seconds: 30),
         receiveTimeout: const Duration(seconds: 30),
         headers: {'Content-Type': 'application/json', 'Accept': 'application/json'},

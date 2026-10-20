@@ -77,7 +77,7 @@ class _HomePageState extends State<HomePage> {
       final activeData = results[0] as Map<String, dynamic>?;
       final upcomingData = results[1] as List<dynamic>? ?? [];
       final resultsData = results[2] as List<dynamic>? ?? [];
-      final gamesData = results[3] as List<dynamic>? ?? [];
+      var gamesData = results[3] as List<dynamic>? ?? <dynamic>[];
 
       final upcomingWithNames = <Map<String, dynamic>>[];
       for (final round in upcomingData) {
@@ -93,6 +93,48 @@ class _HomePageState extends State<HomePage> {
         upcomingWithNames.add(Map<String, dynamic>.from(round)..['gameName'] = gameName);
       }
 
+      // Fallback list when the server has no games in the DB
+      // (same times as the seed data, so the app always shows the markets).
+      if (gamesData.isEmpty) {
+        gamesData = const [
+          {
+            'id': 'a1b2c3d4-e5f6-7890-abcd-ef1234567890', 'name': 'Delhi Bazar', 'slug': 'delhi-bazar',
+            'opening_time': '06:00', 'closing_time': '03:00', 'result_time': '03:35',
+            'status': 'active', 'is_popular': true, 'sort_order': 1,
+          },
+          {
+            'id': 'b2c3d4e5-f6a7-8901-bcde-fa2345678901', 'name': 'Shree Ganesh', 'slug': 'shri-ganesh',
+            'opening_time': '06:00', 'closing_time': '04:30', 'result_time': '05:00',
+            'status': 'active', 'is_popular': true, 'sort_order': 2,
+          },
+          {
+            'id': 'c3d4e5f6-a7b8-9012-cdef-ab3456789012', 'name': 'Faridabad', 'slug': 'faridabad',
+            'opening_time': '06:00', 'closing_time': '05:50', 'result_time': '06:20',
+            'status': 'active', 'is_popular': true, 'sort_order': 3,
+          },
+          {
+            'id': 'd4e5f6a7-b8c9-0123-defa-bc4567890123', 'name': 'Ghaziabad', 'slug': 'ghaziabad',
+            'opening_time': '06:00', 'closing_time': '09:05', 'result_time': '09:35',
+            'status': 'active', 'is_popular': false, 'sort_order': 4,
+          },
+          {
+            'id': 'd1e2f3a4-b5c6-7788-99aa-bb0011223344', 'name': 'Nepal Day', 'slug': 'nepal-day',
+            'opening_time': '07:00', 'closing_time': '01:05', 'result_time': '01:05',
+            'status': 'active', 'is_popular': true, 'sort_order': 10,
+          },
+          {
+            'id': 'd1e2f3a4-b5c6-7788-99aa-bb0011223345', 'name': 'Nepal Night', 'slug': 'nepal-night',
+            'opening_time': '07:00', 'closing_time': '09:05', 'result_time': '09:35',
+            'status': 'active', 'is_popular': true, 'sort_order': 11,
+          },
+          {
+            'id': 'e5f6a7b8-c9d0-1234-efab-cd5678901234', 'name': 'Gali', 'slug': 'gali',
+            'opening_time': '06:00', 'closing_time': '11:35', 'result_time': '12:05',
+            'status': 'active', 'is_popular': true, 'sort_order': 5,
+          },
+        ];
+      }
+
       final games = gamesData.map((g) => GameEntity(
         id: g['id'] as String,
         name: g['name'] as String,
@@ -105,8 +147,8 @@ class _HomePageState extends State<HomePage> {
         status: g['status'] as String? ?? 'active',
         isPopular: g['is_popular'] as bool? ?? false,
         sortOrder: g['sort_order'] as int? ?? 0,
-        createdAt: DateTime.parse(g['created_at'] as String),
-        updatedAt: DateTime.parse(g['updated_at'] as String),
+        createdAt: g['created_at'] is String ? DateTime.parse(g['created_at'] as String) : DateTime.now(),
+        updatedAt: g['updated_at'] is String ? DateTime.parse(g['updated_at'] as String) : DateTime.now(),
       )).toList();
 
       if (mounted) {

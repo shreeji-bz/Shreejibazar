@@ -9,5 +9,7 @@ INSERT INTO public.games (id, name, slug, display_name, description, image, open
   ('f6a7b8c9-d0e1-2345-fabc-de6789012345', 'Disawar', 'disawar', 'Disawar', 'Disawar game results', 'disawar.png', '16:30:00', '17:00:00', 'active', true, 6, true, now(), now()),
   ('a7b8c9d0-e1f2-3456-abcd-ef7890123456', 'Kashi Morning', 'kashi-morning', 'Kashi Morning', 'Morning Kashi game results', 'kashi-morning.png', '10:00:00', '10:30:00', 'active', true, 7, true, now(), now()),
   ('b8c9d0e1-f2a3-4567-bcde-fa8901234567', 'Kashi Day', 'kashi-day', 'Kashi Day', 'Day Kashi game results', 'kashi-day.png', '12:40:00', '13:10:00', 'active', true, 8, true, now(), now()),
-  ('c9d0e1f2-a3b4-5678-cdef-ab9012345678', 'Kashi Night', 'kashi-night', 'Kashi Night', 'Night Kashi game results', 'kashi-night.png', '21:13:00', '21:43:00', 'active', true, 9, true, now(), now())
+  ('c9d0e1f2-a3b4-5678-cdef-ab9012345678', 'Kashi Night', 'kashi-night', 'Kashi Night', 'Night Kashi game results', 'kashi-night.png', '21:13:00', '21:43:00', 'active', true, 9, true, now(), now()),
+  ('d1e2f3a4-b5c6-7788-99aa-bb0011223344', 'Nepal Day', 'nepal-day', 'Nepal Day', 'Nepal Day game results', 'nepal-day.png', '07:00:00', '01:05:00', 'active', true, 10, true, now(), now()),
+  ('d1e2f3a4-b5c6-7788-99aa-bb0011223345', 'Nepal Night', 'nepal-night', 'Nepal Night', 'Nepal Night game results', 'nepal-night.png', '07:00:00', '09:05:00', 'active', true, 11, true, now(), now())
 ON CONFLICT (slug) DO NOTHING;
