@@ -20,45 +20,51 @@ class AppSidebar extends StatelessWidget {
       backgroundColor: AppColors.cardSecondary,
       child: Column(
         children: [
-          // Header
+          // Header — logo + user identity + close
           Container(
-            padding: const EdgeInsets.fromLTRB(16, 48, 16, 20),
+            padding: const EdgeInsets.fromLTRB(16, 40, 16, 16),
             decoration: const BoxDecoration(
               color: Color(0xFF0A8A4F),
             ),
-            child: Row(
+            child: Column(
               children: [
-                Container(
-                  width: 54,
-                  height: 54,
-                  decoration: BoxDecoration(
-                    color: const Color(0xFFF4C430),
-                    borderRadius: BorderRadius.circular(14),
-                  ),
-                  child: const Center(
-                    child: Text('जय', style: TextStyle(color: Color(0xFF0A8A4F), fontWeight: FontWeight.w900, fontSize: 20)),
-                  ),
-                ),
-                const SizedBox(width: 14),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        user?.name ?? 'USER',
-                        style: const TextStyle(fontSize: 17, fontWeight: FontWeight.w800, color: Colors.white),
+                // Logo, centered, with the close button overlaid at the top-right
+                Stack(
+                  alignment: Alignment.topCenter,
+                  children: [
+                    ClipRRect(
+                      borderRadius: BorderRadius.circular(18),
+                      child: Image.asset(
+                        'assets/logos/logo.webp',
+                        width: 96,
+                        height: 96,
+                        fit: BoxFit.cover,
                       ),
-                      const SizedBox(height: 4),
-                      Text(
-                        user?.mobile ?? '',
-                        style: const TextStyle(fontSize: 13, color: Colors.white70),
+                    ),
+                    Positioned(
+                      top: 0,
+                      right: 0,
+                      child: IconButton(
+                        onPressed: () => Navigator.pop(context),
+                        icon: const Icon(Icons.close_rounded, color: Colors.white, size: 26),
                       ),
-                    ],
-                  ),
+                    ),
+                  ],
                 ),
-                IconButton(
-                  onPressed: () => Navigator.pop(context),
-                  icon: const Icon(Icons.close_rounded, color: Colors.white, size: 26),
+                const SizedBox(height: 12),
+                // User identity, centered under the logo
+                Column(
+                  children: [
+                    Text(
+                      user?.name ?? 'USER',
+                      style: const TextStyle(fontSize: 17, fontWeight: FontWeight.w800, color: Colors.white),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      user?.mobile ?? '',
+                      style: const TextStyle(fontSize: 13, color: Colors.white70),
+                    ),
+                  ],
                 ),
               ],
             ),

@@ -338,12 +338,31 @@ class _HomePageState extends State<HomePage> {
       child: Row(
         children: [
           const SidebarToggle(),
-          const Spacer(),
+          const SizedBox(width: 8),
+          // App logo in the top bar
+          ClipRRect(
+            borderRadius: BorderRadius.circular(8),
+            child: Image.asset(
+              'assets/logos/logo.webp',
+              width: 36,
+              height: 36,
+              fit: BoxFit.cover,
+              // New asset registration won't show until a rebuild; this keeps
+              // the top bar usable (gold circle) instead of a pink error box.
+              errorBuilder: (context, error, stackTrace) => Container(
+                width: 36,
+                height: 36,
+                decoration: BoxDecoration(color: AppColors.gold, borderRadius: BorderRadius.circular(8)),
+                child: Icon(Icons.shield_rounded, color: Colors.white, size: 18),
+              ),
+            ),
+          ),
+          const SizedBox(width: 10),
           Text(
             'WIN BAZAR',
             style: AppTextStyles.appName.copyWith(
               color: AppColors.gold,
-              fontSize: 22,
+              fontSize: 18,
               letterSpacing: 2,
             ),
           ),
