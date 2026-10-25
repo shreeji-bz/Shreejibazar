@@ -21,10 +21,19 @@ export class RoundsRepository {
   async findUpcoming(gameId?: string): Promise<RoundEntity[]> {
     // Join games and filter to active games only, so rounds of games that an
     // admin set to inactive/maintenance stop showing on the home page.
-    let query = supabase.from('rounds').select('*, games(name, status)').gte('start_time', new Date().toISOString()).in('status', ['pending', 'open']).eq('games.status', 'active');
+    let query = supabase.from('rounds').select('*, games(name, result_time, status)').gte('start_time', new Date().toISOString()).in('status', ['pending', 'open']).eq('games.status', 'active');
     if (gameId) query = query.eq('game_id', gameId);
     const { data } = await query.order('start_time').limit(100);
-    return (data || []).map((row: any) => this.mapRow(row, row.games?.name));
+    // Flatten the joined game name so the mobile app gets a plain `game_name`
+    // field instead of a nested `games` object.
+    const rows = (data || []).map((row: any) => {
+      const flat: any = { ...row };
+      flat.game_name = row.games?.name;
+      flat.result_time = row.games?.result_time;
+      delete flat.games;
+      return flat;
+    });
+    return rows.map((row: any) => this.mapRow(row, row.game_name));
   }
 
   async create(data: Partial<RoundEntity> & { gameId: string }): Promise<RoundEntity> {
@@ -55,10 +64,16 @@ export class RoundsRepository {
     const now = new Date().toISOString();
     // Also require the game to be active so deactivated games vanish from
     // the LIVE MARKET card immediately (join the game and its status).
-    let query = supabase.from('rounds').select('*, games(name, status)').lte('start_time', now).gte('end_time', now).eq('status', 'open').eq('games.status', 'active');
+    let query = supabase.from('rounds').select('*, games(name, result_time, status)').lte('start_time', now).gte('end_time', now).eq('status', 'open').eq('games.status', 'active');
     if (gameId) query = query.eq('game_id', gameId);
     const { data } = await query.order('start_time', { ascending: false }).limit(1);
-    if (data && data.length > 0) return this.mapRow(data[0], data[0].games?.name);
+    if (data && data.length > 0) {
+      const row: any = { ...data[0] };
+      row.game_name = data[0].games?.name;
+      row.result_time = data[0].games?.result_time;
+      delete row.games;
+      return this.mapRow(row, row.game_name);
+    }
     return null;
   }
 

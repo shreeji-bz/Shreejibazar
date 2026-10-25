@@ -17,6 +17,7 @@ import '../../features/payments/presentation/pages/withdraw_page.dart';
 import '../../features/payments/presentation/pages/payment_history_page.dart';
 import '../../features/payments/presentation/pages/imb_payment_page.dart';
 import '../../features/bonuses/presentation/pages/bonuses_page.dart';
+import '../../features/games/presentation/pages/play_game_page.dart';
 import '../../features/referrals/presentation/pages/referrals_page.dart';
 import '../../features/notifications/presentation/pages/notifications_page.dart';
 import '../../features/profile/presentation/pages/profile_page.dart';
@@ -62,6 +63,14 @@ GoRouter createRouter(BuildContext context) {
         builder: (context, state, child) => MainShell(child: child),
         routes: [
           GoRoute(path: RouteNames.home, builder: (_, __) => const HomePage()),
+          GoRoute(
+            path: RouteNames.playGame,
+            builder: (context, state) {
+              final extra = state.extra as Map<String, dynamic>? ?? {};
+              final gameId = extra['gameId'] as String? ?? '';
+              return PlayGamePage(gameId: gameId);
+            },
+          ),
           GoRoute(path: RouteNames.results, builder: (_, __) => const ChartPage()),
           GoRoute(path: RouteNames.myPlays, builder: (_, __) => const MyActivityPage()),
           GoRoute(path: RouteNames.points, builder: (_, __) => const PointsPage()),

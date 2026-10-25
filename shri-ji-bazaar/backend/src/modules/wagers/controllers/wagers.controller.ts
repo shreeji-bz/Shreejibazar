@@ -35,8 +35,10 @@ export class WagersController {
   async placeWager(req: Request, res: Response) {
     try {
       this.validate(placeWagerSchema, req.body);
+      // Trust the authenticated user from the JWT, not a client-supplied
+      // userId, so a client cannot place a wager on someone else's account.
       const data = await this.wagersService.createWager({
-        userId: req.body.userId,
+        userId: (req.user as any)?.id || req.body.userId,
         gameId: req.body.gameId,
         roundId: req.body.roundId,
         wagerTypeId: req.body.wagerTypeId,

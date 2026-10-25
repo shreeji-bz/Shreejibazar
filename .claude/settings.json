@@ -46,7 +46,9 @@
       "Bash(curl -s -X POST \"http://localhost:3000/api/v1/admin/auth/login\" -H \"Content-Type: application/json\" -d '{\"email\":\"admin@shrijibazaar.com\",\"password\":\"admin123\"}' -o /tmp/admin.json -w \"%{http_code}\\\\n\")",
       "Bash(python3 -c ' *)",
       "Bash(npx ts-node *)",
-      "Bash(echo \"=== tsc exit: $? ===\")"
+      "Bash(echo \"=== tsc exit: $? ===\")",
+      "Bash(curl -s \"http://localhost:3000/api/v1/banners\" -H \"Authorization: Bearer x\")",
+      "Bash(curl -s \"http://localhost:3000/api/v1/health\" -o /dev/null -w \"backend http: %{http_code}\\\\n\")"
     ]
   }
 }

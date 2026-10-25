@@ -1,0 +1,37 @@
+{
+  "version": 1,
+  "savedAt": "2026-10-24T22:13:06.038Z",
+  "agents": [
+    {
+      "id": "god",
+      "name": "Michael",
+      "character": "michael",
+      "accent": "lemon",
+      "description": "god — runs the floor, triages requests, escalates only critical calls to you",
+      "project": "hive",
+      "tmuxTarget": "",
+      "cwd": "/Users/apple/Documents/untitled folder/xx/shri-ji-bazaar",
+      "status": "idle",
+      "action": "running the floor",
+      "progress": 0,
+      "currentStation": "desk",
+      "ptyId": "pty-god",
+      "command": "claude --model claude-fable-5-1 --permission-mode bypassPermissions",
+      "provider": "claude",
+      "model": "claude-fable-5-1",
+      "isGod": true
+    }
+  ],
+  "archived": [],
+  "restorable": [],
+  "queues": {
+    "god": [
+      {
+        "id": "q-1792879985534-1",
+        "text": "ko",
+        "ts": 1792879985534
+      }
+    ]
+  },
+  "selectedId": "god"
+}

@@ -86,8 +86,9 @@ class _HomePageState extends State<HomePage> {
         // "games" key (verified against the live API). Then fall back to a
         // client-side join on game_id against the /games response.
         String? gameName;
+        gameName = round['game_name'] as String?;
         final nested = round['games'];
-        if (nested is Map) gameName = nested['name'] as String?;
+        if (nested is Map) gameName = nested['name'] as String? ?? gameName;
         if (gameName == null || gameName.isEmpty) {
           final gameId = round['game_id'] as String?;
           if (gameId != null) {
@@ -251,7 +252,22 @@ class _HomePageState extends State<HomePage> {
   }
 
   void _onPlayGame(String gameId, String gameName) {
-    _loadGameDetail(gameId);
+    // Open the full Play Game screen for this specific game.
+    context.push(RouteNames.playGame, extra: {'gameId': gameId, 'gameName': gameName});
+  }
+
+  /// Opens a wager bottom sheet so the user can place a bet on a game's
+  /// currently-open round. The backend resolves the open round when no
+  /// roundId is passed.
+  void _openWagerSheet(String gameId) {
+    // The Play button now goes to the full Play Game screen; this sheet is
+    // kept only for the Live Market quick-play button.
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (sheetContext) => _WagerSheet(gameId: gameId, api: _api),
+    );
   }
 
   @override
@@ -364,7 +380,7 @@ class _HomePageState extends State<HomePage> {
     if (banners.isEmpty) {
       return Container(
         margin: const EdgeInsets.symmetric(horizontal: 12),
-        height: 160,
+        height: 120,
         decoration: BoxDecoration(
           color: AppColors.card,
           borderRadius: BorderRadius.circular(16),
@@ -386,7 +402,7 @@ class _HomePageState extends State<HomePage> {
     return Column(
       children: [
         SizedBox(
-          height: 160,
+          height: 120,
           child: PageView.builder(
             itemCount: banners.length,
             onPageChanged: (index) {
@@ -394,68 +410,25 @@ class _HomePageState extends State<HomePage> {
             },
             itemBuilder: (context, index) {
               final banner = banners[index];
+              final hasImage = banner.image.isNotEmpty;
               return Container(
                 margin: const EdgeInsets.symmetric(horizontal: 12),
                 decoration: BoxDecoration(
-                  gradient: AppColors.goldGradient,
+                  color: AppColors.card,
                   borderRadius: BorderRadius.circular(16),
+                  border: Border.all(color: AppColors.border),
                 ),
-                child: Stack(
-                  children: [
-                    Padding(
-                      padding: const EdgeInsets.all(16),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          if (banner.title.isNotEmpty)
-                            Text(
-                              banner.title,
-                              style: AppTextStyles.bannerTitle,
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                            ),
-                          if (banner.description.isNotEmpty) ...[
-                            const SizedBox(height: 6),
-                            Text(
-                              banner.description,
-                              style: AppTextStyles.body.copyWith(color: Colors.white70, fontSize: 13),
-                              maxLines: 2,
-                              overflow: TextOverflow.ellipsis,
-                            ),
-                          ],
-                          const Spacer(),
-                          Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                            decoration: BoxDecoration(
-                              color: Colors.white.withValues(alpha: 0.2),
-                              borderRadius: BorderRadius.circular(20),
-                            ),
-                            child: const Text(
-                              '100%\nTRUSTED AND SECURE',
-                              style: TextStyle(
-                                color: Colors.white,
-                                fontSize: 11,
-                                fontWeight: FontWeight.bold,
-                                height: 1.3,
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                    Positioned(
-                      right: -20,
-                      top: -20,
-                      child: Container(
-                        width: 100,
-                        height: 100,
-                        decoration: const BoxDecoration(
-                          shape: BoxShape.circle,
-                          color: Color(0x14FFFFFF),
-                        ),
-                      ),
-                    ),
-                  ],
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(16),
+                  child: hasImage
+                      ? Image.network(
+                          banner.image,
+                          height: 120,
+                          width: double.infinity,
+                          fit: BoxFit.cover,
+                          errorBuilder: (context, error, stack) => _BannerFallback(banner: banner),
+                        )
+                      : _BannerFallback(banner: banner),
                 ),
               );
             },
@@ -491,7 +464,7 @@ class _HomePageState extends State<HomePage> {
           children: [
             Expanded(
               child: _ActionButton(
-                label: 'WhatsApp',
+                label: 'Customer support',
                 backgroundColor: const Color(0xFF25D366),
                 textColor: Colors.white,
                 icon: Icons.message_rounded,
@@ -560,12 +533,16 @@ class _HomePageState extends State<HomePage> {
         const SizedBox(height: 10),
         ...List.generate(_upcomingMarkets.length, (index) {
           final market = _upcomingMarkets[index];
+          final rawName = market['gameName'] as String?;
+          final name = (rawName?.trim().isNotEmpty == true ? rawName! : 'Unknown').toUpperCase();
+          final resultTime = market['result_time'] ?? market['resultTime'];
           return _buildUpcomingMarketCard(
-            name: (market['gameName'] ?? 'Unknown').toUpperCase(),
+            name: name,
             status: 'WAITING',
             statusColor: AppColors.warning,
             openTime: _formatAmPm(market['start_time'] ?? market['startTime']),
             closeTime: _formatAmPm(market['end_time'] ?? market['endTime']),
+            resultTime: _formatAmPm(resultTime),
           );
         }),
       ],
@@ -765,8 +742,9 @@ class _HomePageState extends State<HomePage> {
     // Same shape as upcoming: the Supabase join returns the game under the
     // "games" key (verified against the live API). No hard-coded default name.
     String? liveName;
+    liveName = market['game_name'] as String?;
     final nestedLive = market['games'];
-    if (nestedLive is Map) liveName = nestedLive['name'] as String?;
+    if (nestedLive is Map) liveName = nestedLive['name'] as String? ?? liveName;
     if (liveName == null || liveName.isEmpty) {
       liveName = market['game_name'] as String? ?? market['gameName'] as String?;
     }
@@ -838,7 +816,11 @@ class _HomePageState extends State<HomePage> {
                   borderRadius: BorderRadius.circular(10),
                 ),
                 child: TextButton.icon(
-                  onPressed: () {},
+                  onPressed: () {
+                    final gameId = market['game_id'] as String?;
+                    if (gameId == null) return;
+                    _openWagerSheet(gameId);
+                  },
                   icon: const Icon(Icons.play_arrow_rounded, color: Colors.white, size: 20),
                   label: Text('Play', style: AppTextStyles.body.copyWith(color: Colors.white, fontWeight: FontWeight.w800)),
                 ),
@@ -856,46 +838,75 @@ class _HomePageState extends State<HomePage> {
     required Color statusColor,
     required String openTime,
     required String closeTime,
+    String? resultTime,
   }) {
-    return Container(
-      margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
-      padding: const EdgeInsets.all(14),
-      decoration: BoxDecoration(
-        color: AppColors.card,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: AppColors.border),
-      ),
-      child: Row(
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(12),
+      child: Container(
+        margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+        decoration: BoxDecoration(
+          color: AppColors.card,
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: AppColors.border),
+        ),
+        child: Column(
         children: [
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
+          // White body: game name + status pill + Wait button
+          Padding(
+            padding: const EdgeInsets.fromLTRB(14, 12, 14, 12),
+            child: Row(
               children: [
-                Text(name, style: AppTextStyles.marketTitle),
-                const SizedBox(height: 3),
-                Text('Open Time : $openTime', style: TextStyle(color: AppColors.textSecondary, fontSize: 12)),
-                Text('Close Time : $closeTime', style: TextStyle(color: AppColors.textSecondary, fontSize: 12)),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(name, style: AppTextStyles.marketTitle),
+                      const SizedBox(height: 3),
+                      Text(
+                        status,
+                        style: TextStyle(color: AppColors.textSecondary, fontSize: 11, fontWeight: FontWeight.w600, letterSpacing: 1),
+                      ),
+                    ],
+                  ),
+                ),
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                  decoration: BoxDecoration(
+                    color: AppColors.success,
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      const Icon(Icons.timer_outlined, color: Colors.white, size: 15),
+                      const SizedBox(width: 6),
+                      Text('Wait', style: const TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.w700)),
+                    ],
+                  ),
+                ),
               ],
             ),
           ),
+          // Solid green footer strip with open / close times
           Container(
-            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 3),
-            decoration: BoxDecoration(
-              color: statusColor.withValues(alpha: 0.15),
-              borderRadius: BorderRadius.circular(12),
-              border: Border.all(color: statusColor.withValues(alpha: 0.4)),
-            ),
-            child: Text(
-              status,
-              style: TextStyle(
-                color: statusColor,
-                fontSize: 11,
-                fontWeight: FontWeight.w700,
-                letterSpacing: 1.5,
-              ),
+            color: AppColors.success,
+            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 9),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text(
+                  'Open Time : $openTime',
+                  style: const TextStyle(color: Colors.white, fontSize: 11),
+                ),
+                Text(
+                  'Close Time : $closeTime',
+                  style: const TextStyle(color: Colors.white, fontSize: 11),
+                ),
+              ],
             ),
           ),
         ],
+        ),
       ),
     );
   }
@@ -931,6 +942,181 @@ class _HomePageState extends State<HomePage> {
             ),
           ),
         ],
+      ),
+    );
+  }
+
+  /// Placeholder shown when a banner has no image (or the image fails to load).
+  Widget _BannerFallback({required BannerEntity banner}) {
+    return Container(
+      height: 120,
+      width: double.infinity,
+      decoration: BoxDecoration(gradient: AppColors.goldGradient),
+      padding: const EdgeInsets.all(14),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          if (banner.title.isNotEmpty)
+            Text(
+              banner.title,
+              style: AppTextStyles.bannerTitle,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+            ),
+          if (banner.description.isNotEmpty)
+            Text(
+              banner.description,
+              style: AppTextStyles.body.copyWith(color: Colors.white70, fontSize: 13),
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
+            ),
+        ],
+      ),
+    );
+  }
+
+  /// Bottom sheet: pick a play type + number, then place the wager.
+  Widget _WagerSheet({required String gameId, required ApiService api}) {
+    final controller = TextEditingController();
+    String playType = 'single';
+    bool submitting = false;
+    String? error;
+
+    Future<void> submit() async {
+      final selection = controller.text.trim();
+      if (selection.isEmpty) {
+        setState(() => error = 'Enter your number first.');
+        return;
+      }
+      setState(() {
+        submitting = true;
+        error = null;
+      });
+      try {
+        await api.post('/wagers', data: {
+          'gameId': gameId,
+          'playType': playType,
+          'selection': selection,
+          'pointsStaked': 50,
+          'idempotencyKey': DateTime.now().toIso8601String(),
+        });
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Wager placed! Check "My Plays" for status.'), backgroundColor: AppColors.success),
+          );
+        }
+        if (mounted) Navigator.of(context).pop();
+      } on ApiException catch (e) {
+        if (mounted) setState(() => error = e.message);
+      }
+    }
+
+    return Padding(
+      padding: EdgeInsets.only(bottom: MediaQuery.of(context).viewInsets.bottom),
+      child: Container(
+        padding: const EdgeInsets.all(20),
+        decoration: BoxDecoration(
+          color: AppColors.card,
+          borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // Play type selector
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                const Text('PLAY TYPE', style: TextStyle(color: AppColors.textSecondary, fontSize: 11, fontWeight: FontWeight.w700, letterSpacing: 1)),
+                Text(playType.toUpperCase(), style: const TextStyle(color: AppColors.gold, fontSize: 12, fontWeight: FontWeight.w700)),
+              ],
+            ),
+            const SizedBox(height: 10),
+            Row(
+              children: [
+                for (final type in ['single', 'double', 'jodi', 'panel'])
+                  Padding(
+                    padding: const EdgeInsets.only(right: 8),
+                    child: _Chip(
+                      label: type,
+                      selected: playType == type,
+                      onTap: () => setState(() => playType = type),
+                    ),
+                  ),
+              ],
+            ),
+            const SizedBox(height: 16),
+            const Text('YOUR NUMBER', style: TextStyle(color: AppColors.textSecondary, fontSize: 11, fontWeight: FontWeight.w700, letterSpacing: 1)),
+            const SizedBox(height: 8),
+            SizedBox(
+              width: 120,
+              child: TextField(
+                controller: controller,
+                keyboardType: TextInputType.number,
+                maxLength: 3,
+                style: AppTextStyles.cardTitle.copyWith(color: AppColors.textPrimary),
+                decoration: InputDecoration(
+                  counterText: '',
+                  hintText: playType == 'single' ? '0–9' : playType == 'panel' ? 'e.g. 123' : 'e.g. 12',
+                  hintStyle: const TextStyle(color: AppColors.textMuted, fontSize: 14),
+                ),
+              ),
+            ),
+            const SizedBox(height: 16),
+            Row(
+              children: [
+                const Text('Stake', style: TextStyle(color: AppColors.textSecondary, fontSize: 13)),
+                const SizedBox(width: 8),
+                Text('50 pts', style: AppTextStyles.points.copyWith(fontSize: 14, color: AppColors.gold)),
+              ],
+            ),
+            if (error != null) ...[
+              const SizedBox(height: 12),
+              Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(color: AppColors.error.withValues(alpha: 0.1), borderRadius: BorderRadius.circular(8)),
+                child: Text(error!, style: const TextStyle(color: AppColors.error, fontSize: 13)),
+              ),
+            ],
+            const SizedBox(height: 16),
+            SizedBox(
+              width: double.infinity,
+              child: ElevatedButton(
+                onPressed: submitting ? null : submit,
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: AppColors.success,
+                  padding: const EdgeInsets.symmetric(vertical: 14),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                ),
+                child: submitting
+                    ? const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
+                    : const Text('Place Wager', style: TextStyle(color: Colors.white, fontSize: 15, fontWeight: FontWeight.w800)),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _Chip({required String label, required bool selected, required VoidCallback onTap}) {
+    return Material(
+      color: selected ? AppColors.success : AppColors.cardSecondary,
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(20),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
+          child: Text(
+            label,
+            style: TextStyle(
+              color: selected ? Colors.white : AppColors.textPrimary,
+              fontSize: 13,
+              fontWeight: selected ? FontWeight.w700 : FontWeight.w500,
+            ),
+          ),
+        ),
       ),
     );
   }
