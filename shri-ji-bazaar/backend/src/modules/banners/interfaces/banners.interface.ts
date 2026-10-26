@@ -1,9 +1,9 @@
-import { BannerEntity } from '../entities/banner.entity';
+import { BannersEntity } from '../entities/banners.entity';
 
 export interface IBannersService {
-  findAll(options?: any): Promise<{ data: BannerEntity[]; meta: any }>;
-  findById(id: string): Promise<BannerEntity>;
-  create(data: Partial<BannerEntity>): Promise<BannerEntity>;
-  update(id: string, data: Partial<BannerEntity>): Promise<BannerEntity>;
+  findAll(options?: { page?: number; limit?: number }): Promise<BannersEntity[]>;
+  findById(id: string): Promise<BannersEntity | null>;
+  create(data: Partial<BannersEntity>): Promise<BannersEntity>;
+  update(id: string, data: Partial<BannersEntity>): Promise<BannersEntity>;
   delete(id: string): Promise<void>;
 }

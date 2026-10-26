@@ -1,9 +1,13 @@
 import joi from 'joi';
 
 export const createSchema = joi.object({
-  // TODO: Add validation schema
+  roundId: joi.string().uuid().required(),
+  gameId: joi.string().uuid().optional(),
+  result: joi.string().required(),
+  declaredAt: joi.string().optional(),
 });
 
 export const updateSchema = joi.object({
-  id: joi.string().uuid().required(),
+  result: joi.string().optional(),
+  declaredAt: joi.string().optional(),
 });

@@ -52,9 +52,6 @@ export const PointsPage = () => {
     loadPoints();
   };
 
-  const formatCurrency = (amount: number) =>
-    new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR' }).format(amount);
-
   const filteredPoints = data.filter((entry) =>
     entry.user_id.toLowerCase().includes(search.toLowerCase())
   );

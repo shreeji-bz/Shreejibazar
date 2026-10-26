@@ -1,14 +1,9 @@
-export interface INotificationsRepository {
-  findAll(options?: NotificationsFindAllOptions): Promise<{ data: any[]; total: number }>;
-  findById(id: string): Promise<any | null>;
-  create(data: Partial<any>): Promise<any>;
-  createBulk(data: Partial<any>[]): Promise<any[]>;
-  updateStatus(id: string, isRead: boolean): Promise<void>;
-}
+import { NotificationEntity } from '../entities/notifications.entity';
 
-export interface NotificationsFindAllOptions {
-  userId?: string;
-  isRead?: boolean;
-  page?: number;
-  limit?: number;
+export interface INotificationsRepository {
+  getForUser(userId: string, page?: number, limit?: number): Promise<{ data: NotificationEntity[]; total: number }>;
+  getUnreadCount(userId: string): Promise<number>;
+  markAsRead(id: string): Promise<void>;
+  markAllAsRead(userId: string): Promise<void>;
+  create(data: { title: string; message: string; type?: string; userId?: string }): Promise<NotificationEntity | null>;
 }

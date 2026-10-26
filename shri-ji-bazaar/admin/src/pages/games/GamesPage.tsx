@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { fetchGames, toggleGameStatus } from '../services/game.service';
+import { fetchGames, toggleGameStatus } from '../../services/game.service';
 
 interface Game {
   id: string;

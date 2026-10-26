@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { fetchBanners, createBanner, updateBanner, deleteBanner } from '../services/banner.service';
+import { fetchBanners, updateBanner, deleteBanner } from '../../services/banner.service';
 
 interface Banner {
   id: string;

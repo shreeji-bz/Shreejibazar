@@ -18,19 +18,6 @@ export interface CreateStaffInput {
   role?: 'admin' | 'super_admin' | 'moderator';
 }
 
-async function handleResponse<T>(res: Response): Promise<T> {
-  const text = await res.text();
-  let data: any = {};
-  try { data = text ? JSON.parse(text) : {}; } catch { data = { raw: text }; }
-
-  if (!res.ok) {
-    const message = data?.message || data?.error || `Request failed with status ${res.status}`;
-    throw new Error(message);
-  }
-
-  return data as T;
-}
-
 export const getStaff = async (): Promise<StaffMember[]> => {
   const res = await get<any>('/v1/admin/staff');
   const arr = Array.isArray(res?.data) ? res.data : Array.isArray(res) ? res : [];

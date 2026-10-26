@@ -1,2 +1,2 @@
 export { Dashboard } from './Dashboard';
-export default Dashboard;
+export { default } from './Dashboard';

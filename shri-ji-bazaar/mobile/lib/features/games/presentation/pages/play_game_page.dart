@@ -31,7 +31,6 @@ class _PlayGamePageState extends State<PlayGamePage> {
   late final TextEditingController _pasteController;
 
   Timer? _tick;
-  DateTime? _lastActiveEndTime;
 
   @override
   void initState() {
@@ -82,7 +81,7 @@ class _PlayGamePageState extends State<PlayGamePage> {
 
   String _gameName(PlayGameController c) {
     final name = c.game?['name'] as String?;
-    return (name?.isNotEmpty == true ? name : 'GAME').toUpperCase();
+    return (name?.isNotEmpty == true ? name! : 'GAME').toUpperCase();
   }
 
   @override
@@ -202,7 +201,7 @@ class _GameMetaRow extends StatelessWidget {
     final g = controller.game ?? {};
     String t(String k) {
       final v = g[k] as String?;
-      return (v?.isNotEmpty == true ? v : '--');
+      return (v?.isNotEmpty == true ? v! : '--');
     }
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 16),
@@ -287,29 +286,34 @@ class _PlayTypeTabs extends StatelessWidget {
   }
 }
 
-class _EntryForm extends StatelessWidget {
+class _EntryForm extends StatefulWidget {
   final PlayGameController controller;
   final TextEditingController numberController;
   final TextEditingController amountController;
   const _EntryForm({required this.controller, required this.numberController, required this.amountController});
 
+  @override
+  State<_EntryForm> createState() => _EntryFormState();
+}
+
+class _EntryFormState extends State<_EntryForm> {
   String? _validate() {
-    final type = controller.activePlayTypes[controller.activeTabIndex];
+    final type = widget.controller.activePlayTypes[widget.controller.activeTabIndex];
     final digits = GamePlayConfig.digitsFor(type);
-    final num = numberController.text.trim();
+    final num = widget.numberController.text.trim();
     if (num.isEmpty) return 'Enter your number.';
     if (num.length != digits) return '$type needs exactly $digits digit(s).';
-    final amt = amountController.text.trim();
+    final amt = widget.amountController.text.trim();
     if (amt.isEmpty) return 'Enter an amount.';
     final value = int.tryParse(amt);
     if (value == null || value <= 0) return 'Amount must be a positive whole number.';
-    if (value < controller.config.minStake) return 'Minimum stake is ${controller.config.minStake}.';
+    if (value < widget.controller.config.minStake) return 'Minimum stake is ${widget.controller.config.minStake}.';
     return null;
   }
 
   @override
   Widget build(BuildContext context) {
-    final type = controller.activePlayTypes[controller.activeTabIndex];
+    final type = widget.controller.activePlayTypes[widget.controller.activeTabIndex];
     final digits = GamePlayConfig.digitsFor(type);
     final error = _validate();
     final canSave = error == null;
@@ -323,7 +327,7 @@ class _EntryForm extends StatelessWidget {
             children: [
               Expanded(
                 child: TextField(
-                  controller: numberController,
+                  controller: widget.numberController,
                   keyboardType: TextInputType.number,
                   maxLength: digits,
                   onChanged: (_) => setState(() {}),
@@ -342,7 +346,7 @@ class _EntryForm extends StatelessWidget {
               const SizedBox(width: 10),
               Expanded(
                 child: TextField(
-                  controller: amountController,
+                  controller: widget.amountController,
                   keyboardType: TextInputType.number,
                   onChanged: (_) => setState(() {}),
                   style: AppTextStyles.cardTitle.copyWith(color: AppColors.textPrimary),
@@ -366,12 +370,12 @@ class _EntryForm extends StatelessWidget {
                 child: ElevatedButton(
                   onPressed: canSave
                       ? () {
-                          controller.addEntry(
-                            selection: numberController.text.trim(),
-                            pointsStaked: int.tryParse(amountController.text.trim()) ?? 0,
+                          widget.controller.addEntry(
+                            selection: widget.numberController.text.trim(),
+                            pointsStaked: int.tryParse(widget.amountController.text.trim()) ?? 0,
                           );
-                          numberController.clear();
-                          amountController.clear();
+                          widget.numberController.clear();
+                          widget.amountController.clear();
                         }
                       : null,
                   style: ElevatedButton.styleFrom(
@@ -382,10 +386,10 @@ class _EntryForm extends StatelessWidget {
                 ),
               ),
               const SizedBox(width: 10),
-              if (error != null && (numberController.text.isNotEmpty || amountController.text.isNotEmpty))
+              if (error != null && (widget.numberController.text.isNotEmpty || widget.amountController.text.isNotEmpty))
                 Padding(
                   padding: const EdgeInsets.only(top: 6),
-                  child: Text(error!, style: const TextStyle(color: AppColors.error, fontSize: 12)),
+                  child: Text(error, style: const TextStyle(color: AppColors.error, fontSize: 12)),
                 ),
             ],
           ),
@@ -459,9 +463,9 @@ class _CopyPastePanelState extends State<_CopyPastePanel> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text(
+          Text(
             'Paste one ${GamePlayConfig.labelFor(type).toLowerCase()} entry per line.',
-            style: TextStyle(color: AppColors.textMuted, fontSize: 12),
+            style: const TextStyle(color: AppColors.textMuted, fontSize: 12),
           ),
           const SizedBox(height: 8),
           TextField(

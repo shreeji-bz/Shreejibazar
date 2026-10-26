@@ -1,6 +1,8 @@
-// TODO: Define entity interface
-export interface Entity {
+export interface SettingsEntity {
   id: string;
-  createdAt: Date;
-  updatedAt: Date;
+  key: string;
+  value: string | null;
+  type: 'string' | 'number' | 'boolean' | 'json';
+  description?: string;
+  updatedAt: string;
 }

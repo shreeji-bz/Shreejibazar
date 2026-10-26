@@ -71,7 +71,7 @@ export default function SettingsPage() {
     setLoading(true);
     setError(null);
     try {
-      const response = await import('../../services/api').then((m) => m.default.get('/v1/settings'));
+      const response = await import('../../services/api').then((m) => m.get<any>('/v1/settings'));
       const data: SettingsData = response.data?.data ?? {};
       setSettings(data);
       setFormData({ ...data });
@@ -90,7 +90,7 @@ export default function SettingsPage() {
     setSaving(true);
     setSaveMessage(null);
     try {
-      const response = await import('../../services/api').then((m) => m.default.post('/v1/admin/settings', formData));
+      const response = await import('../../services/api').then((m) => m.post<any>('/v1/admin/settings', formData));
       setSettings({ ...formData });
       setSaveMessage({ type: 'success', text: response.data?.message ?? 'Settings saved successfully.' });
     } catch (err: any) {

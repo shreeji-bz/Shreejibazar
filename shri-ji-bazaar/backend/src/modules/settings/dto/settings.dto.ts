@@ -1,9 +1,14 @@
 import joi from 'joi';
 
 export const createSchema = joi.object({
-  // TODO: Add validation schema
+  key: joi.string().required(),
+  value: joi.string().optional().allow(null),
+  type: joi.string().valid('string', 'number', 'boolean', 'json').default('string'),
+  description: joi.string().optional(),
 });
 
 export const updateSchema = joi.object({
-  id: joi.string().uuid().required(),
+  value: joi.string().optional().allow(null),
+  type: joi.string().valid('string', 'number', 'boolean', 'json').optional(),
+  description: joi.string().optional(),
 });

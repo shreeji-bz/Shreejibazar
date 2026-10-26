@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { get, post } from '../../services/api';
+import { get } from '../../services/api';
 
 type ResultRow = {
   id: string;

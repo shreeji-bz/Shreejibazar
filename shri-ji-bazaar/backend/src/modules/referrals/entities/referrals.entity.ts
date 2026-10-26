@@ -1,6 +1,10 @@
-// TODO: Define entity interface
-export interface Entity {
+export interface ReferralsEntity {
   id: string;
-  createdAt: Date;
-  updatedAt: Date;
+  referrerId: string;
+  referredId: string;
+  referralCode: string;
+  status: 'pending' | 'completed' | 'expired';
+  rewardPoints: number;
+  createdAt: string;
+  completedAt?: string;
 }

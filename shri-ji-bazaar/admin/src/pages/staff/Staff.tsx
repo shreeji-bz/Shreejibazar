@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Search, Plus, Edit3, Trash2, UserCheck, UserX } from 'lucide-react';
-import { getStaff, createStaff, updateStaff, deleteStaff, toggleStaffStatus, type StaffMember, type CreateStaffInput } from '../../services/staff.service';
+import { getStaff, createStaff, updateStaff, deleteStaff, toggleStaffStatus, type StaffMember } from '../../services/staff.service';
 import { Table, TableRow, TableCell } from '../../components/common/Table';
 import { Input } from '../../components/common/Input';
 import { Button } from '../../components/common/Button';

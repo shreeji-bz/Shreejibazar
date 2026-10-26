@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Eye, Trash2 } from 'lucide-react';
-import { wagerService } from '../services/wager.service';
+import { wagerService } from '../../services/wager.service';
 
 const WagersPage = () => {
   const [wagers, setWagers] = useState<any[]>([]);
@@ -10,7 +10,6 @@ const WagersPage = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [voidingId, setVoidingId] = useState<string | null>(null);
-  const [voidReason, setVoidReason] = useState('');
 
   const fetchWagers = async () => {
     setLoading(true);

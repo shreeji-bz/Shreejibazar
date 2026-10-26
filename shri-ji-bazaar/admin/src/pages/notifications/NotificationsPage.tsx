@@ -36,7 +36,7 @@ export const NotificationsPage = () => {
     setLoading(true);
     setError(null);
     try {
-      const result = await fetchNotifications();
+      const result: any = await fetchNotifications();
       setNotifications(result.data || []);
     } catch (e: any) {
       setError(e.message || 'Failed to load notifications');

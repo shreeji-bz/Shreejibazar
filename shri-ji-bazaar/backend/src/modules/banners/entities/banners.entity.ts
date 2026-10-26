@@ -1,6 +1,13 @@
-// TODO: Define entity interface
-export interface Entity {
+export interface BannersEntity {
   id: string;
-  createdAt: Date;
-  updatedAt: Date;
+  title: string;
+  body: string;
+  image: string;
+  link?: string;
+  isActive: boolean;
+  sortOrder: number;
+  startsAt?: string;
+  endsAt?: string;
+  createdAt: string;
+  updatedAt: string;
 }
