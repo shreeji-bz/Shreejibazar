@@ -31,6 +31,7 @@ class _HomePageState extends State<HomePage> {
   List<dynamic> _recentResults = [];
   List<GameEntity> _allGames = [];
   bool _loading = true;
+  bool _loadFailed = false;
   String? _selectedGameId;
   GameDetailEntity? _selectedGame;
   bool _gameDetailsLoading = false;
@@ -132,10 +133,18 @@ class _HomePageState extends State<HomePage> {
           _recentResults = resultsData;
           _allGames = games;
           _loading = false;
+          _loadFailed = false;
         });
       }
     } catch (e) {
-      if (mounted) setState(() => _loading = false);
+      // Backend unreachable (offline / dropped USB tunnel): stop the spinner
+      // and surface a retry banner instead of an empty, silent page.
+      if (mounted) {
+        setState(() {
+          _loading = false;
+          _loadFailed = true;
+        });
+      }
     }
   }
 
@@ -284,6 +293,8 @@ class _HomePageState extends State<HomePage> {
                 children: [
                   _buildHeader(context, homeController),
                   const SizedBox(height: 12),
+                  if (_loadFailed)
+                    _UnreachableBanner(onRetry: _loadData),
                   _buildBannerCarousel(homeController.banners),
                   const SizedBox(height: 16),
                   _buildActionButtons(),
@@ -1138,6 +1149,59 @@ class _HomePageState extends State<HomePage> {
       default:
         return Icons.casino_rounded;
     }
+  }
+}
+
+/// Shown at the top of the home page when the last data load failed (e.g. the
+/// backend is unreachable / USB tunnel dropped). Gives the user an explicit
+/// reason + a retry action instead of a silent empty page.
+class _UnreachableBanner extends StatelessWidget {
+  final VoidCallback onRetry;
+  const _UnreachableBanner({required this.onRetry});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      margin: const EdgeInsets.symmetric(horizontal: 12),
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: AppColors.error.withValues(alpha: 0.12),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: AppColors.error.withValues(alpha: 0.4)),
+      ),
+      child: Row(
+        children: [
+          const Icon(Icons.cloud_off_rounded, color: AppColors.error, size: 22),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Can’t reach the server',
+                  style: TextStyle(color: AppColors.error, fontSize: 13, fontWeight: FontWeight.w700),
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  'Check your connection and try again.',
+                  style: TextStyle(color: AppColors.textSecondary, fontSize: 12),
+                ),
+              ],
+            ),
+          ),
+          TextButton(
+            onPressed: onRetry,
+            style: TextButton.styleFrom(
+              foregroundColor: AppColors.error,
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+              minimumSize: const Size(44, 36),
+              tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+            ),
+            child: const Text('Retry', style: TextStyle(fontWeight: FontWeight.w700, fontSize: 13)),
+          ),
+        ],
+      ),
+    );
   }
 }
 
