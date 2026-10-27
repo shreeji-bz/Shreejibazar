@@ -3,13 +3,20 @@ import { ActivitiesService } from '../services/activities.service';
 import { supabase } from '../../../config/database.config';
 
 export class ActivitiesController {
-  constructor(private activitiesService: ActivitiesService, private router: any) {
+  private isAdmin: boolean;
+  constructor(private activitiesService: ActivitiesService, private router: any, isAdmin = false) {
+    this.isAdmin = isAdmin;
     this.initializeRoutes();
   }
 
   initializeRoutes() {
-    this.router.get('/', this.getUserActivities.bind(this));
-    this.router.post('/log', this.logActivity.bind(this));
+    if (this.isAdmin) {
+      this.router.get('/', this.getAllActivities.bind(this));
+      this.router.post('/log', this.logActivity.bind(this));
+    } else {
+      this.router.get('/', this.getUserActivities.bind(this));
+      this.router.post('/log', this.logActivity.bind(this));
+    }
   }
 
   async getUserActivities(req: Request, res: Response) {
@@ -44,11 +51,14 @@ export class ActivitiesController {
       const from = (page - 1) * limit;
       const to = from + limit - 1;
 
-      const { data, count } = await supabase
+      let query = supabase
         .from('activities')
         .select('*, users(name, mobile), games(name), rounds(round_number)', { count: 'exact' })
         .order('created_at', { ascending: false })
         .range(from, to);
+      if (req.query.userId) query = query.eq('user_id', req.query.userId as string);
+      if (req.query.gameId) query = query.eq('game_id', req.query.gameId as string);
+      const { data, count } = await query;
 
       const rows = (data || []).map((row: any) => ({
         id: row.id,

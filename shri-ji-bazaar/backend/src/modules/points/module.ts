@@ -13,6 +13,6 @@ export class PointsModule {
     const service = new PointsService(repository);
     new PointsController(service, repository, this.router);
     this.adminRouter.use(authenticateAdmin);
-    new PointsController(service, repository, this.adminRouter);
+    new PointsController(service, repository, this.adminRouter, true);
   }
 }

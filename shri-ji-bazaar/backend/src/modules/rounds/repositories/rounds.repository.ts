@@ -85,26 +85,61 @@ export class RoundsRepository {
 
   async create(data: Partial<RoundEntity> & { gameId: string }): Promise<RoundEntity> {
     const { data: record } = await supabase.from('rounds').insert({
-      game_id: data.gameId, round_number: data.roundNumber, start_time: data.startTime, end_time: data.endTime, result_time: data.resultTime, status: data.status || 'pending',
+      // Live schema: rounds.status is an enum (open/closed/result_declared) and there
+      // is no result_time column; 'pending' is rejected by rounds_status_check.
+      game_id: data.gameId, round_number: String(data.roundNumber), start_time: data.startTime, end_time: data.endTime, status: data.status === 'pending' ? 'open' : (data.status || 'open'),
     }).select().single();
     if (!record) throw new Error('Failed to create round');
     return this.mapRow(record);
   }
 
   async updateStatus(id: string, status: string, result?: string): Promise<RoundEntity> {
+    // No declared_at column live; updated_at marks the declaration.
     const updateData: any = { status, updated_at: new Date().toISOString() };
     if (result) updateData.result = result;
-    if (status === 'result_declared') updateData.declared_at = new Date().toISOString();
     const { data: record } = await supabase.from('rounds').update(updateData).eq('id', id).select().single();
     if (!record) throw new Error('Round not found');
     return this.mapRow(record);
   }
 
+  async findAll(options: any = {}): Promise<{ data: RoundEntity[]; meta: any }> {
+    let query = supabase.from('rounds').select('*, games(name)', { count: 'exact' });
+    if (options.gameId) query = query.eq('game_id', options.gameId);
+    if (options.status) query = query.eq('status', options.status);
+    const page = Math.max(1, options.page || 1);
+    const limit = Math.min(100, options.limit || 20);
+    const from = (page - 1) * limit;
+    const to = from + limit - 1;
+    const { data, count } = await query.order('start_time', { ascending: false }).range(from, to);
+    return {
+      data: (data || []).map((row: any) => this.mapRow(row, row.games?.name)),
+      meta: { total: count || 0, page, limit, totalPages: Math.ceil((count || 0) / limit) },
+    };
+  }
+
+  async updateRound(id: string, data: any): Promise<RoundEntity> {
+    const fields: any = { updated_at: new Date().toISOString() };
+    if (data.startTime !== undefined) fields.start_time = data.startTime;
+    if (data.endTime !== undefined) fields.end_time = data.endTime;
+    if (data.resultTime !== undefined) fields.result_time = data.resultTime;
+    if (data.status !== undefined) fields.status = data.status;
+    const { data: record, error } = await supabase.from('rounds').update(fields).eq('id', id).select().single();
+    if (error || !record) throw new Error('Round not found');
+    return this.mapRow(record, record.games?.name);
+  }
+
   async getLatestResults(gameId?: string, limit = 20): Promise<any[]> {
-    let query = supabase.from('results').select('*, rounds(round_number, game_id, games(name))').order('declared_at', { ascending: false }).limit(limit);
+    // Results live on rounds (no results table in live Supabase).
+    let query = supabase
+      .from('rounds')
+      .select('*, games(name)')
+      .eq('status', 'result_declared')
+      .not('result', 'is', null)
+      .order('updated_at', { ascending: false })
+      .limit(limit);
     if (gameId) query = query.eq('game_id', gameId);
     const { data } = await query;
-    return data || [];
+    return (data || []).map((row: any) => this.mapRow(row, row.games?.name));
   }
 
   async findActive(gameId?: string): Promise<RoundEntity | null> {

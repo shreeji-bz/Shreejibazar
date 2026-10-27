@@ -139,6 +139,8 @@ apiRouter.use('/admin/settings', authenticateAdmin, settingsModule.adminRouter);
 apiRouter.use('/admin/activities', authenticateAdmin, activitiesModule.adminRouter);
 apiRouter.use('/admin/points', authenticateAdmin, pointsModule.adminRouter);
 apiRouter.use('/admin/notifications', authenticateAdmin, notificationsModule.adminRouter);
+apiRouter.use('/admin/bonuses', authenticateAdmin, new BonusesModule().adminRouter);
+apiRouter.use('/admin/support', authenticateAdmin, new SupportModule().adminRouter);
 apiRouter.use('/admin', authenticateAdmin, adminModule.protectedRouter);
 
 // Maintenance mode check for user-facing routes

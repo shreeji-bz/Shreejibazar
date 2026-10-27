@@ -11,6 +11,6 @@ export class ActivitiesModule {
     const service = new ActivitiesService();
     new ActivitiesController(service, this.router);
     this.adminRouter.use(authenticateAdmin);
-    new ActivitiesController(service, this.adminRouter);
+    new ActivitiesController(service, this.adminRouter, true);
   }
 }

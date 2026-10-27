@@ -32,65 +32,44 @@ export class PointsRepository {
     };
   }
 
-  async addPoints(userId: string, amount: number, type: PointTransaction['type'], description: string, referenceId?: string): Promise<PointTransaction> {
+  async addPoints(userId: string, amount: number, type: 'credit' | 'debit', description: string, referenceId?: string): Promise<PointTransaction> {
     const wallet = await this.getWallet(userId);
     if (!wallet) throw new Error('Wallet not found');
 
-    const newBalance = wallet.balance + amount;
+    const balanceBefore = wallet.balance || 0;
+    const newBalance = balanceBefore + amount;
     if (newBalance < 0) throw new Error('Insufficient points');
+    // Live point_transactions.type only accepts 'credit' | 'debit'.
+    const txType: 'credit' | 'debit' = amount < 0 ? 'debit' : 'credit';
 
+    // Live point_wallets only has `balance` (no total_earned/total_spent).
     const { error: walletError } = await supabase
       .from('point_wallets')
-      .update({
-        balance: newBalance,
-        total_earned: (type === 'credit' || type === 'bonus' || type === 'referral') ? (wallet.totalEarned || 0) + amount : (wallet.totalEarned || 0),
-        total_spent: type === 'debit' ? (wallet.totalSpent || 0) + Math.abs(amount) : (wallet.totalSpent || 0),
-        updated_at: new Date().toISOString(),
-      })
+      .update({ balance: newBalance, updated_at: new Date().toISOString() })
       .eq('user_id', userId);
+    if (walletError) throw new Error('Failed to update wallet: ' + walletError.message);
 
-    if (walletError) throw new Error(`Failed to update wallet: ${walletError.message}`);
-
-    // Ledger row. description / reference_type fall back to safe defaults
-    // because the live point_transactions table may reject NULLs; a ledger
-    // failure must not roll back the wallet update silently.
     const { data: transaction, error: txError } = await supabase
       .from('point_transactions')
       .insert({
         user_id: userId,
-        type,
+        type: txType,
         amount,
-        description: description || type,
+        description,
         reference_id: referenceId,
-        reference_type: type,
+        balance_before: balanceBefore,
         balance_after: newBalance,
       })
       .select()
       .single();
+    if (txError || !transaction) throw new Error('Failed to record transaction');
 
-    if (txError || !transaction) {
-      console.error('Points: ledger insert failed (wallet already updated):', txError?.message);
-    }
-    if (transaction) return this.mapTransaction(transaction);
-
-    // Ledger row could not be written (constraint mismatch on this DB), but
-    // the balance itself is correct — return a stub so callers still succeed.
-    return {
-      id: 'ledger-skipped',
-      userId,
-      type,
-      amount,
-      description: description || type,
-      referenceId: referenceId || null,
-      referenceType: type,
-      balanceAfter: newBalance,
-      createdAt: new Date().toISOString(),
-    } as PointTransaction;
+    return this.mapTransaction(transaction);
   }
 
   async transferPoints(fromUserId: string, toUserId: string, amount: number, description: string): Promise<{ debit: PointTransaction; credit: PointTransaction }> {
     const debit = await this.addPoints(fromUserId, -amount, 'debit', description);
-    const credit = await this.addPoints(toUserId, amount, 'referral', description);
+    const credit = await this.addPoints(toUserId, amount, 'credit', description);
     return { debit, credit };
   }
 
@@ -115,6 +94,7 @@ export class PointsRepository {
       description: row.description,
       referenceId: row.reference_id,
       referenceType: row.reference_type,
+      balanceBefore: row.balance_before,
       balanceAfter: row.balance_after,
       createdAt: row.created_at,
     };

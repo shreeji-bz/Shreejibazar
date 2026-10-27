@@ -10,7 +10,11 @@ export class PaymentsController {
   initializeRoutes() {
     this.router.post('/deposit', this.createDeposit.bind(this));
     this.router.post('/withdraw', this.createWithdrawal.bind(this));
+    this.router.post('/withdrawal', this.createWithdrawal.bind(this));
     this.router.get('/', this.getHistory.bind(this));
+    this.router.get('/history', this.getHistory.bind(this));
+    this.router.get('/pending/deposits', this.getPendingDeposits.bind(this));
+    this.router.get('/pending/withdrawals', this.getPendingWithdrawals.bind(this));
     this.router.get('/:id', this.getById.bind(this));
     this.router.post('/imb/create-order', this.createImbOrder.bind(this));
   }
@@ -88,6 +92,36 @@ export class PaymentsController {
         data: result.data,
         meta: { total: result.total, page, limit, totalPages: Math.ceil(result.total / limit) },
       });
+    } catch (error: any) {
+      res.status(500).json({ success: false, message: error.message });
+    }
+  }
+
+  async getPendingDeposits(req: Request, res: Response) {
+    try {
+      const userId = (req as any).user?.id;
+      if (!userId) {
+        res.status(401).json({ success: false, message: 'Unauthorized' });
+        return;
+      }
+      const limit = Math.min(100, parseInt(req.query.limit as string) || 50);
+      const result = await this.paymentsService.getPaymentHistory(userId, 1, limit, 'deposit', 'pending');
+      res.json({ success: true, data: result.data, count: result.data.length });
+    } catch (error: any) {
+      res.status(500).json({ success: false, message: error.message });
+    }
+  }
+
+  async getPendingWithdrawals(req: Request, res: Response) {
+    try {
+      const userId = (req as any).user?.id;
+      if (!userId) {
+        res.status(401).json({ success: false, message: 'Unauthorized' });
+        return;
+      }
+      const limit = Math.min(100, parseInt(req.query.limit as string) || 50);
+      const result = await this.paymentsService.getPaymentHistory(userId, 1, limit, 'withdrawal', 'pending');
+      res.json({ success: true, data: result.data, count: result.data.length });
     } catch (error: any) {
       res.status(500).json({ success: false, message: error.message });
     }

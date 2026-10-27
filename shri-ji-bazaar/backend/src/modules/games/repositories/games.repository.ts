@@ -39,6 +39,16 @@ export class GameRepository {
     return (data || []).map(this.mapRow);
   }
 
+  async findRecent(limit = 10): Promise<GameEntity[]> {
+    const { data } = await supabase
+      .from('games')
+      .select('*')
+      .eq('status', 'active')
+      .order('created_at', { ascending: false })
+      .limit(limit);
+    return (data || []).map(this.mapRow);
+  }
+
   async create(data: Partial<GameEntity>): Promise<GameEntity> {
     const { data: record } = await supabase.from('games').insert({
       name: data.name,
@@ -78,6 +88,40 @@ export class GameRepository {
   async delete(id: string): Promise<void> {
     await supabase.from('games').update({ status: 'inactive', updated_at: new Date().toISOString() }).eq('id', id);
   }
+
+  async latestDeclaredResultsForGames(ids: string[]): Promise<Map<string, { result: string; at: string }>> {
+    const out = new Map<string, { result: string; at: string }>();
+    if (!ids.length) return out;
+    const { data } = await supabase
+      .from('rounds')
+      .select('id, game_id, result, updated_at')
+      .in('game_id', ids)
+      .eq('status', 'result_declared')
+      .not('result', 'is', null)
+      .order('updated_at', { ascending: false })
+      .limit(200);
+    for (const row of data || []) {
+      if (!out.has(row.game_id)) out.set(row.game_id, { result: row.result, at: row.updated_at });
+    }
+    return out;
+  }
+
+  async playConfigsForSlugs(slugs: string[]): Promise<Map<string, any>> {
+    const out = new Map<string, any>();
+    if (!slugs.length) return out;
+    const keys = slugs.map((s) => `play_config.${s}`);
+    const { data } = await supabase.from('settings').select('key, value').in('key', keys);
+    for (const row of data || []) {
+      const slug = row.key.replace('play_config.', '');
+      let parsed: any = row.value;
+      if (typeof row.value === 'string') {
+        try { parsed = JSON.parse(row.value); } catch { parsed = {}; }
+      }
+      out.set(slug, parsed && typeof parsed === 'object' ? parsed : {});
+    }
+    return out;
+  }
+
 
   async toggleStatus(id: string, status: 'active' | 'inactive' | 'maintenance'): Promise<GameEntity> {
     const { data: record } = await supabase

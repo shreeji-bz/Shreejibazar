@@ -10,6 +10,8 @@ export class ResultsController {
     this.router.get('/latest', this.getLatestResults.bind(this));
     this.router.get('/game/:gameId', this.getResultsByGame.bind(this));
     this.router.get('/round/:roundId', this.getResultByRound.bind(this));
+    this.router.get('/', this.getAllResults.bind(this));
+    this.router.post('/declare', this.declareResult.bind(this));
   }
 
   async getLatestResults(req: Request, res: Response) {
@@ -29,6 +31,26 @@ export class ResultsController {
       res.json({ success: true, data });
     } catch (error: any) {
       res.status(500).json({ success: false, message: error.message });
+    }
+  }
+
+  async getAllResults(req: Request, res: Response) {
+    try {
+      const result = await this.resultsService.listAll(req.query);
+      res.json({ success: true, data: result.data, meta: result.meta });
+    } catch (error: any) {
+      res.status(500).json({ success: false, message: error.message });
+    }
+  }
+
+  async declareResult(req: Request, res: Response) {
+    try {
+      const { roundId, result } = req.body;
+      if (!roundId || !result) return res.status(400).json({ success: false, message: 'roundId and result are required' });
+      const data = await this.resultsService.declareResult(roundId, result, req.admin?.id || req.body.adminId);
+      res.json({ success: true, data });
+    } catch (error: any) {
+      res.status(400).json({ success: false, message: error.message });
     }
   }
 

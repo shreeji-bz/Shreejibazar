@@ -3,7 +3,7 @@ export interface ResultEntity {
   roundId: string;
   gameId: string;
   gameName?: string;
-  roundNumber?: number;
+  roundNumber?: string | number;
   result: string;
   declaredAt: string;
   createdAt: string;

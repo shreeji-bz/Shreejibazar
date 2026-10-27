@@ -13,6 +13,13 @@ export class RoundsController {
     this.router.get('/results', this.getResults.bind(this));
     this.router.post('/create', this.createRound.bind(this));
     this.router.post('/:id/declare-result', this.declareResult.bind(this));
+    this.router.get('/', this.listRounds.bind(this));
+    this.router.get('/:id', this.getRoundById.bind(this));
+    this.router.post('/', this.createRound.bind(this));
+    this.router.put('/:id', this.updateRound.bind(this));
+    this.router.post('/:id/close', this.closeRound.bind(this));
+    this.router.post('/:id/result', this.declareResult.bind(this));
+    this.router.post('/:id/result', this.declareResult.bind(this));
   }
 
   async getUpcoming(req: Request, res: Response) {
@@ -60,12 +67,49 @@ export class RoundsController {
     }
   }
 
+  async listRounds(req: Request, res: Response) {
+    try {
+      const result = await this.roundsService.listAll(req.query);
+      res.json({ success: true, ...result });
+    } catch (error: any) {
+      res.status(500).json({ success: false, message: error.message });
+    }
+  }
+
+  async getRoundById(req: Request, res: Response) {
+    try {
+      const data = await this.roundsService.getRoundById(req.params.id);
+      res.json({ success: true, data });
+    } catch (error: any) {
+      res.status(404).json({ success: false, message: error.message });
+    }
+  }
+
+  async updateRound(req: Request, res: Response) {
+    try {
+      const data = await this.roundsService.updateRound(req.params.id, req.body);
+      res.json({ success: true, data });
+    } catch (error: any) {
+      res.status(400).json({ success: false, message: error.message });
+    }
+  }
+
+  async closeRound(req: Request, res: Response) {
+    try {
+      const data = await this.roundsService.updateRound(req.params.id, { status: 'closed' });
+      res.json({ success: true, data });
+    } catch (error: any) {
+      res.status(400).json({ success: false, message: error.message });
+    }
+  }
+
   async declareResult(req: Request, res: Response) {
     try {
       const { result } = req.body;
       if (!result) return res.status(400).json({ success: false, message: 'Result is required' });
 
-      const data = await this.roundsService.declareResult(req.params.id, result, req.body.userId);
+      const actorId = (req as any).admin?.id || (req as any).user?.id || req.body.userId;
+      const data = await this.roundsService.declareResult(req.params.id, result, actorId);
       res.json({ success: true, data });
     } catch (error: any) {
       res.status(400).json({ success: false, message: error.message });
