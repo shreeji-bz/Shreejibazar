@@ -2,7 +2,7 @@ import { Request, Response } from 'express';
 import { ResultsService } from '../services/results.service';
 
 export class ResultsController {
-  constructor(private resultsService: ResultsService, private router: any) {
+  constructor(private resultsService: ResultsService, private router: any, private adminOnly = false) {
     this.initializeRoutes();
   }
 
@@ -12,6 +12,9 @@ export class ResultsController {
     this.router.get('/round/:roundId', this.getResultByRound.bind(this));
     this.router.get('/', this.getAllResults.bind(this));
     this.router.post('/declare', this.declareResult.bind(this));
+    // Game-scoped declare is admin-only (registered on adminRouter, which runs
+    // authenticateAdmin; the public router must not expose it).
+    if (this.adminOnly) this.router.post('/declare-by-game', this.declareByGame.bind(this));
   }
 
   async getLatestResults(req: Request, res: Response) {
@@ -48,6 +51,17 @@ export class ResultsController {
       const { roundId, result } = req.body;
       if (!roundId || !result) return res.status(400).json({ success: false, message: 'roundId and result are required' });
       const data = await this.resultsService.declareResult(roundId, result, req.admin?.id || req.body.adminId);
+      res.json({ success: true, data });
+    } catch (error: any) {
+      res.status(400).json({ success: false, message: error.message });
+    }
+  }
+
+  async declareByGame(req: Request, res: Response) {
+    try {
+      const { gameId, result } = req.body;
+      if (!gameId || !result) return res.status(400).json({ success: false, message: 'gameId and result are required' });
+      const data = await this.resultsService.declareByGame(gameId, result, req.admin?.id);
       res.json({ success: true, data });
     } catch (error: any) {
       res.status(400).json({ success: false, message: error.message });

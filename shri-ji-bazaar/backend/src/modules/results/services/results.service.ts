@@ -56,6 +56,74 @@ export class ResultsService {
     return data ? this.mapRow(data) : null;
   }
 
+  // Game-scoped declare: find the game's open round (latest start_time) and
+  // mark it result_declared; if none exists, insert one so every market
+  // accumulates its own result history (rounds table, no results table live).
+  async declareByGame(gameId: string, result: string, adminId?: string): Promise<any> {
+    const { data: game } = await supabase.from('games').select('id, slug, opening_time, closing_time, result_time').eq('id', gameId).single();
+    if (!game) throw new Error('Game not found');
+
+    const openRound = await this.findOpenRound(gameId);
+
+    let roundId: string;
+    let created = false;
+    if (openRound) {
+      roundId = openRound.id;
+      const { error } = await supabase
+        .from('rounds')
+        .update({ status: 'result_declared', result, updated_at: new Date().toISOString() })
+        .eq('id', roundId);
+      if (error) throw new Error(error.message);
+    } else {
+      const { data: record, error } = await supabase
+        .from('rounds')
+        .insert({
+          game_id: gameId,
+          round_number: String(Date.now()),
+          start_time: this.composeTime(game.opening_time),
+          end_time: this.composeTime(game.closing_time),
+          status: 'result_declared',
+          result,
+          updated_at: new Date().toISOString(),
+        })
+        .select()
+        .single();
+      if (error || !record) throw new Error(error ? error.message : 'Failed to create round');
+      roundId = record.id;
+      created = true;
+    }
+
+    const { io } = require('../../../config/websocket.config');
+    if (io) {
+      io.to(`game:${gameId}`).emit('result:declared', {
+        gameId,
+        roundId,
+        result,
+        declaredAt: new Date().toISOString(),
+      });
+    }
+
+    return { gameId, roundId, result, created, adminId };
+  }
+
+  private async findOpenRound(gameId: string): Promise<any | null> {
+    const { data } = await supabase
+      .from('rounds')
+      .select('id')
+      .eq('game_id', gameId)
+      .eq('status', 'open')
+      .order('start_time', { ascending: false })
+      .limit(1);
+    return data && data.length > 0 ? data[0] : null;
+  }
+
+  // opening_time/closing_time are 'HH:MM' app-local; interpret as today's date.
+  private composeTime(hhmm: string | null): string {
+    if (!hhmm) return new Date().toISOString();
+    const [y, m, d] = new Date().toLocaleDateString('en-CA').split('-');
+    return new Date(`${y}-${m}-${d}T${hhmm}:00`).toISOString();
+  }
+
   async declareResult(roundId: string, result: string, adminId?: string): Promise<any> {
     const { data: round } = await supabase.from('rounds').select('id, game_id').eq('id', roundId).single();
     if (!round) throw new Error('Round not found');
