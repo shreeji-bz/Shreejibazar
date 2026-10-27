@@ -27,7 +27,6 @@ class _HomePageState extends State<HomePage> {
 
   final ApiService _api = ApiService();
   Map<String, dynamic>? _liveMarket;
-  List<dynamic> _upcomingMarkets = [];
   List<dynamic> _recentResults = [];
   List<GameEntity> _allGames = [];
   bool _loading = true;
@@ -70,45 +69,22 @@ class _HomePageState extends State<HomePage> {
     try {
       final results = await Future.wait([
         _api.get('/rounds/active'),
-        _api.get('/rounds/upcoming'),
         _api.get('/results/latest', queryParameters: {'limit': 10}),
         _api.get('/games'),
       ]);
 
       final activeData = results[0] as Map<String, dynamic>?;
-      final upcomingData = results[1] as List<dynamic>? ?? [];
-      final resultsData = results[2] as List<dynamic>? ?? [];
-      var gamesData = results[3] as List<dynamic>? ?? <dynamic>[];
-
-      final upcomingWithNames = <Map<String, dynamic>>[];
-      for (final round in upcomingData) {
-        // Read the joined game name from the backend shape first. The Supabase
-        // one-to-many join `select('*, games(name)')` returns it under the
-        // "games" key (verified against the live API). Then fall back to a
-        // client-side join on game_id against the /games response.
-        String? gameName;
-        gameName = round['game_name'] as String?;
-        final nested = round['games'];
-        if (nested is Map) gameName = nested['name'] as String? ?? gameName;
-        if (gameName == null || gameName.isEmpty) {
-          final gameId = round['game_id'] as String?;
-          if (gameId != null) {
-            final match = gamesData.cast<Map<String, dynamic>>().firstWhere(
-              (g) => g['id'] == gameId,
-              orElse: () => <String, dynamic>{},
-            );
-            gameName = match['name'] as String?;
-          }
-        }
-        upcomingWithNames.add(
-          Map<String, dynamic>.from(round)..['gameName'] = (gameName ?? 'Unknown').toUpperCase(),
-        );
-      }
+      final resultsData = results[1] as List<dynamic>? ?? [];
+      var gamesData = results[2] as List<dynamic>? ?? <dynamic>[];
 
       // Show real data from the DB. Fallback only when the whole request
       // failed (offline / wrong URL), NOT when the DB is genuinely empty.
       // (To re-add a hardcoded fallback for offline demos, see git history
       // of this file — it was removed because it masked the empty live DB.)
+      //
+      // No "upcoming markets" list: it rendered ~20 days of open rounds and
+      // buried the games. The games section is the focus; each game card's
+      // play screen has its own date selector for future markets.
 
       final games = gamesData.map((g) => GameEntity(
         id: g['id'] as String,
@@ -129,7 +105,6 @@ class _HomePageState extends State<HomePage> {
       if (mounted) {
         setState(() {
           _liveMarket = activeData;
-          _upcomingMarkets = upcomingWithNames;
           _recentResults = resultsData;
           _allGames = games;
           _loading = false;
@@ -301,8 +276,9 @@ class _HomePageState extends State<HomePage> {
                   const SizedBox(height: 16),
                   _buildLiveMarketSection(),
                   const SizedBox(height: 16),
-                  _buildUpcomingSection(),
-                  const SizedBox(height: 16),
+                  // No "UPCOMING MARKET / WAIT" list here: it rendered 20+ days
+                  // of open rounds and buried the games. The games section
+                  // below is the focus — pick a game, use its date selector.
                   _buildGamesSection(),
                   if (_selectedGameId != null && _gameDetailsLoading)
                     const Padding(
@@ -359,7 +335,7 @@ class _HomePageState extends State<HomePage> {
           ),
           const SizedBox(width: 10),
           Text(
-            'WIN BAZAR',
+            'SHREE JI BAZAR',
             style: AppTextStyles.appName.copyWith(
               color: AppColors.gold,
               fontSize: 18,
@@ -529,35 +505,6 @@ class _HomePageState extends State<HomePage> {
       return _buildLiveMarketCard(_liveMarket!);
     else
       return _buildEmptyMarketCard('No Live Market', 'WAITING', AppColors.warning);
-  }
-
-  Widget _buildUpcomingSection() {
-    if (_upcomingMarkets.isEmpty)
-      return _buildEmptyMarketCard('No Upcoming Markets', 'WAITING', AppColors.warning);
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 16),
-          child: Text('UPCOMING MARKET', style: AppTextStyles.sectionHeading),
-        ),
-        const SizedBox(height: 10),
-        ...List.generate(_upcomingMarkets.length, (index) {
-          final market = _upcomingMarkets[index];
-          final rawName = market['gameName'] as String?;
-          final name = (rawName?.trim().isNotEmpty == true ? rawName! : 'Unknown').toUpperCase();
-          final resultTime = market['result_time'] ?? market['resultTime'];
-          return _buildUpcomingMarketCard(
-            name: name,
-            status: 'WAITING',
-            statusColor: AppColors.warning,
-            openTime: _formatAmPm(market['start_time'] ?? market['startTime']),
-            closeTime: _formatAmPm(market['end_time'] ?? market['endTime']),
-            resultTime: _formatAmPm(resultTime),
-          );
-        }),
-      ],
-    );
   }
 
   Widget _buildGamesSection() {
@@ -839,85 +786,6 @@ class _HomePageState extends State<HomePage> {
             ],
           ),
         ],
-      ),
-    );
-  }
-
-  Widget _buildUpcomingMarketCard({
-    required String name,
-    required String status,
-    required Color statusColor,
-    required String openTime,
-    required String closeTime,
-    String? resultTime,
-  }) {
-    return ClipRRect(
-      borderRadius: BorderRadius.circular(12),
-      child: Container(
-        margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
-        decoration: BoxDecoration(
-          color: AppColors.card,
-          borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: AppColors.border),
-        ),
-        child: Column(
-        children: [
-          // White body: game name + status pill + Wait button
-          Padding(
-            padding: const EdgeInsets.fromLTRB(14, 12, 14, 12),
-            child: Row(
-              children: [
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(name, style: AppTextStyles.marketTitle),
-                      const SizedBox(height: 3),
-                      Text(
-                        status,
-                        style: TextStyle(color: AppColors.textSecondary, fontSize: 11, fontWeight: FontWeight.w600, letterSpacing: 1),
-                      ),
-                    ],
-                  ),
-                ),
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
-                  decoration: BoxDecoration(
-                    color: AppColors.success,
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      const Icon(Icons.timer_outlined, color: Colors.white, size: 15),
-                      const SizedBox(width: 6),
-                      Text('Wait', style: const TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.w700)),
-                    ],
-                  ),
-                ),
-              ],
-            ),
-          ),
-          // Solid green footer strip with open / close times
-          Container(
-            color: AppColors.success,
-            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 9),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Text(
-                  'Open Time : $openTime',
-                  style: const TextStyle(color: Colors.white, fontSize: 11),
-                ),
-                Text(
-                  'Close Time : $closeTime',
-                  style: const TextStyle(color: Colors.white, fontSize: 11),
-                ),
-              ],
-            ),
-          ),
-        ],
-        ),
       ),
     );
   }

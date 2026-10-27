@@ -64,7 +64,7 @@ class _WalletPageState extends State<WalletPage> {
                       const SidebarToggle(),
                       const Spacer(),
                       Text(
-                        'WIN BAZAR',
+                        'SHREE JI BAZAR',
                         style: const TextStyle(
                           fontSize: 16,
                           fontWeight: FontWeight.w700,
