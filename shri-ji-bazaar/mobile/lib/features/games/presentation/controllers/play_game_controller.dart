@@ -13,6 +13,8 @@ class PlayGameController extends ChangeNotifier {
 
   Map<String, dynamic>? game;
   Map<String, dynamic>? activeRound;
+  Map<String, dynamic>? dateRound; // round for the user-selected date
+  String selectedDate; // YYYY-MM-DD, local
   GamePlayConfig config = GamePlayConfig.standard;
 
   int activeTabIndex = 0;
@@ -22,9 +24,35 @@ class PlayGameController extends ChangeNotifier {
   bool loading = true;
   String? errorMessage;
 
-  PlayGameController({required this.gameId, required ApiService api}) : _api = api;
+  PlayGameController({required this.gameId, required ApiService api})
+      : _api = api,
+        selectedDate = _today();
 
-  List<String> get activePlayTypes => config.playTypes;
+  List<String> get activePlayTypes => config.tabs;
+  List<String> get tabs => config.tabs;
+
+  /// The round to bet against. When "today" is selected we bet on the live
+  /// open round; when a specific (future) date is selected we bet on that
+  /// date's market round.
+  Map<String, dynamic>? get effectiveRound {
+    final isToday = selectedDate == _today();
+    if (isToday) return activeRound;
+    return dateRound;
+  }
+
+  static String _two(int n) => n.toString().padLeft(2, '0');
+
+  /// Today's local date as YYYY-MM-DD.
+  static String _today() {
+    final d = DateTime.now();
+    return '${d.year}-${_two(d.month)}-${_two(d.day)}';
+  }
+
+  /// Tomorrow's local date as YYYY-MM-DD.
+  static String _tomorrow() {
+    final d = DateTime.now().add(const Duration(days: 1));
+    return '${d.year}-${_two(d.month)}-${_two(d.day)}';
+  }
 
   /// The entries for the currently-selected tab (mode). Each tab keeps its own
   /// isolated list so switching modes never mixes the inputs together.
@@ -40,12 +68,14 @@ class PlayGameController extends ChangeNotifier {
       final results = await Future.wait([
         _api.get('/games/$gameId'),
         _api.get('/rounds/active', queryParameters: {'gameId': gameId}).catchError((_) async => null),
+        _loadDateRound(selectedDate),
       ]);
       game = results[0] as Map<String, dynamic>?;
       activeRound = results[1] as Map<String, dynamic>?;
+      dateRound = results[2] as Map<String, dynamic>?;
       // Configure which play types this game supports.
       config = _resolveConfig();
-      if (activeTabIndex >= config.playTypes.length) activeTabIndex = 0;
+      if (activeTabIndex >= config.tabs.length) activeTabIndex = 0;
       // Clear any leftover entries from a previous game so state never leaks.
       _entries.clear();
       notifyListeners();
@@ -63,18 +93,60 @@ class PlayGameController extends ChangeNotifier {
     return GamePlayConfig.standard;
   }
 
+  /// The round that lives on a given local date for this game (date-wise
+  /// markets). Returns null when that day's round doesn't exist yet.
+  Future<Map<String, dynamic>?> _loadDateRound(String date) async {
+    try {
+      final list = await _api.get('/rounds/game/$gameId', queryParameters: {'date': date, 'limit': 1});
+      if (list is List && list.isNotEmpty && list.first is Map) {
+        return Map<String, dynamic>.from(list.first as Map);
+      }
+      return null;
+    } catch (_) {
+      return null;
+    }
+  }
+
+  /// Switch the date-wise market the user is betting on. Re-fetches that day's
+  /// round and clears the current tab's entries so a stale bet never carries
+  /// over to a different date.
+  Future<void> selectDate(String date) async {
+    if (date == selectedDate) return;
+    selectedDate = date;
+    dateRound = await _loadDateRound(date);
+    _entries.remove(activeTabIndex);
+    notifyListeners();
+  }
+
+  /// Whether a round is available to bet on for the current view. A picked
+  /// date with no generated round yet does NOT silently fall back to the
+  /// live round — the user must see "no market for this date".
+  bool get canBet {
+    if (selectedDate == _today()) return activeRound != null || dateRound != null;
+    return dateRound != null;
+  }
+
   void selectTab(int index) {
     if (index < 0 || index >= activePlayTypes.length || index == activeTabIndex) return;
     activeTabIndex = index;
     notifyListeners();
   }
 
-  void addEntry({required String selection, required int pointsStaked}) {
+  /// [playType] overrides the active tab's type. This matters because the Jodi
+  /// tab hosts two zones that produce different bet types: the 00–99 grid
+  /// (a `jodi` pick) and the Andar Haruf 0–9 row (a `single` pick).
+  void addEntry({
+    required String selection,
+    required int pointsStaked,
+    bool palti = false,
+    String? playType,
+  }) {
     _entries.putIfAbsent(activeTabIndex, () => []).add(WagerEntry(
       uid: '$activeTabIndex-${DateTime.now().microsecondsSinceEpoch}',
-      playType: activePlayTypes[activeTabIndex],
+      playType: playType ?? activePlayTypes[activeTabIndex],
       selection: selection,
       pointsStaked: pointsStaked,
+      palti: palti,
     ));
     notifyListeners();
   }
@@ -92,7 +164,7 @@ class PlayGameController extends ChangeNotifier {
     final seen = <String>{};
     final kept = <WagerEntry>[];
     for (final e in list) {
-      final key = '${e.playType}:${e.selection}';
+      final key = '${e.playType}:${e.selection}:${e.palti}';
       if (!seen.add(key)) continue;
       kept.add(e);
     }
@@ -102,6 +174,16 @@ class PlayGameController extends ChangeNotifier {
 
   void removeEntry(WagerEntry entry) {
     _entries[activeTabIndex]?.removeWhere((e) => e.uid == entry.uid);
+    notifyListeners();
+  }
+
+  /// Remove any entry in the current tab matching (playType, selection).
+  /// Used by the Jodi grid to "un-tap" an already-selected number.
+  void removeSelection(String playType, String selection) {
+    final list = _entries[activeTabIndex];
+    if (list == null) return;
+    list.removeWhere((e) => e.playType == playType && e.selection == selection);
+    if (list.isEmpty) _entries.remove(activeTabIndex);
     notifyListeners();
   }
 
@@ -120,13 +202,14 @@ class PlayGameController extends ChangeNotifier {
     errorMessage = null;
     notifyListeners();
     try {
-      final roundId = activeRound?['id'] as String?;
+      final roundId = effectiveRound?['id'] as String?;
       for (final e in list) {
         await _api.post('/wagers', data: {
           'gameId': gameId,
           'roundId': roundId ?? '',
           'playType': e.playType,
           'selection': e.selection,
+          'palti': e.palti,
           'pointsStaked': e.pointsStaked,
           'idempotencyKey': e.uid,
         });
@@ -147,7 +230,12 @@ class PlayGameController extends ChangeNotifier {
   /// Refresh the active round after a submit so the countdown / round id stay
   /// current.
   Future<void> refreshRound() async {
-    activeRound = await _api.get('/rounds/active', queryParameters: {'gameId': gameId}).catchError((_) => null);
+    final results = await Future.wait([
+      _api.get('/rounds/active', queryParameters: {'gameId': gameId}).catchError((_) async => null),
+      _loadDateRound(selectedDate),
+    ]);
+    activeRound = results[0] as Map<String, dynamic>?;
+    dateRound = results[1] as Map<String, dynamic>?;
     notifyListeners();
   }
 }

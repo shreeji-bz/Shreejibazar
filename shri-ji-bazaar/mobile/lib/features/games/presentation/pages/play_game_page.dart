@@ -7,14 +7,15 @@ import 'package:shri_ji_bazaar/core/network/api_service.dart';
 import 'package:shri_ji_bazaar/core/routes/route_names.dart';
 import 'package:shri_ji_bazaar/core/theme/app_colors.dart';
 import 'package:shri_ji_bazaar/core/theme/app_text_styles.dart';
-import '../../domain/entities/wager_entry.dart';
 import '../../domain/game_play_config.dart';
 import '../controllers/play_game_controller.dart';
 
-/// The Play Game screen. Opened from a game card's Play button with a
-/// [gameId]. Reads the game's config, shows the play types that game
-/// supports, lets the user enter/save entries, and submits them to
-/// `POST /wagers`.
+/// The Play Game screen, matching the reference desi-jodi layout:
+///   * a green header with the game name
+///   * a black ticking "last time" banner
+///   * three tabs — Jodi (00–99 grid + Andar Haruf 0–9 row), Crossing
+///     (digit + amount), and Copy Paste (number + amount + With/Without Palti)
+///   * a fixed bottom bar with the total stake (₹) and a SUBMIT button
 class PlayGamePage extends StatefulWidget {
   final String gameId;
 
@@ -26,25 +27,23 @@ class PlayGamePage extends StatefulWidget {
 
 class _PlayGamePageState extends State<PlayGamePage> {
   late final PlayGameController _controller;
-  late final TextEditingController _numberController;
+  late final TextEditingController _digitController;
   late final TextEditingController _amountController;
-  late final TextEditingController _pasteController;
+  late final TextEditingController _paltiController;
 
+  final int _defaultStake = 50;
   Timer? _tick;
 
   @override
   void initState() {
     super.initState();
-    _numberController = TextEditingController();
+    _digitController = TextEditingController();
     _amountController = TextEditingController();
-    _pasteController = TextEditingController();
-    _controller = PlayGameController(
-      gameId: widget.gameId,
-      api: ApiService(),
-    );
+    _paltiController = TextEditingController();
+    _controller = PlayGameController(gameId: widget.gameId, api: ApiService());
     _controller.load();
     _tick = Timer.periodic(const Duration(seconds: 1), (_) {
-      if (mounted) setState(() {}); // drives countdown re-render
+      if (mounted) setState(() {}); // drives the last-time countdown
     });
   }
 
@@ -52,13 +51,11 @@ class _PlayGamePageState extends State<PlayGamePage> {
   void didUpdateWidget(PlayGamePage oldWidget) {
     super.didUpdateWidget(oldWidget);
     if (oldWidget.gameId != widget.gameId) {
-      // Replace the controller for the new game so state doesn't leak.
       _controller.dispose();
-      _controller = PlayGameController(
-        gameId: widget.gameId,
-        api: ApiService(),
-      );
-      _clearControllers();
+      _controller = PlayGameController(gameId: widget.gameId, api: ApiService());
+      _digitController.clear();
+      _amountController.clear();
+      _paltiController.clear();
       _controller.load();
     }
   }
@@ -66,107 +63,145 @@ class _PlayGamePageState extends State<PlayGamePage> {
   @override
   void dispose() {
     _tick?.cancel();
-    _numberController.dispose();
+    _digitController.dispose();
     _amountController.dispose();
-    _pasteController.dispose();
+    _paltiController.dispose();
     _controller.dispose();
     super.dispose();
   }
 
-  void _clearControllers() {
-    _numberController.clear();
-    _amountController.clear();
-    _pasteController.clear();
-  }
-
-  String _gameName(PlayGameController c) {
-    final name = c.game?['name'] as String?;
-    return (name?.isNotEmpty == true ? name! : 'GAME').toUpperCase();
-  }
-
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: AppColors.background,
+    // Expose the page-local controller to the Consumer widgets below (the
+    // route does not register a global provider for it). It is a
+    // ChangeNotifier, so it must be wrapped with ChangeNotifierProvider —
+    // plain Provider.value only accepts immutable values.
+    return ChangeNotifierProvider<PlayGameController>.value(
+      value: _controller,
+      child: Scaffold(
+        backgroundColor: AppColors.background,
       appBar: AppBar(
         backgroundColor: AppColors.success,
         elevation: 0,
-        centerTitle: false,
+        centerTitle: true,
         leading: IconButton(
           onPressed: () => context.pop(),
           icon: const Icon(Icons.arrow_back_rounded, color: Colors.white),
         ),
         title: Consumer<PlayGameController>(
-          builder: (context, c, _) {
-            final subtitle = c.activeRound != null
-                ? 'Round ${c.activeRound?['round_number'] ?? c.activeRound?['roundNumber'] ?? ''}'
-                : 'Not open yet';
-            return Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(_gameName(c), style: const TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.w800)),
-                Text(subtitle, style: const TextStyle(color: Colors.white70, fontSize: 12)),
-              ],
-            );
-          },
+          builder: (context, c, _) => Text(
+            _gameName(c),
+            style: const TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.w800),
+          ),
         ),
-        actions: [
-          if (_controller.activeRound != null)
-            Padding(
-              padding: const EdgeInsets.only(right: 16),
-              child: _CountdownPill(controller: _controller),
-            ),
-        ],
       ),
       body: Consumer<PlayGameController>(
         builder: (context, c, _) {
-          if (c.loading) {
+          if (c.loading && c.game == null) {
             return const Center(child: CircularProgressIndicator(color: AppColors.success));
           }
-          if (c.errorMessage != null) {
+          if (c.errorMessage != null && c.game == null) {
             return _MessageBody(message: c.errorMessage!, onRetry: () => c.load());
           }
-          return Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              const SizedBox(height: 8),
-              _GameMetaRow(controller: c),
-              const SizedBox(height: 12),
-              // Play-type tabs
-              _PlayTypeTabs(controller: c),
-              const SizedBox(height: 12),
-              // Input area for the selected tab
-              if (c.activeTabIndex < c.activePlayTypes.length - 1)
-                _EntryForm(controller: c, numberController: _numberController, amountController: _amountController)
-              else
-                _CopyPastePanel(controller: c, pasteController: _pasteController),
-              const SizedBox(height: 16),
-              // Saved entries table
-              _SavedEntriesTable(controller: c),
-              const SizedBox(height: 16),
-              _SubmitBar(controller: c),
-              const SizedBox(height: 16),
-            ],
+          return SafeArea(
+            child: Column(
+              children: [
+                _LastTimeBanner(controller: c),
+                _DateSelector(controller: c),
+                _TabBar(controller: c),
+                Expanded(
+                  child: SingleChildScrollView(
+                    padding: const EdgeInsets.all(12),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        if (c.canBet) ...[
+                          _buildTabContent(c),
+                          const SizedBox(height: 12),
+                        ] else
+                          const Padding(
+                            padding: EdgeInsets.all(40),
+                            child: Center(
+                              child: Text(
+                                'No open market yet for this date.\nTry today or another date.',
+                                textAlign: TextAlign.center,
+                                style: TextStyle(color: AppColors.textMuted, fontSize: 13),
+                              ),
+                            ),
+                          ),
+                        _SavedEntriesTable(controller: c),
+                        const SizedBox(height: 80),
+                      ],
+                    ),
+                  ),
+                ),
+              ],
+            ),
           );
         },
       ),
+        bottomNavigationBar: _SubmitBar(
+          controller: _controller,
+          defaultStake: _defaultStake,
+          onSubmitted: _onSubmitted,
+        ),
+      ),
     );
+  }
+
+  Widget _buildTabContent(PlayGameController c) {
+    final tab = c.activePlayTypes[c.activeTabIndex];
+    switch (tab) {
+      case 'crossing':
+        return _CrossingPanel(
+          controller: c,
+          digitController: _digitController,
+          amountController: _amountController,
+          defaultStake: _defaultStake,
+        );
+      case 'palti':
+        return _CopyPastePanel(
+          controller: c,
+          numberController: _paltiController,
+          amountController: _amountController,
+          defaultStake: _defaultStake,
+        );
+      case 'jodi':
+      default:
+        return _JodiPanel(controller: c, defaultStake: _defaultStake);
+    }
+  }
+
+  String _gameName(PlayGameController c) {
+    final name = c.game?['name'] as String?;
+    return (name?.isNotEmpty == true ? name : 'GAME')!.toUpperCase();
+  }
+
+  void _onSubmitted() {
+    if (!mounted) return;
+    if (_controller.errorMessage == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Submitted. Check "My Plays" for status.'), backgroundColor: AppColors.success),
+      );
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(_controller.errorMessage!), backgroundColor: AppColors.error),
+      );
+    }
   }
 }
 
 // ---------------------------------------------------------------------------
-// Sub-widgets
+// Last-time banner (black bar with ticking countdown to the result time)
 // ---------------------------------------------------------------------------
-
-class _CountdownPill extends StatelessWidget {
+class _LastTimeBanner extends StatelessWidget {
   final PlayGameController controller;
-  const _CountdownPill({required this.controller});
+  const _LastTimeBanner({required this.controller});
 
   String _format(DateTime? end) {
     if (end == null) return '--:--:--';
     final diff = end.difference(DateTime.now());
-    if (diff.isNegative) return 'OPEN';
+    if (diff.isNegative) return '00:00:00';
     final h = diff.inHours.toString().padLeft(2, '0');
     final m = (diff.inMinutes % 60).toString().padLeft(2, '0');
     final s = (diff.inSeconds % 60).toString().padLeft(2, '0');
@@ -175,106 +210,165 @@ class _CountdownPill extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final raw = controller.activeRound?['end_time'] ?? controller.activeRound?['endTime'];
-    final end = raw is String ? DateTime.tryParse(raw) : raw is DateTime ? raw : null;
-    if (end == null) return const SizedBox.shrink();
+    // Only show a round's time when a bettable round exists for this view.
+    final hasDateRound = controller.dateRound != null;
+    final round = hasDateRound ? controller.dateRound : controller.activeRound;
+    if (round == null) {
+      return Container(
+        color: Colors.black,
+        padding: const EdgeInsets.symmetric(vertical: 10),
+        alignment: Alignment.center,
+        child: const Text(
+          'NO MARKET YET FOR THIS DATE',
+          style: TextStyle(color: Colors.white, fontSize: 15, fontWeight: FontWeight.w700),
+        ),
+      );
+    }
+    final raw = round['end_time'] ?? round['endTime'];
+    DateTime? end = raw is String ? DateTime.tryParse(raw) : raw is DateTime ? raw : null;
+    // A live round has a ticking countdown; a date-wise round just shows the
+    // market's closing clock.
+    final isLive = !hasDateRound;
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-      decoration: BoxDecoration(
-        color: Colors.black.withValues(alpha: 0.25),
-        borderRadius: BorderRadius.circular(20),
-      ),
-      child: Text(
-        _format(end),
-        style: const TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.w700, fontFamily: 'monospace'),
+      color: Colors.black,
+      padding: const EdgeInsets.symmetric(vertical: 10),
+      alignment: Alignment.center,
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          const Text(
+            'मोटी जोड़ी लसट टाइम : ',
+            style: TextStyle(color: Colors.white, fontSize: 15, fontWeight: FontWeight.w700),
+          ),
+          Text(
+            isLive ? _format(end) : _formatClock(end),
+            style: const TextStyle(color: Colors.white, fontSize: 15, fontWeight: FontWeight.w800, fontFamily: 'monospace'),
+          ),
+        ],
       ),
     );
   }
+
+  String _formatClock(DateTime? end) {
+    if (end == null) return '--:--:--';
+    final h = end.hour % 12 == 0 ? 12 : end.hour % 12;
+    final m = end.minute.toString().padLeft(2, '0');
+    final ampm = end.hour < 12 ? 'AM' : 'PM';
+    return '$h:$m $ampm';
+  }
 }
 
-class _GameMetaRow extends StatelessWidget {
+// ---------------------------------------------------------------------------
+// Date selector (Today / Tomorrow / custom) for the date-wise markets
+// ---------------------------------------------------------------------------
+class _DateSelector extends StatelessWidget {
   final PlayGameController controller;
-  const _GameMetaRow({required this.controller});
+  const _DateSelector({required this.controller});
+
+  String _fmt(String d) {
+    final parts = d.split('-');
+    if (parts.length != 3) return d;
+    final dt = DateTime(int.tryParse(parts[0])!, int.tryParse(parts[1])!, int.tryParse(parts[2])!);
+    const months = ['JAN', 'FEB', 'MAR', 'APR', 'MAY', 'JUN', 'JUL', 'AUG', 'SEP', 'OCT', 'NOV', 'DEC'];
+    return '${dt.day} ${months[dt.month - 1]}';
+  }
+
+  String _tomorrowOf(String today) {
+    final d = DateTime.parse(today).add(const Duration(days: 1));
+    return '${d.year}-${d.month.toString().padLeft(2, '0')}-${d.day.toString().padLeft(2, '0')}';
+  }
 
   @override
   Widget build(BuildContext context) {
-    final g = controller.game ?? {};
-    String t(String k) {
-      final v = g[k] as String?;
-      return (v?.isNotEmpty == true ? v! : '--');
+    final today = controller.selectedDate;
+    final opts = <String, String>{
+      'TODAY': today,
+      'TOMORROW': _tomorrowOf(today),
+    };
+
+    Future<void> _pick() async {
+      final picked = await showDatePicker(
+        context: context,
+        initialDate: DateTime.parse(today),
+        firstDate: DateTime.now().subtract(const Duration(days: 1)),
+        lastDate: DateTime.now().add(const Duration(days: 30)),
+      );
+      if (picked != null && context.mounted) {
+        final iso = '${picked.year}-${picked.month.toString().padLeft(2, '0')}-${picked.day.toString().padLeft(2, '0')}';
+        await controller.selectDate(iso);
+      }
     }
-    return Container(
-      margin: const EdgeInsets.symmetric(horizontal: 16),
-      padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(
-        color: AppColors.card,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: AppColors.border),
-      ),
+
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
       child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceAround,
         children: [
-          _Meta(label: 'Opens', value: t('opening_time') ?? t('openingTime')),
-          _Meta(label: 'Closes', value: t('closing_time') ?? t('closingTime')),
-          _Meta(label: 'Result', value: t('result_time') ?? t('resultTime')),
+          const Text('MARKET DATE : ', style: TextStyle(color: AppColors.textMuted, fontSize: 11, fontWeight: FontWeight.w700, letterSpacing: 1)),
+          Expanded(
+            child: DropdownButton<String>(
+              value: opts.entries.where((e) => e.value == today).firstOrNull?.key,
+              items: opts.entries
+                  .map((e) => DropdownMenuItem(
+                        value: e.key,
+                        child: Text(
+                          e.key == 'TODAY' ? 'TODAY' : 'TOMORROW · ${_fmt(e.value)}',
+                          style: const TextStyle(color: AppColors.textPrimary, fontSize: 13, fontWeight: FontWeight.w600),
+                        ),
+                      ))
+                  .toList(),
+              hint: Text(_fmt(today), style: const TextStyle(color: AppColors.textPrimary, fontSize: 13)),
+              underline: const SizedBox.shrink(),
+              onChanged: (v) {
+                if (v == null) return;
+                controller.selectDate(opts[v]!);
+              },
+            ),
+          ),
+          IconButton(
+            icon: const Icon(Icons.calendar_month_rounded, color: AppColors.gold, size: 20),
+            onPressed: _pick,
+            tooltip: 'Pick a date',
+          ),
         ],
       ),
     );
   }
 }
 
-class _Meta extends StatelessWidget {
-  final String label;
-  final String value;
-  const _Meta({required this.label, required this.value});
-  @override
-  Widget build(BuildContext context) {
-    return Column(
-      children: [
-        Text(label.toUpperCase(), style: const TextStyle(color: AppColors.textMuted, fontSize: 10, letterSpacing: 1)),
-        const SizedBox(height: 4),
-        Text(value, style: const TextStyle(color: AppColors.textPrimary, fontSize: 13, fontWeight: FontWeight.w600)),
-      ],
-    );
-  }
-}
-
-class _PlayTypeTabs extends StatelessWidget {
+// ---------------------------------------------------------------------------
+// Tab bar (Jodi / Crossing / Copy Paste)
+// ---------------------------------------------------------------------------
+class _TabBar extends StatelessWidget {
   final PlayGameController controller;
-  const _PlayTypeTabs({required this.controller});
+  const _TabBar({required this.controller});
 
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 16),
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
       child: Row(
         children: List.generate(controller.activePlayTypes.length, (i) {
           final selected = controller.activeTabIndex == i;
-          final type = controller.activePlayTypes[i];
-          final isCopyPaste = type == 'panel' && i == controller.activePlayTypes.length - 1;
+          final tab = controller.activePlayTypes[i];
           return Expanded(
-            child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 3),
-              child: InkWell(
-                onTap: () => controller.selectTab(i),
-                borderRadius: BorderRadius.circular(10),
-                child: AnimatedContainer(
-                  duration: const Duration(milliseconds: 180),
-                  padding: const EdgeInsets.symmetric(vertical: 10),
-                  decoration: BoxDecoration(
-                    color: selected ? AppColors.success : AppColors.cardSecondary,
-                    borderRadius: BorderRadius.circular(10),
-                  ),
-                  child: Center(
-                    child: Text(
-                      isCopyPaste ? 'COPY PASTE' : GamePlayConfig.labelFor(type),
-                      style: TextStyle(
-                        color: selected ? Colors.white : AppColors.textSecondary,
-                        fontSize: 12,
-                        fontWeight: selected ? FontWeight.w800 : FontWeight.w500,
-                        letterSpacing: 0.5,
-                      ),
-                    ),
+            child: InkWell(
+              onTap: () => controller.selectTab(i),
+              borderRadius: BorderRadius.circular(8),
+              child: AnimatedContainer(
+                duration: const Duration(milliseconds: 180),
+                padding: const EdgeInsets.symmetric(vertical: 10),
+                decoration: BoxDecoration(
+                  color: selected ? AppColors.success : AppColors.card,
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(color: selected ? AppColors.success : AppColors.border),
+                ),
+                alignment: Alignment.center,
+                child: Text(
+                  GamePlayConfig.tabLabel(tab),
+                  style: TextStyle(
+                    color: selected ? Colors.white : AppColors.textSecondary,
+                    fontSize: 13,
+                    fontWeight: selected ? FontWeight.w700 : FontWeight.w500,
                   ),
                 ),
               ),
@@ -286,243 +380,297 @@ class _PlayTypeTabs extends StatelessWidget {
   }
 }
 
-class _EntryForm extends StatefulWidget {
+// ---------------------------------------------------------------------------
+// Jodi panel: 00–99 grid + Andar Haruf 0–9 row
+// ---------------------------------------------------------------------------
+class _JodiPanel extends StatelessWidget {
   final PlayGameController controller;
-  final TextEditingController numberController;
-  final TextEditingController amountController;
-  const _EntryForm({required this.controller, required this.numberController, required this.amountController});
+  final int defaultStake;
+  const _JodiPanel({required this.controller, required this.defaultStake});
 
-  @override
-  State<_EntryForm> createState() => _EntryFormState();
-}
+  Set<String> get _selectedJodi =>
+      controller.currentEntries.where((e) => e.playType == 'jodi').map((e) => e.selection).toSet();
+  Set<String> get _selectedSingle =>
+      controller.currentEntries.where((e) => e.playType == 'single').map((e) => e.selection).toSet();
 
-class _EntryFormState extends State<_EntryForm> {
-  String? _validate() {
-    final type = widget.controller.activePlayTypes[widget.controller.activeTabIndex];
-    final digits = GamePlayConfig.digitsFor(type);
-    final num = widget.numberController.text.trim();
-    if (num.isEmpty) return 'Enter your number.';
-    if (num.length != digits) return '$type needs exactly $digits digit(s).';
-    final amt = widget.amountController.text.trim();
-    if (amt.isEmpty) return 'Enter an amount.';
-    final value = int.tryParse(amt);
-    if (value == null || value <= 0) return 'Amount must be a positive whole number.';
-    if (value < widget.controller.config.minStake) return 'Minimum stake is ${widget.controller.config.minStake}.';
-    return null;
+  void _toggle(String selection, String playType, Set<String> selected) {
+    if (selected.contains(selection)) {
+      controller.removeSelection(playType, selection);
+    } else {
+      // Pass the explicit play type so the Andar Haruf row creates a `single`
+      // bet even though it lives inside the Jodi tab.
+      controller.addEntry(selection: selection, pointsStaked: defaultStake, palti: false, playType: playType);
+    }
   }
 
   @override
   Widget build(BuildContext context) {
-    final type = widget.controller.activePlayTypes[widget.controller.activeTabIndex];
-    final digits = GamePlayConfig.digitsFor(type);
-    final error = _validate();
-    final canSave = error == null;
+    final jodiSelected = _selectedJodi;
+    final singleSelected = _selectedSingle;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const Text('Jodi Numbers (00 - 99)', style: AppTextStyles.sectionHeading),
+        const SizedBox(height: 10),
+        GridView.builder(
+          shrinkWrap: true,
+          physics: const NeverScrollableScrollPhysics(),
+          gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+            crossAxisCount: 10,
+            mainAxisSpacing: 6,
+            crossAxisSpacing: 6,
+            childAspectRatio: 1.5,
+          ),
+          itemCount: 100,
+          itemBuilder: (context, i) {
+            final label = i.toString().padLeft(2, '0');
+            return _NumberChip(
+              label: label,
+              selected: jodiSelected.contains(label),
+              onTap: () => _toggle(label, 'jodi', jodiSelected),
+            );
+          },
+        ),
+        const SizedBox(height: 16),
+        const Text('Andar Haruf (अंदर)', style: AppTextStyles.sectionHeading),
+        const SizedBox(height: 10),
+        Row(
+          children: List.generate(10, (i) {
+            final label = '$i';
+            return Expanded(
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 3),
+                child: _NumberChip(
+                  label: label,
+                  selected: singleSelected.contains(label),
+                  onTap: () => _toggle(label, 'single', singleSelected),
+                ),
+              ),
+            );
+          }),
+        ),
+      ],
+    );
+  }
+}
 
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 16),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              Expanded(
-                child: TextField(
-                  controller: widget.numberController,
-                  keyboardType: TextInputType.number,
-                  maxLength: digits,
-                  onChanged: (_) => setState(() {}),
-                  style: AppTextStyles.cardTitle.copyWith(color: AppColors.textPrimary),
-                  decoration: InputDecoration(
-                    labelText: 'Number (${GamePlayConfig.labelFor(type)})',
-                    labelStyle: const TextStyle(color: AppColors.textSecondary),
-                    hintText: digits == 1 ? '0–9' : (digits == 3 ? 'e.g. 123' : 'e.g. 12'),
-                    hintStyle: const TextStyle(color: AppColors.textMuted),
-                    border: const OutlineInputBorder(),
-                    enabledBorder: OutlineInputBorder(borderSide: BorderSide(color: AppColors.border)),
-                    focusedBorder: OutlineInputBorder(borderSide: const BorderSide(color: AppColors.success)),
-                  ),
-                ),
-              ),
-              const SizedBox(width: 10),
-              Expanded(
-                child: TextField(
-                  controller: widget.amountController,
-                  keyboardType: TextInputType.number,
-                  onChanged: (_) => setState(() {}),
-                  style: AppTextStyles.cardTitle.copyWith(color: AppColors.textPrimary),
-                  decoration: InputDecoration(
-                    labelText: 'Amount (pts)',
-                    labelStyle: const TextStyle(color: AppColors.textSecondary),
-                    hintText: 'e.g. 50',
-                    hintStyle: const TextStyle(color: AppColors.textMuted),
-                    border: const OutlineInputBorder(),
-                    enabledBorder: OutlineInputBorder(borderSide: BorderSide(color: AppColors.border)),
-                    focusedBorder: OutlineInputBorder(borderSide: const BorderSide(color: AppColors.success)),
-                  ),
-                ),
-              ),
-            ],
+class _NumberChip extends StatelessWidget {
+  final String label;
+  final bool selected;
+  final VoidCallback? onTap;
+  const _NumberChip({required this.label, this.selected = false, this.onTap});
+
+  @override
+  Widget build(BuildContext context) {
+    return Material(
+      color: selected ? AppColors.success : const Color(0xFF2E5AAC),
+      borderRadius: BorderRadius.circular(6),
+      child: InkWell(
+        borderRadius: BorderRadius.circular(6),
+        onTap: onTap,
+        child: Center(
+          child: Text(
+            label,
+            style: const TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.w800),
           ),
-          const SizedBox(height: 12),
-          Row(
-            children: [
-              Expanded(
-                child: ElevatedButton(
-                  onPressed: canSave
-                      ? () {
-                          widget.controller.addEntry(
-                            selection: widget.numberController.text.trim(),
-                            pointsStaked: int.tryParse(widget.amountController.text.trim()) ?? 0,
-                          );
-                          widget.numberController.clear();
-                          widget.amountController.clear();
-                        }
-                      : null,
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: AppColors.success,
-                    padding: const EdgeInsets.symmetric(vertical: 12),
-                  ),
-                  child: const Text('Save', style: TextStyle(color: Colors.white, fontWeight: FontWeight.w700)),
-                ),
-              ),
-              const SizedBox(width: 10),
-              if (error != null && (widget.numberController.text.isNotEmpty || widget.amountController.text.isNotEmpty))
-                Padding(
-                  padding: const EdgeInsets.only(top: 6),
-                  child: Text(error, style: const TextStyle(color: AppColors.error, fontSize: 12)),
-                ),
-            ],
-          ),
-        ],
+        ),
       ),
     );
   }
 }
 
+// ---------------------------------------------------------------------------
+// Crossing panel: digit + amount + SAVE
+// ---------------------------------------------------------------------------
+class _CrossingPanel extends StatelessWidget {
+  final PlayGameController controller;
+  final TextEditingController digitController;
+  final TextEditingController amountController;
+  final int defaultStake;
+
+  const _CrossingPanel({
+    required this.controller,
+    required this.digitController,
+    required this.amountController,
+    required this.defaultStake,
+  });
+
+  void _save() {
+    final digit = digitController.text.trim();
+    final amt = int.tryParse(amountController.text.trim()) ?? defaultStake;
+    if (digit.isEmpty) return;
+    controller.addEntry(selection: digit, pointsStaked: amt);
+    digitController.clear();
+    amountController.clear();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return ListenableBuilder(
+      listenable: Listenable.merge([digitController, amountController]),
+      builder: (context, _) {
+        final canSave = digitController.text.trim().isNotEmpty;
+        return Column(
+          children: [
+            _field(digitController, 'Enter Digit', digits: true),
+            const SizedBox(height: 10),
+            _field(amountController, 'Amount', digits: true),
+            const SizedBox(height: 12),
+            SizedBox(
+              width: double.infinity,
+              child: ElevatedButton(
+                onPressed: canSave ? _save : null,
+                style: ElevatedButton.styleFrom(backgroundColor: AppColors.success, padding: const EdgeInsets.symmetric(vertical: 12)),
+                child: const Text('SAVE', style: TextStyle(color: Colors.white, fontWeight: FontWeight.w700)),
+              ),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  Widget _field(TextEditingController c, String label, {bool digits = false}) {
+    return TextField(
+      controller: c,
+      keyboardType: digits ? TextInputType.number : TextInputType.text,
+      style: AppTextStyles.cardTitle.copyWith(color: AppColors.textPrimary),
+      decoration: InputDecoration(
+        labelText: label,
+        labelStyle: const TextStyle(color: AppColors.textSecondary),
+        contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+        border: const OutlineInputBorder(),
+        enabledBorder: OutlineInputBorder(borderSide: BorderSide(color: AppColors.border)),
+        focusedBorder: OutlineInputBorder(borderSide: const BorderSide(color: AppColors.success)),
+      ),
+    );
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Copy Paste panel: number + amount + With/Without Palti + SAVE
+// ---------------------------------------------------------------------------
 class _CopyPastePanel extends StatefulWidget {
   final PlayGameController controller;
-  final TextEditingController pasteController;
-  const _CopyPastePanel({required this.controller, required this.pasteController});
+  final TextEditingController numberController;
+  final TextEditingController amountController;
+  final int defaultStake;
+
+  const _CopyPastePanel({
+    required this.controller,
+    required this.numberController,
+    required this.amountController,
+    required this.defaultStake,
+  });
 
   @override
   State<_CopyPastePanel> createState() => _CopyPastePanelState();
 }
 
 class _CopyPastePanelState extends State<_CopyPastePanel> {
-  List<String> _invalidLines = [];
-  int _parsedCount = 0;
+  bool _withPalti = true;
 
-  void _parse() {
-    final type = widget.controller.activePlayTypes[widget.controller.activeTabIndex];
-    final digits = GamePlayConfig.digitsFor(type);
-    final raw = widget.pasteController.text;
-    final lines = raw.split('\n').map((l) => l.trim()).where((l) => l.isNotEmpty).toList();
-
-    _invalidLines = [];
-    _parsedCount = 0;
-    final newEntries = <WagerEntry>[];
-
-    for (final line in lines) {
-      // Support "123 50" (number + amount) or bare "123" (default amount).
-      final parts = line.split(RegExp(r'\s+'));
-      final num = parts.first;
-      final amt = int.tryParse(parts.length > 1 ? parts[1] : '') ?? 50;
-
-      if (num.length != digits || !RegExp(r'^\d+$').hasMatch(num)) {
-        _invalidLines.add(line);
-        continue;
-      }
-      if (amt < widget.controller.config.minStake) {
-        _invalidLines.add(line);
-        continue;
-      }
-      _parsedCount++;
-      newEntries.add(WagerEntry(
-        uid: '$type-${num}-${amt}-${DateTime.now().microsecondsSinceEpoch}-${newEntries.length}',
-        playType: type,
-        selection: num,
-        pointsStaked: amt,
-        sourceGameId: widget.controller.gameId,
-      ));
-    }
-
-    setState(() {});
-    if (newEntries.isNotEmpty) {
-      widget.controller.addEntries(newEntries);
-      widget.controller.dedupeCurrent();
-    }
-    widget.pasteController.clear();
+  void _save() {
+    final num = widget.numberController.text.trim();
+    final amt = int.tryParse(widget.amountController.text.trim()) ?? widget.defaultStake;
+    if (num.isEmpty) return;
+    widget.controller.addEntry(selection: num, pointsStaked: amt, palti: _withPalti);
+    widget.numberController.clear();
+    widget.amountController.clear();
   }
 
   @override
   Widget build(BuildContext context) {
-    final type = widget.controller.activePlayTypes[widget.controller.activeTabIndex];
-    final digits = GamePlayConfig.digitsFor(type);
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 16),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            'Paste one ${GamePlayConfig.labelFor(type).toLowerCase()} entry per line.',
-            style: const TextStyle(color: AppColors.textMuted, fontSize: 12),
+    return Column(
+      children: [
+        TextField(
+          controller: widget.numberController,
+          keyboardType: TextInputType.number,
+          style: AppTextStyles.cardTitle.copyWith(color: AppColors.textPrimary),
+          decoration: InputDecoration(
+            labelText: 'Enter Number',
+            labelStyle: const TextStyle(color: AppColors.textSecondary),
+            contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+            border: const OutlineInputBorder(),
+            enabledBorder: OutlineInputBorder(borderSide: BorderSide(color: AppColors.border)),
+            focusedBorder: OutlineInputBorder(borderSide: const BorderSide(color: AppColors.success)),
           ),
-          const SizedBox(height: 8),
-          TextField(
-            controller: widget.pasteController,
-            minLines: 4,
-            maxLines: 8,
-            keyboardType: TextInputType.number,
-            style: const TextStyle(color: AppColors.textPrimary, fontSize: 14, fontFamily: 'monospace'),
-            decoration: InputDecoration(
-              hintText: '$digits-digit lines, optionally "number amount"\ne.g.  12\n     34 80',
-              hintStyle: const TextStyle(color: AppColors.textMuted),
-              border: const OutlineInputBorder(),
-              enabledBorder: OutlineInputBorder(borderSide: BorderSide(color: AppColors.border)),
-              focusedBorder: OutlineInputBorder(borderSide: const BorderSide(color: AppColors.success)),
+        ),
+        const SizedBox(height: 10),
+        TextField(
+          controller: widget.amountController,
+          keyboardType: TextInputType.number,
+          style: AppTextStyles.cardTitle.copyWith(color: AppColors.textPrimary),
+          decoration: InputDecoration(
+            labelText: 'Amount',
+            labelStyle: const TextStyle(color: AppColors.textSecondary),
+            contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+            border: const OutlineInputBorder(),
+            enabledBorder: OutlineInputBorder(borderSide: BorderSide(color: AppColors.border)),
+            focusedBorder: OutlineInputBorder(borderSide: const BorderSide(color: AppColors.success)),
+          ),
+        ),
+        const SizedBox(height: 12),
+        Row(
+          children: [
+            Expanded(
+              child: _PaltiToggle(label: 'With Palti', selected: _withPalti, onTap: () => setState(() => _withPalti = true)),
             ),
-          ),
-          const SizedBox(height: 12),
-          Row(
-            children: [
-              Expanded(
-                child: ElevatedButton(
-                  onPressed: widget.pasteController.text.trim().isNotEmpty ? _parse : null,
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: AppColors.success,
-                    padding: const EdgeInsets.symmetric(vertical: 12),
-                  ),
-                  child: const Text('Parse & Add', style: TextStyle(color: Colors.white, fontWeight: FontWeight.w700)),
-                ),
-              ),
-            ],
-          ),
-          if (_parsedCount > 0)
-            Padding(
-              padding: const EdgeInsets.only(top: 8),
-              child: Text('Added $_parsedCount entr${_parsedCount == 1 ? 'y' : 'ies'}.', style: const TextStyle(color: AppColors.success, fontSize: 12)),
-            ),
-          if (_invalidLines.isNotEmpty) ...[
-            const SizedBox(height: 8),
-            Container(
-              padding: const EdgeInsets.all(10),
-              decoration: BoxDecoration(color: AppColors.error.withValues(alpha: 0.1), borderRadius: BorderRadius.circular(8)),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text('Skipped ${_invalidLines.length} invalid line(s):', style: const TextStyle(color: AppColors.error, fontSize: 12, fontWeight: FontWeight.w600)),
-                  const SizedBox(height: 4),
-                  ..._invalidLines.map((l) => Text('• $l', style: const TextStyle(color: AppColors.textSecondary, fontSize: 12, fontFamily: 'monospace'))),
-                ],
-              ),
+            const SizedBox(width: 10),
+            Expanded(
+              child: _PaltiToggle(label: 'Without Palti', selected: !_withPalti, onTap: () => setState(() => _withPalti = false)),
             ),
           ],
-        ],
+        ),
+        const SizedBox(height: 12),
+        SizedBox(
+          width: double.infinity,
+          child: ElevatedButton(
+            onPressed: widget.numberController.text.trim().isNotEmpty ? _save : null,
+            style: ElevatedButton.styleFrom(backgroundColor: AppColors.success, padding: const EdgeInsets.symmetric(vertical: 12)),
+            child: const Text('SAVE', style: TextStyle(color: Colors.white, fontWeight: FontWeight.w700)),
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _PaltiToggle extends StatelessWidget {
+  final String label;
+  final bool selected;
+  final VoidCallback onTap;
+  const _PaltiToggle({required this.label, required this.selected, required this.onTap});
+
+  @override
+  Widget build(BuildContext context) {
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(8),
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 150),
+        padding: const EdgeInsets.symmetric(vertical: 12),
+        decoration: BoxDecoration(
+          color: selected ? AppColors.success : AppColors.card,
+          borderRadius: BorderRadius.circular(8),
+          border: Border.all(color: selected ? AppColors.success : AppColors.border),
+        ),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(selected ? Icons.radio_button_checked : Icons.radio_button_off, size: 18, color: selected ? Colors.white : AppColors.textSecondary),
+            const SizedBox(width: 8),
+            Text(label, style: TextStyle(color: selected ? Colors.white : AppColors.textSecondary, fontWeight: FontWeight.w600, fontSize: 13)),
+          ],
+        ),
       ),
     );
   }
 }
 
+// ---------------------------------------------------------------------------
+// Saved entries table (per active tab)
+// ---------------------------------------------------------------------------
 class _SavedEntriesTable extends StatelessWidget {
   final PlayGameController controller;
   const _SavedEntriesTable({required this.controller});
@@ -530,8 +678,14 @@ class _SavedEntriesTable extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final entries = controller.currentEntries;
+    final tab = controller.activePlayTypes[controller.activeTabIndex];
+    final playTypes = tab == 'jodi' ? {'jodi', 'single'} : {tab};
+
+    // Only show entries belonging to this tab's play types so switching tabs
+    // never mixes selections together.
+    final visible = entries.where((e) => playTypes.contains(e.playType)).toList();
+
     return Container(
-      margin: const EdgeInsets.symmetric(horizontal: 16),
       decoration: BoxDecoration(
         color: AppColors.card,
         borderRadius: BorderRadius.circular(12),
@@ -545,60 +699,41 @@ class _SavedEntriesTable extends StatelessWidget {
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                Text('SAVED ENTRIES', style: const TextStyle(color: AppColors.textMuted, fontSize: 11, fontWeight: FontWeight.w700, letterSpacing: 1)),
-                if (entries.isNotEmpty)
-                  Text('${entries.length} · ${controller.totalStake} pts', style: const TextStyle(color: AppColors.gold, fontSize: 12, fontWeight: FontWeight.w700)),
+                const Text('NUMBER  ·  AMOUNT  ·  ACTION', style: TextStyle(color: AppColors.textMuted, fontSize: 11, fontWeight: FontWeight.w700, letterSpacing: 1)),
+                if (visible.isNotEmpty)
+                  Text('${visible.length} · ${controller.totalStake} pts', style: const TextStyle(color: AppColors.gold, fontSize: 12, fontWeight: FontWeight.w700)),
               ],
             ),
           ),
-          if (entries.isEmpty)
+          if (visible.isEmpty)
             Padding(
-              padding: const EdgeInsets.all(20),
-              child: Center(
-                child: Column(
-                  children: [
-                    Icon(Icons.inbox_rounded, size: 32, color: AppColors.textMuted.withValues(alpha: 0.5)),
-                    const SizedBox(height: 8),
-                    const Text('No entries yet', style: TextStyle(color: AppColors.textMuted, fontSize: 13)),
-                  ],
-                ),
-              ),
+              padding: const EdgeInsets.all(16),
+              child: Center(child: Text('No entries yet. Tap numbers or use the forms above.', style: const TextStyle(color: AppColors.textMuted, fontSize: 12))),
             )
           else
             Column(
               children: [
-                for (final e in entries)
+                for (final e in visible)
                   Dismissible(
                     key: ValueKey(e.uid),
                     direction: DismissDirection.endToStart,
                     onDismissed: (_) => controller.removeEntry(e),
-                    background: Container(
-                      alignment: Alignment.centerRight,
-                      padding: const EdgeInsets.only(right: 16),
-                      color: AppColors.error.withValues(alpha: 0.2),
-                      child: const Icon(Icons.delete_rounded, color: AppColors.error),
-                    ),
+                    background: Container(alignment: Alignment.centerRight, padding: const EdgeInsets.only(right: 16), color: AppColors.error.withValues(alpha: 0.2), child: const Icon(Icons.delete_rounded, color: AppColors.error)),
                     child: Container(
                       margin: const EdgeInsets.symmetric(horizontal: 14, vertical: 4),
-                      padding: const EdgeInsets.symmetric(vertical: 10),
-                      decoration: BoxDecoration(
-                        color: AppColors.cardSecondary,
-                        borderRadius: BorderRadius.circular(8),
-                      ),
+                      padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 12),
+                      decoration: BoxDecoration(color: AppColors.cardSecondary, borderRadius: BorderRadius.circular(8)),
                       child: Row(
                         children: [
                           Expanded(
                             child: Text(
-                              e.selection,
+                              '${e.selection}${e.palti ? ' (Palti)' : ''}',
                               style: const TextStyle(color: AppColors.goldBright, fontSize: 15, fontWeight: FontWeight.w700, fontFamily: 'monospace'),
                             ),
                           ),
                           Text('${e.pointsStaked} pts', style: const TextStyle(color: AppColors.textSecondary, fontSize: 13)),
                           const SizedBox(width: 8),
-                          IconButton(
-                            icon: const Icon(Icons.delete_outline_rounded, color: AppColors.textMuted, size: 18),
-                            onPressed: () => controller.removeEntry(e),
-                          ),
+                          IconButton(icon: const Icon(Icons.delete_outline_rounded, color: AppColors.textMuted, size: 18), onPressed: () => controller.removeEntry(e)),
                         ],
                       ),
                     ),
@@ -611,14 +746,18 @@ class _SavedEntriesTable extends StatelessWidget {
   }
 }
 
+// ---------------------------------------------------------------------------
+// Bottom submit bar: ₹ total + SUBMIT
+// ---------------------------------------------------------------------------
 class _SubmitBar extends StatelessWidget {
   final PlayGameController controller;
-  const _SubmitBar({required this.controller});
+  final int defaultStake;
+  final VoidCallback onSubmitted;
+  const _SubmitBar({required this.controller, required this.defaultStake, required this.onSubmitted});
 
   Future<void> _confirm(BuildContext context) async {
     final c = context.read<PlayGameController>();
     if (c.currentEntries.isEmpty) return;
-
     final total = c.totalStake;
     final ok = await showDialog<bool>(
       context: context,
@@ -626,7 +765,7 @@ class _SubmitBar extends StatelessWidget {
         backgroundColor: AppColors.card,
         title: const Text('Confirm submission', style: TextStyle(color: AppColors.textPrimary)),
         content: Text(
-          'Place ${c.currentEntries.length} bet(s) on ${c.activePlayTypes[c.activeTabIndex].toUpperCase()} for a total of $total pts?',
+          'Place ${c.currentEntries.length} bet(s) on ${GamePlayConfig.tabLabel(c.activePlayTypes[c.activeTabIndex])} for a total of ₹$total?',
           style: const TextStyle(color: AppColors.textSecondary),
         ),
         actions: [
@@ -640,62 +779,47 @@ class _SubmitBar extends StatelessWidget {
       ),
     );
     if (ok != true) return;
-
     await c.submitAll();
-    if (context.mounted && c.errorMessage == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Submitted. Check "My Plays" for status.'), backgroundColor: AppColors.success),
-      );
-    } else if (context.mounted && c.errorMessage != null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(c.errorMessage!), backgroundColor: AppColors.error),
-      );
-    }
+    onSubmitted();
   }
 
   @override
   Widget build(BuildContext context) {
-    final c = context.read<PlayGameController>();
-    final canSubmit = c.currentEntries.isNotEmpty && !c.submitting;
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 16),
-      child: Row(
-        children: [
-          Expanded(
-            child: ElevatedButton.icon(
-              onPressed: canSubmit ? () => _confirm(context) : null,
-              style: ElevatedButton.styleFrom(
-                backgroundColor: AppColors.success,
-                padding: const EdgeInsets.symmetric(vertical: 14),
+    return Container(
+      color: AppColors.card,
+      padding: const EdgeInsets.fromLTRB(16, 12, 16, 16),
+      child: Consumer<PlayGameController>(
+        builder: (context, c, _) {
+          final canSubmit = c.currentEntries.isNotEmpty && !c.submitting;
+          return Row(
+            children: [
+              Text('₹${c.totalStake}', style: const TextStyle(color: AppColors.textPrimary, fontSize: 22, fontWeight: FontWeight.w800)),
+              const Spacer(),
+              SizedBox(
+                width: 140,
+                height: 48,
+                child: ElevatedButton(
+                  onPressed: canSubmit ? () => _confirm(context) : null,
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: AppColors.success,
+                    disabledBackgroundColor: AppColors.success.withValues(alpha: 0.4),
+                  ),
+                  child: c.submitting
+                      ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
+                      : const Text('SUBMIT', style: TextStyle(color: Colors.white, fontSize: 15, fontWeight: FontWeight.w800)),
+                ),
               ),
-              icon: c.submitting
-                  ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
-                  : const Icon(Icons.send_rounded, color: Colors.white, size: 18),
-              label: Text(
-                c.submitting ? 'Submitting…' : 'Submit (${c.currentEntries.length})',
-                style: const TextStyle(color: Colors.white, fontSize: 15, fontWeight: FontWeight.w800),
-              ),
-            ),
-          ),
-          const SizedBox(width: 10),
-          SizedBox(
-            width: 120,
-            child: OutlinedButton(
-              onPressed: () => context.push(RouteNames.results),
-              style: OutlinedButton.styleFrom(
-                foregroundColor: AppColors.gold,
-                side: BorderSide(color: AppColors.gold.withValues(alpha: 0.4)),
-                padding: const EdgeInsets.symmetric(vertical: 14),
-              ),
-              child: const Text('Results', style: TextStyle(fontWeight: FontWeight.w700)),
-            ),
-          ),
-        ],
+            ],
+          );
+        },
       ),
     );
   }
 }
 
+// ---------------------------------------------------------------------------
+// Error / retry body
+// ---------------------------------------------------------------------------
 class _MessageBody extends StatelessWidget {
   final String message;
   final VoidCallback onRetry;
@@ -716,7 +840,7 @@ class _MessageBody extends StatelessWidget {
             ElevatedButton(
               onPressed: onRetry,
               style: ElevatedButton.styleFrom(backgroundColor: AppColors.success),
-              child: const Text('Retry', style: TextStyle(color: Colors.white, fontWeight: FontWeight.w700)),
+              child: const Text('Retry', style: TextStyle(color: Colors.white)),
             ),
           ],
         ),
