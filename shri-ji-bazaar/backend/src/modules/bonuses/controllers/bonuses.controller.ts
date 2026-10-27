@@ -9,10 +9,13 @@ export class BonusesController {
   initializeRoutes() {
     this.router.get('/', this.getAll.bind(this));
     this.router.get('/my-claims', this.getMyClaims.bind(this));
+    this.router.get('/claimed', this.getClaimed.bind(this));
     this.router.get('/:id', this.getById.bind(this));
     this.router.post('/claim/:id', this.claim.bind(this));
+    this.router.post('/:id/claim', this.claim.bind(this));
     this.router.post('/', this.create.bind(this));
     this.router.patch('/:id', this.update.bind(this));
+    this.router.put('/:id', this.update.bind(this));
   }
 
   async getAll(req: Request, res: Response) {
@@ -27,6 +30,19 @@ export class BonusesController {
   async getMyClaims(req: Request, res: Response) {
     try {
       const data = await this.bonusesService.getUserClaimed(req.body.userId);
+      res.json({ success: true, data });
+    } catch (error: any) {
+      res.status(500).json({ success: false, message: error.message });
+    }
+  }
+
+  async getClaimed(req: Request, res: Response) {
+    try {
+      const userId = req.user?.id;
+      if (!userId) {
+        return res.status(401).json({ success: false, message: 'Unauthorized' });
+      }
+      const data = await this.bonusesService.getUserClaimed(userId);
       res.json({ success: true, data });
     } catch (error: any) {
       res.status(500).json({ success: false, message: error.message });

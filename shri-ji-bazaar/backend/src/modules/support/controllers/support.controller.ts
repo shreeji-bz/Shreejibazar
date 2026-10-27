@@ -7,10 +7,21 @@ export class SupportController {
   }
   initializeRoutes() {
     this.router.get('/', this.getAll.bind(this));
+    this.router.get('/tickets', this.getAll.bind(this));
     this.router.get('/:id', this.getById.bind(this));
+    this.router.get('/tickets/:id', this.getById.bind(this));
     this.router.post('/', this.create.bind(this));
     this.router.patch('/:id', this.update.bind(this));
+    this.router.patch('/tickets/:id', this.update.bind(this));
     this.router.post('/:id/messages', this.addMessage.bind(this));
+    this.router.post('/tickets/:id/reply', this.reply.bind(this));
+    this.router.post('/:id/reply', this.reply.bind(this));
+  }
+  async reply(req: Request, res: Response) {
+    try {
+      const data = await this.supportService.addAdminMessage(req.params.id, req.body.message || req.body, (req as any).admin?.id);
+      res.status(201).json({ success: true, data });
+    } catch (error: any) { res.status(400).json({ success: false, message: error.message }); }
   }
   async getAll(req: Request, res: Response) {
     try {

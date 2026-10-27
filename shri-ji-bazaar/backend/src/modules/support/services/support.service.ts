@@ -22,4 +22,8 @@ export class SupportService {
   async addMessage(data: { ticketId: string; userId: string; message: string; attachment?: string }) {
     return this.supportRepo.addMessage(data);
   }
+
+  async addAdminMessage(ticketId: string, message: string, adminId?: string) {
+    return this.supportRepo.addAdminMessage({ ticketId, senderId: adminId, message });
+  }
 }

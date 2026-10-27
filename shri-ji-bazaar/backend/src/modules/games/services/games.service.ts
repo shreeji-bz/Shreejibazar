@@ -23,6 +23,10 @@ export class GamesService {
     return this.gameRepository.findPopular();
   }
 
+  async getRecent(limit = 10) {
+    return this.gameRepository.findRecent(limit);
+  }
+
   async create(data: any) {
     const existing = await this.gameRepository.findBySlug(data.slug);
     if (existing) throw new Error('Game with this slug already exists');

@@ -9,6 +9,6 @@ export class NotificationsModule {
   constructor() {
     new NotificationsController(this.router);
     this.adminRouter.use(authenticateAdmin);
-    new NotificationsController(this.adminRouter);
+    new NotificationsController(this.adminRouter, true);
   }
 }

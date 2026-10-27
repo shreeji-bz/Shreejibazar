@@ -9,6 +9,7 @@ export class GamesController {
   initializeRoutes() {
     this.router.get('/', this.getAll.bind(this));
     this.router.get('/popular', this.getPopular.bind(this));
+    this.router.get('/recent', this.getRecent.bind(this));
     this.router.get('/:id', this.getById.bind(this));
     this.router.post('/', this.create.bind(this));
     this.router.patch('/:id', this.update.bind(this));
@@ -28,6 +29,16 @@ export class GamesController {
   async getPopular(req: Request, res: Response) {
     try {
       const data = await this.gameService.getPopular();
+      res.json({ success: true, data });
+    } catch (error: any) {
+      res.status(500).json({ success: false, message: error.message });
+    }
+  }
+
+  async getRecent(req: Request, res: Response) {
+    try {
+      const limit = parseInt(req.query.limit as string) || 10;
+      const data = await this.gameService.getRecent(limit);
       res.json({ success: true, data });
     } catch (error: any) {
       res.status(500).json({ success: false, message: error.message });

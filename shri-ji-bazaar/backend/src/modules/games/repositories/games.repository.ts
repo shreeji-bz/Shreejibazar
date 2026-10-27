@@ -39,6 +39,16 @@ export class GameRepository {
     return (data || []).map(this.mapRow);
   }
 
+  async findRecent(limit = 10): Promise<GameEntity[]> {
+    const { data } = await supabase
+      .from('games')
+      .select('*')
+      .eq('status', 'active')
+      .order('created_at', { ascending: false })
+      .limit(limit);
+    return (data || []).map(this.mapRow);
+  }
+
   async create(data: Partial<GameEntity>): Promise<GameEntity> {
     const { data: record } = await supabase.from('games').insert({
       name: data.name,
