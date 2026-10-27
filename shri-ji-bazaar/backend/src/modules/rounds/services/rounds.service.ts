@@ -16,16 +16,44 @@ export class RoundsService {
     this.settleRoundFn = fn;
   }
 
-  async getUpcoming(gameId?: string) {
-    return this.roundsRepo.findUpcoming(gameId);
+  async getUpcoming(gameId?: string, date?: string) {
+    return this.roundsRepo.findUpcoming(gameId, date);
+  }
+
+  /**
+   * Multi-card LIVE MARKET feed: every round currently running on an active
+   * game, each stamped with that game's most recent declared result ("Last
+   * Result: 09") and its open/close/result schedule. The client renders one
+   * card per row with a live "Time Left" countdown to end_time.
+   */
+  async getLive(limit = 20) {
+    const [rounds, lastResults] = await Promise.all([
+      this.roundsRepo.findLive(limit),
+      this.roundsRepo.lastResultByGame(),
+    ]);
+    return rounds.map((r) => {
+      const anyR = r as any;
+      return {
+        ...anyR,
+        lastResult: lastResults[r.gameId]?.result ?? null,
+        lastResultAt: lastResults[r.gameId]?.at ?? null,
+      };
+    });
+  }
+
+  async getResults(gameId?: string, limit = 20) {
+    // Round rows; enrich with the game's schedule so the LAST RESULTS cards
+    // can show Open/Close time + the declared value without a second call.
+    const rounds = await this.roundsRepo.getLatestResults(gameId, limit);
+    return (rounds as any[]).map((r) => ({
+      ...r,
+      open_time: r.openTime ?? null,
+      close_time: r.closeTime ?? null,
+    }));
   }
 
   async getByGameId(gameId: string, options: any) {
     return this.roundsRepo.findByGameId(gameId, options);
-  }
-
-  async getResults(gameId?: string, limit = 20) {
-    return this.roundsRepo.getLatestResults(gameId, limit);
   }
 
   async getActive(gameId?: string) {

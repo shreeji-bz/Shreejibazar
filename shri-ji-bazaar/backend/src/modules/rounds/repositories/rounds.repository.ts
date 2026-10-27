@@ -65,23 +65,91 @@ export class RoundsRepository {
     return { data: (data || []).map((row: any) => this.mapRow(row)), meta: { total: count || 0, page, limit, totalPages: Math.ceil((count || 0) / limit) } };
   }
 
-  async findUpcoming(gameId?: string): Promise<RoundEntity[]> {
+  async findUpcoming(gameId?: string, date?: string): Promise<RoundEntity[]> {
     // Join games and filter to active games only, so rounds of games that an
     // admin set to inactive/maintenance stop showing on the home page.
-    let query = supabase.from('rounds').select('*, games(name, result_time, status)').gte('start_time', new Date().toISOString()).in('status', ['pending', 'open']).eq('games.status', 'active');
+    // When [date] (YYYY-MM-DD) is given, only that day's markets are returned
+    // (home shows "today's upcoming", NOT the next 20+ days).
+    const now = new Date();
+    let from: string;
+    let to: string;
+    if (date) {
+      from = new Date(`${date}T00:00:00`).toISOString();
+      to = new Date(`${date}T23:59:59.999`).toISOString();
+    } else {
+      from = now.toISOString();
+      to = new Date(now.getTime() + 24 * 60 * 60 * 1000).toISOString(); // default: next 24h
+    }
+    let query = supabase.from('rounds').select('*, games(name, opening_time, closing_time, result_time, status)').gte('start_time', from).lte('start_time', to).in('status', ['pending', 'open']).eq('games.status', 'active');
     if (gameId) query = query.eq('game_id', gameId);
     const { data } = await query.order('start_time').limit(100);
-    // Flatten the joined game name so the mobile app gets a plain `game_name`
-    // field instead of a nested `games` object.
+    // Flatten the joined game fields so the mobile app gets plain
+    // game_name / open_time / close_time / result_time instead of a nested
+    // `games` object.
     const rows = (data || []).map((row: any) => {
       const flat: any = { ...row };
       flat.game_name = row.games?.name;
+      flat.open_time = row.games?.opening_time;
+      flat.close_time = row.games?.closing_time;
       flat.result_time = row.games?.result_time;
       delete flat.games;
       return flat;
     });
     return rows.map((row: any) => this.mapRow(row, row.game_name));
   }
+
+  /**
+   * All rounds currently RUNNING (start <= now <= end) on active games —
+   * powers the multi-card LIVE MARKET list on the home screen. Each row
+   * carries the game's schedule (open/close/result time) so the client can
+   * render "Time Left" + "Result Time" without extra calls.
+   */
+  async findLive(limit = 20): Promise<RoundEntity[]> {
+    const now = new Date().toISOString();
+    const { data } = await supabase
+      .from('rounds')
+      .select('*, games(name, opening_time, closing_time, result_time, status)')
+      .eq('status', 'open')
+      .lte('start_time', now)
+      .gte('end_time', now)
+      .eq('games.status', 'active')
+      .order('start_time')
+      .limit(limit);
+    const rows = (data || []).map((row: any) => {
+      const flat: any = { ...row };
+      flat.game_name = row.games?.name;
+      flat.open_time = row.games?.opening_time;
+      flat.close_time = row.games?.closing_time;
+      flat.result_time = row.games?.result_time;
+      delete flat.games;
+      return flat;
+    });
+    return rows.map((row: any) => this.mapRow(row, row.game_name));
+  }
+
+  /**
+   * Latest declared result per game -> { gameId: { result, at, game_name } }.
+   * Used to stamp "Last Result: 09" onto live cards without an extra call
+   * per round.
+   */
+  async lastResultByGame(): Promise<Record<string, { result: string; at: string; game_name?: string }>> {
+    const { data } = await supabase
+      .from('rounds')
+      .select('game_id, result, updated_at, games(name)')
+      .eq('status', 'result_declared')
+      .not('result', 'is', null)
+      .order('updated_at', { ascending: false })
+      .limit(200);
+    const out: Record<string, { result: string; at: string; game_name?: string }> = {};
+    for (const r of data || []) {
+      const row = r as any;
+      if (!out[row.game_id]) {
+        out[row.game_id] = { result: String(row.result), at: row.updated_at, game_name: row.games?.name };
+      }
+    }
+    return out;
+  }
+
 
   async create(data: Partial<RoundEntity> & { gameId: string }): Promise<RoundEntity> {
     const { data: record } = await supabase.from('rounds').insert({
@@ -129,17 +197,26 @@ export class RoundsRepository {
   }
 
   async getLatestResults(gameId?: string, limit = 20): Promise<any[]> {
-    // Results live on rounds (no results table in live Supabase).
+    // Results live on rounds (no results table in live Supabase). Join the
+    // game's schedule so the LAST RESULTS cards can show Open/Close time.
     let query = supabase
       .from('rounds')
-      .select('*, games(name)')
+      .select('*, games(name, opening_time, closing_time, result_time)')
       .eq('status', 'result_declared')
       .not('result', 'is', null)
       .order('updated_at', { ascending: false })
       .limit(limit);
     if (gameId) query = query.eq('game_id', gameId);
     const { data } = await query;
-    return (data || []).map((row: any) => this.mapRow(row, row.games?.name));
+    const rows = (data || []).map((row: any) => {
+      const flat: any = { ...row };
+      flat.open_time = row.games?.opening_time;
+      flat.close_time = row.games?.closing_time;
+      flat.result_time = row.games?.result_time;
+      delete flat.games;
+      return flat;
+    });
+    return rows.map((row: any) => this.mapRow(row, row.game_name));
   }
 
   async findActive(gameId?: string): Promise<RoundEntity | null> {
@@ -170,6 +247,8 @@ export class RoundsRepository {
       resultTime: row.result_time,
       status: row.status,
       result: row.result,
+      openTime: row.open_time || row.opening_time,
+      closeTime: row.close_time || row.closing_time,
       declaredAt: row.declared_at,
       createdAt: row.created_at,
       updatedAt: row.updated_at,

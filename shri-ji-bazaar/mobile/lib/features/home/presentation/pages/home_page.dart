@@ -26,7 +26,8 @@ class _HomePageState extends State<HomePage> {
   Timer? _refreshTimer;
 
   final ApiService _api = ApiService();
-  Map<String, dynamic>? _liveMarket;
+  List<dynamic> _liveRounds = []; // all rounds currently running (multi-card)
+  List<dynamic> _upcomingToday = []; // today's not-yet-open markets (short list)
   List<dynamic> _recentResults = [];
   List<GameEntity> _allGames = [];
   bool _loading = true;
@@ -67,44 +68,53 @@ class _HomePageState extends State<HomePage> {
   Future<void> _loadAllData() async {
     setState(() => _loading = true);
     try {
+      final today = _todayIso();
       final results = await Future.wait([
-        _api.get('/rounds/active'),
+        _api.get('/rounds/live'),
+        _api.get('/rounds/upcoming', queryParameters: {'date': today}),
         _api.get('/results/latest', queryParameters: {'limit': 10}),
         _api.get('/games'),
       ]);
 
-      final activeData = results[0] as Map<String, dynamic>?;
-      final resultsData = results[1] as List<dynamic>? ?? [];
-      var gamesData = results[2] as List<dynamic>? ?? <dynamic>[];
+      final liveData = results[0] as List<dynamic>? ?? [];
+      final upcomingData = results[1] as List<dynamic>? ?? [];
+      final resultsData = results[2] as List<dynamic>? ?? [];
+      var gamesData = results[3] as List<dynamic>? ?? <dynamic>[];
 
       // Show real data from the DB. Fallback only when the whole request
       // failed (offline / wrong URL), NOT when the DB is genuinely empty.
-      // (To re-add a hardcoded fallback for offline demos, see git history
-      // of this file — it was removed because it masked the empty live DB.)
       //
-      // No "upcoming markets" list: it rendered ~20 days of open rounds and
-      // buried the games. The games section is the focus; each game card's
-      // play screen has its own date selector for future markets.
+      // LIVE MARKET = every round running right now (multi-card).
+      // UPCOMING = ONLY today's not-yet-open markets (a short list, not the
+      // next 20 days) — matching the reference design.
 
-      final games = gamesData.map((g) => GameEntity(
-        id: g['id'] as String,
-        name: g['name'] as String,
-        slug: g['slug'] as String,
-        description: g['description'] as String? ?? '',
-        image: g['image'] as String? ?? '',
-        openingTime: g['opening_time'] as String? ?? '',
-        closingTime: g['closing_time'] as String? ?? '',
-        resultTime: g['result_time'] as String? ?? '',
-        status: g['status'] as String? ?? 'active',
-        isPopular: g['is_popular'] as bool? ?? false,
-        sortOrder: g['sort_order'] as int? ?? 0,
-        createdAt: g['created_at'] is String ? DateTime.parse(g['created_at'] as String) : DateTime.now(),
-        updatedAt: g['updated_at'] is String ? DateTime.parse(g['updated_at'] as String) : DateTime.now(),
-      )).toList();
+      // Focus: the 8 playable markets. Inactive games (admin-deactivated or
+      // leftover test rows) stay out of the player app entirely — admins
+      // manage them in the admin panel.
+      final games = gamesData
+          .where((g) => (g['status'] ?? 'active').toString() == 'active')
+          .map((g) => GameEntity(
+            id: g['id'] as String,
+            name: g['name'] as String,
+            slug: g['slug'] as String,
+            description: g['description'] as String? ?? '',
+            image: g['image'] as String? ?? '',
+            openingTime: g['opening_time'] as String? ?? '',
+            closingTime: g['closing_time'] as String? ?? '',
+            resultTime: g['result_time'] as String? ?? '',
+            status: g['status'] as String? ?? 'active',
+            isPopular: g['is_popular'] as bool? ?? false,
+            sortOrder: g['sort_order'] as int? ?? 0,
+            createdAt: g['created_at'] is String ? DateTime.parse(g['created_at'] as String) : DateTime.now(),
+            updatedAt: g['updated_at'] is String ? DateTime.parse(g['updated_at'] as String) : DateTime.now(),
+          ))
+          .toList()
+        ..sort((a, b) => a.sortOrder.compareTo(b.sortOrder));
 
       if (mounted) {
         setState(() {
-          _liveMarket = activeData;
+          _liveRounds = liveData;
+          _upcomingToday = upcomingData;
           _recentResults = resultsData;
           _allGames = games;
           _loading = false;
@@ -197,22 +207,6 @@ class _HomePageState extends State<HomePage> {
     }
   }
 
-  String _formatTimeLeft(String? endTime) {
-    if (endTime == null) return '';
-    try {
-      final end = DateTime.parse(endTime);
-      final now = DateTime.now();
-      final diff = end.difference(now);
-      if (diff.isNegative) return '00h 00m 00s';
-      final h = diff.inHours.toString().padLeft(2, '0');
-      final m = (diff.inMinutes % 60).toString().padLeft(2, '0');
-      final s = (diff.inSeconds % 60).toString().padLeft(2, '0');
-      return '$h:$m:$s';
-    } catch (_) {
-      return '';
-    }
-  }
-
   String _formatAmPm(String? timeStr) {
     if (timeStr == null) return '';
     try {
@@ -224,6 +218,41 @@ class _HomePageState extends State<HomePage> {
     } catch (_) {
       return timeStr;
     }
+  }
+
+  /// Today's date as YYYY-MM-DD (local) — used to scope the upcoming list
+  /// to the day so it stays short, like the reference design.
+  String _todayIso() {
+    final d = DateTime.now();
+    return '${d.year}-${d.month.toString().padLeft(2, '0')}-${d.day.toString().padLeft(2, '0')}';
+  }
+
+  /// "05:50 PM" style clock from an HH:MM(:SS) time-of-day string.
+  String _formatClock(String? timeStr) {
+    if (timeStr == null || timeStr.isEmpty) return '';
+    try {
+      final t = timeStr.split(':');
+      int h = int.parse(t[0]);
+      final m = t.length > 1 ? int.parse(t[1]) : 0;
+      final period = h >= 12 ? 'PM' : 'AM';
+      final h12 = h % 12 == 0 ? 12 : h % 12;
+      return '$h12:${m.toString().padLeft(2, '0')} $period';
+    } catch (_) {
+      return timeStr;
+    }
+  }
+
+  /// Ticking "0h 3m 43sec left" countdown to an ISO datetime.
+  String _formatCountdown(String? isoEnd) {
+    if (isoEnd == null || isoEnd.isEmpty) return '00h 00m 00s';
+    final end = DateTime.tryParse(isoEnd);
+    if (end == null) return '00h 00m 00s';
+    final diff = end.difference(DateTime.now());
+    if (diff.isNegative) return '00h 00m 00s';
+    final h = diff.inHours.toString().padLeft(2, '0');
+    final m = (diff.inMinutes % 60).toString().padLeft(2, '0');
+    final s = (diff.inSeconds % 60).toString().padLeft(2, '0');
+    return '${h}h ${m}m ${s}s left';
   }
 
   String _getLastResultForGame(String gameName) {
@@ -276,9 +305,10 @@ class _HomePageState extends State<HomePage> {
                   const SizedBox(height: 16),
                   _buildLiveMarketSection(),
                   const SizedBox(height: 16),
-                  // No "UPCOMING MARKET / WAIT" list here: it rendered 20+ days
-                  // of open rounds and buried the games. The games section
-                  // below is the focus — pick a game, use its date selector.
+                  _buildUpcomingSection(),
+                  const SizedBox(height: 16),
+                  _buildLastResultsSection(),
+                  const SizedBox(height: 16),
                   _buildGamesSection(),
                   if (_selectedGameId != null && _gameDetailsLoading)
                     const Padding(
@@ -501,10 +531,273 @@ class _HomePageState extends State<HomePage> {
   Widget _buildLiveMarketSection() {
     if (_loading)
       return const Center(child: Padding(padding: EdgeInsets.all(24), child: CircularProgressIndicator(color: AppColors.success)));
-    else if (_liveMarket != null)
-      return _buildLiveMarketCard(_liveMarket!);
-    else
+    if (_liveRounds.isEmpty)
       return _buildEmptyMarketCard('No Live Market', 'WAITING', AppColors.warning);
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 16),
+          child: Text('LIVE MARKET', style: AppTextStyles.sectionHeading),
+        ),
+        const SizedBox(height: 10),
+        ...List.generate(_liveRounds.length, (index) {
+          return _buildLiveMarketCard(_liveRounds[index] as Map<String, dynamic>);
+        }),
+      ],
+    );
+  }
+
+  /// One running round, styled like the reference LIVE MARKET card:
+  /// name + RUNNING pill + red "Time Left" countdown, then a footer row with
+  /// Last Result / Result Time and a Play button.
+  Widget _buildLiveMarketCard(Map<String, dynamic> market) {
+    final name = (market['game_name'] ?? market['gameName'] ?? 'LIVE MARKET').toString().toUpperCase();
+    final timeLeft = _formatCountdown(market['end_time'] ?? market['endTime']);
+    final lastResult = market['lastResult']?.toString() ?? _getLastResultForGame(name);
+    final resultTime = _formatClock(market['result_time'] ?? market['resultTime']);
+    final gameId = market['game_id'] ?? market['gameId'];
+
+    return Container(
+      margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: AppColors.card,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: AppColors.border),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(name, style: AppTextStyles.marketTitle.copyWith(fontSize: 18)),
+                    const SizedBox(height: 4),
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 3),
+                      decoration: BoxDecoration(
+                        color: AppColors.success.withValues(alpha: 0.15),
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(color: AppColors.success.withValues(alpha: 0.4)),
+                      ),
+                      child: const Text('RUNNING', style: TextStyle(color: AppColors.success, fontSize: 11, fontWeight: FontWeight.w700, letterSpacing: 1.5)),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          Row(
+            children: [
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(timeLeft, style: const TextStyle(color: AppColors.error, fontSize: 16, fontWeight: FontWeight.w700, fontFamily: 'monospace')),
+                    const SizedBox(height: 2),
+                    const Text('Time Left', style: TextStyle(color: AppColors.textMuted, fontSize: 10)),
+                  ],
+                ),
+              ),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text('Last Result : $lastResult', style: const TextStyle(color: AppColors.goldBright, fontSize: 13, fontWeight: FontWeight.w600)),
+                    const SizedBox(height: 6),
+                    Text('Result Time : $resultTime', style: const TextStyle(color: AppColors.textMuted, fontSize: 11)),
+                  ],
+                ),
+              ),
+              Container(
+                decoration: BoxDecoration(color: AppColors.success, borderRadius: BorderRadius.circular(10)),
+                child: TextButton.icon(
+                  onPressed: () {
+                    if (gameId != null) _onPlayGame(gameId.toString(), name);
+                  },
+                  icon: const Icon(Icons.play_arrow_rounded, color: Colors.white, size: 20),
+                  label: const Text('Play', style: TextStyle(color: Colors.white, fontWeight: FontWeight.w800)),
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  /// Short "today's markets not open yet" list — the reference's
+  /// UPCOMING MARKET rows (name + WAITING + Wait button + Open/Close footer).
+  Widget _buildUpcomingSection() {
+    if (_upcomingToday.isEmpty) {
+      return _buildEmptyMarketCard('No Upcoming Markets', 'WAITING', AppColors.warning);
+    }
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 16),
+          child: Text('UPCOMING MARKET', style: AppTextStyles.sectionHeading),
+        ),
+        const SizedBox(height: 10),
+        ...List.generate(_upcomingToday.length, (index) {
+          final market = _upcomingToday[index] as Map<String, dynamic>;
+          final rawName = market['game_name'] ?? market['gameName'];
+          final name = ((rawName?.toString().isNotEmpty == true ? rawName!.toString() : 'Unknown')).toUpperCase();
+          final openTime = _formatClock(market['open_time'] ?? market['openTime'] ?? market['opening_time']);
+          final closeTime = _formatClock(market['close_time'] ?? market['closeTime'] ?? market['closing_time']);
+          final gameId = market['game_id'] ?? market['gameId'];
+          return _buildUpcomingMarketCard(
+            name: name,
+            openTime: openTime,
+            closeTime: closeTime,
+            onPlay: () {
+              if (gameId != null) _onPlayGame(gameId.toString(), name);
+            },
+          );
+        }),
+      ],
+    );
+  }
+
+  Widget _buildUpcomingMarketCard({
+    required String name,
+    required String openTime,
+    required String closeTime,
+    required VoidCallback onPlay,
+  }) {
+    return Container(
+      margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+      decoration: BoxDecoration(
+        color: AppColors.card,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: AppColors.border),
+      ),
+      child: Column(
+        children: [
+          Padding(
+            padding: const EdgeInsets.fromLTRB(14, 12, 14, 12),
+            child: Row(
+              children: [
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(name, style: AppTextStyles.marketTitle),
+                      const SizedBox(height: 3),
+                      const Text('WAITING', style: TextStyle(color: AppColors.textMuted, fontSize: 11, fontWeight: FontWeight.w600, letterSpacing: 1)),
+                    ],
+                  ),
+                ),
+                ElevatedButton(
+                  onPressed: onPlay,
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: AppColors.success,
+                    padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: const [
+                      Icon(Icons.timer_outlined, color: Colors.white, size: 15),
+                      SizedBox(width: 6),
+                      Text('Wait', style: TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.w700)),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
+          Container(
+            color: AppColors.success,
+            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 9),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text('Open Time : $openTime', style: const TextStyle(color: Colors.white, fontSize: 11)),
+                Text('Close Time : $closeTime', style: const TextStyle(color: Colors.white, fontSize: 11)),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  /// Reference's LAST RESULTS section: each declared result as a row with the
+  /// game name, a big green result badge, and Open/Close time footer.
+  Widget _buildLastResultsSection() {
+    if (_recentResults.isEmpty) {
+      return _buildEmptyMarketCard('No Results Yet', 'WAITING', AppColors.warning);
+    }
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 16),
+          child: Text('LAST RESULTS', style: AppTextStyles.sectionHeading),
+        ),
+        const SizedBox(height: 10),
+        ...List.generate(_recentResults.length, (index) {
+          final r = _recentResults[index] as Map<String, dynamic>;
+          final rawName = r['game_name'] ?? r['gameName'];
+          final name = ((rawName?.toString().isNotEmpty == true ? rawName!.toString() : 'Unknown')).toUpperCase();
+          final value = r['result']?.toString() ?? '--';
+          final openTime = _formatClock(r['open_time'] ?? r['openTime'] ?? r['opening_time']);
+          final closeTime = _formatClock(r['close_time'] ?? r['closeTime'] ?? r['closing_time']);
+          return Container(
+            margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+            decoration: BoxDecoration(
+              color: AppColors.card,
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: AppColors.border),
+            ),
+            child: Column(
+              children: [
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(14, 12, 14, 12),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Text(name, style: AppTextStyles.marketTitle.copyWith(fontSize: 15)),
+                      Container(
+                        width: 44,
+                        height: 44,
+                        alignment: Alignment.center,
+                        decoration: BoxDecoration(
+                          color: AppColors.success,
+                          shape: BoxShape.circle,
+                        ),
+                        child: Text(
+                          value.length > 3 ? value : value,
+                          style: const TextStyle(color: Colors.white, fontSize: 14, fontWeight: FontWeight.w800),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                Container(
+                  color: AppColors.success,
+                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 9),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Text('Open Time : $openTime', style: const TextStyle(color: Colors.white, fontSize: 11)),
+                      Text('Close Time : $closeTime', style: const TextStyle(color: Colors.white, fontSize: 11)),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          );
+        }),
+      ],
+    );
   }
 
   Widget _buildGamesSection() {
@@ -691,100 +984,6 @@ class _HomePageState extends State<HomePage> {
                 ),
               );
             }),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildLiveMarketCard(Map<String, dynamic> market) {
-    // Same shape as upcoming: the Supabase join returns the game under the
-    // "games" key (verified against the live API). No hard-coded default name.
-    String? liveName;
-    liveName = market['game_name'] as String?;
-    final nestedLive = market['games'];
-    if (nestedLive is Map) liveName = nestedLive['name'] as String? ?? liveName;
-    if (liveName == null || liveName.isEmpty) {
-      liveName = market['game_name'] as String? ?? market['gameName'] as String?;
-    }
-    final name = (liveName ?? 'LIVE MARKET').toUpperCase();
-    final timeLeft = _formatTimeLeft(market['end_time'] ?? market['endTime']);
-    final lastResult = _getLastResultForGame(name);
-    final resultTime = _formatAmPm(market['result_time'] ?? market['resultTime']);
-
-    return Container(
-      margin: const EdgeInsets.symmetric(horizontal: 12),
-      padding: const EdgeInsets.all(14),
-      decoration: BoxDecoration(
-        color: AppColors.card,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: AppColors.border),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Text(name, style: AppTextStyles.marketTitle.copyWith(fontSize: 18)),
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 3),
-                decoration: BoxDecoration(
-                  color: AppColors.success.withValues(alpha: 0.15),
-                  borderRadius: BorderRadius.circular(12),
-                  border: Border.all(color: AppColors.success.withValues(alpha: 0.4)),
-                ),
-                child: Text(
-                  'RUNNING',
-                  style: TextStyle(
-                    color: AppColors.success,
-                    fontSize: 11,
-                    fontWeight: FontWeight.w700,
-                    letterSpacing: 1.5,
-                  ),
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 12),
-          Row(
-            children: [
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(timeLeft, style: AppTextStyles.cardTitle.copyWith(color: AppColors.goldBright, fontFamily: 'monospace', fontSize: 18)),
-                    const SizedBox(height: 2),
-                    Text('Time Left', style: AppTextStyles.caption.copyWith(color: AppColors.textSecondary)),
-                  ],
-                ),
-              ),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text('Last Result : $lastResult', style: AppTextStyles.bodySmall.copyWith(color: AppColors.goldBright, fontWeight: FontWeight.w600)),
-                    const SizedBox(height: 8),
-                    Text('Result Time : $resultTime', style: AppTextStyles.caption.copyWith(color: AppColors.textSecondary)),
-                  ],
-                ),
-              ),
-              Container(
-                decoration: BoxDecoration(
-                  color: AppColors.success,
-                  borderRadius: BorderRadius.circular(10),
-                ),
-                child: TextButton.icon(
-                  onPressed: () {
-                    final gameId = market['game_id'] as String?;
-                    if (gameId == null) return;
-                    _openWagerSheet(gameId);
-                  },
-                  icon: const Icon(Icons.play_arrow_rounded, color: Colors.white, size: 20),
-                  label: Text('Play', style: AppTextStyles.body.copyWith(color: Colors.white, fontWeight: FontWeight.w800)),
-                ),
-              ),
-            ],
-          ),
         ],
       ),
     );
