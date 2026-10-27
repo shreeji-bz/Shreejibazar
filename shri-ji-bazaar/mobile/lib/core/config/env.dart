@@ -21,9 +21,11 @@ class AppEnv {
   AppEnv._();
 
   /// >>> CHANGE ME WHEN THE BACKEND MOVES <<<
-  /// 2026-10-19: LAN address of the dev machine (it was 10.97.119.19, then the
-  /// router reissued it as 10.205.236.19). Keep in sync with [mobile/.env].
-  static const String API_BASE_URL = 'http://10.205.236.19:3000/api/v1';
+  /// 2026-10-26: LAN address of the dev machine is now 10.27.174.76 (the router
+  /// reissued it; it was 10.97.119.19, then 10.205.236.19). Keep in sync with
+  /// [mobile/.env]. If register/home spin forever, check this IP against
+  /// `ipconfig` on the backend machine.
+  static const String API_BASE_URL = 'http://10.27.174.76:3000/api/v1';
   /// -----------------------------------------
 
   /// Flips on (throw) when [API_BASE_URL] is cleartext http, to catch
