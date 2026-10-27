@@ -7,12 +7,13 @@ import { authenticateAdmin } from '../../common/middleware/admin.middleware';
 export class RoundsModule {
   public router = Router();
   public adminRouter = Router();
+  public service: RoundsService;
 
   constructor() {
     const repository = new RoundsRepository();
-    const service = new RoundsService(repository);
-    new RoundsController(service, this.router);
+    this.service = new RoundsService(repository);
+    new RoundsController(this.service, this.router);
     this.adminRouter.use(authenticateAdmin);
-    new RoundsController(service, this.adminRouter);
+    new RoundsController(this.service, this.adminRouter);
   }
 }

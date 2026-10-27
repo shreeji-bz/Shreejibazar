@@ -6,6 +6,7 @@ export interface WagerEntity {
   wagerTypeId: string;
   playType: string;
   selection: string;
+  palti: boolean;
   pointsStaked: number;
   potentialPayout: number;
   status: string;

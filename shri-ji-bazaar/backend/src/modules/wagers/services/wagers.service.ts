@@ -1,6 +1,13 @@
 import { WagersRepository } from '../repositories/wagers.repository';
 import { supabase } from '../../../config/database.config';
 import { getSettingsMap } from '../../../common/utils/settings.util';
+import {
+  PLAY_TYPE_MULTIPLIERS,
+  assertSelectionValid,
+  isWinner,
+  payoutFor,
+  PlayType,
+} from './wager-settlement';
 
 export class WagersService {
   constructor(private wagersRepo: WagersRepository) {}
@@ -12,6 +19,7 @@ export class WagersService {
     wagerTypeId?: string;
     playType: string;
     selection: string;
+    palti?: boolean;
     pointsStaked: number;
     idempotencyKey?: string;
   }): Promise<any> {
@@ -93,8 +101,9 @@ export class WagersService {
       }
     }
 
-    // Validate wager type if provided
-    let potentialPayout = Math.floor(data.pointsStaked * 1.8);
+    // Potential payout: data-driven (wager_types table) when a wager type is
+    // supplied, otherwise fall back to the per-play-type multiplier table.
+    let potentialPayout = Math.floor(data.pointsStaked * (PLAY_TYPE_MULTIPLIERS[data.playType as PlayType] ?? 1.8));
     if (data.wagerTypeId) {
       const { data: wagerType, error: wagerTypeError } = await supabase
         .from('wager_types')
@@ -103,12 +112,12 @@ export class WagersService {
         .single();
 
       if (!wagerTypeError && wagerType) {
-        potentialPayout = Math.floor(data.pointsStaked * wagerType.payout_multiplier);
+        potentialPayout = Math.floor(data.pointsStaked * Number(wagerType.payout_multiplier));
       }
     }
 
-    // Validate play type and selection
-    this.validatePlayType(data.playType, data.selection);
+    // Validate play type and selection (pure, testable rules).
+    assertSelectionValid(data.playType as PlayType, data.selection);
 
     // Get round info for description
     const { data: roundInfo } = await supabase
@@ -138,6 +147,7 @@ export class WagersService {
       wagerTypeId: data.wagerTypeId || '',
       playType: data.playType,
       selection: data.selection,
+      palti: data.palti ?? false,
       pointsStaked: data.pointsStaked,
       potentialPayout,
       status: 'active',
@@ -298,38 +308,42 @@ export class WagersService {
     };
   }
 
-  private validatePlayType(playType: string, selection: string): void {
-    const validPlayTypes = ['single', 'jodi', 'panel', 'double'];
+  /**
+   * Settle every active wager in a round against a declared result. Shared by
+   * the admin "settle round" action and the auto-settlement that fires when a
+   * result is declared. Credits winners' wallets, marks losers, and returns
+   * a per-wager report.
+   */
+  async settleRound(roundId: string, resultText: string): Promise<{
+    totalSettled: number;
+    won: number;
+    lost: number;
+    totalPaid: number;
+    wagers: any[];
+  }> {
+    const activeWagers = await this.wagersRepo.getActiveWagersForRound(roundId);
+    let won = 0;
+    let lost = 0;
+    let totalPaid = 0;
+    const wagers: any[] = [];
 
-    if (!validPlayTypes.includes(playType)) {
-      throw new Error(`Invalid play type: ${playType}. Must be one of: ${validPlayTypes.join(', ')}`);
+    for (const wager of activeWagers) {
+      const isWin = isWinner(wager.playType as PlayType, wager.selection, resultText, wager.palti ?? false);
+      const pointsWon = isWin ? payoutFor(wager.playType as PlayType, wager.selection, wager.pointsStaked, resultText, wager.palti ?? false) : 0;
+      try {
+        const settled = await this.settleWager(wager.id, { resultText, isWinner: isWin, pointsWon });
+        wagers.push(settled);
+        if (isWin) {
+          won += 1;
+          totalPaid += pointsWon;
+        } else {
+          lost += 1;
+        }
+      } catch (err) {
+        wagers.push({ id: wager.id, error: (err as Error).message });
+      }
     }
 
-    if (!selection || selection.trim().length === 0) {
-      throw new Error('Selection is required');
-    }
-
-    switch (playType) {
-      case 'single':
-        if (!/^\d$/.test(selection.trim())) {
-          throw new Error('Single play type requires a single digit (0-9)');
-        }
-        break;
-      case 'double':
-        if (!/^[0-9]{2}$/.test(selection.trim())) {
-          throw new Error('Double play type requires exactly 2 digits');
-        }
-        break;
-      case 'jodi':
-        if (!/^[0-9]{2}$/.test(selection.trim())) {
-          throw new Error('Jodi play type requires exactly 2 digits');
-        }
-        break;
-      case 'panel':
-        if (selection.trim().length < 3) {
-          throw new Error('Panel play type requires at least 3 digits');
-        }
-        break;
-    }
+    return { totalSettled: activeWagers.length, won, lost, totalPaid, wagers };
   }
 }

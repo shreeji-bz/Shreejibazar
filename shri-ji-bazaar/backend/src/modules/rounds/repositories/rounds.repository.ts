@@ -7,9 +7,56 @@ export class RoundsRepository {
     return data ? this.mapRow(data) : null;
   }
 
+  /**
+   * Date-wise round guarantee: make sure an OPEN round exists for the given
+   * day + game so the next day's market is playable without waiting for an
+   * admin. Idempotent (matches on game_id + exact start_time).
+   */
+  async ensureRoundForDate(
+    gameId: string,
+    startTime: string,
+    endTime: string,
+    resultTime?: string
+  ): Promise<RoundEntity | null> {
+    const { data: existing } = await supabase
+      .from('rounds')
+      .select('id')
+      .eq('game_id', gameId)
+      .eq('start_time', startTime)
+      .limit(1)
+      .maybeSingle();
+    if (existing) return null; // already generated
+
+    const roundNumber = Date.now() % 100000;
+    const { data: record, error } = await supabase
+      .from('rounds')
+      .insert({
+        game_id: gameId,
+        round_number: roundNumber,
+        start_time: startTime,
+        end_time: endTime,
+        ...(resultTime ? { result_time: resultTime } : {}),
+        status: 'open',
+      })
+      .select()
+      .single();
+    if (error) throw new Error(error.message);
+    return record ? this.mapRow(record) : null;
+  }
+
   async findByGameId(gameId: string, options: any = {}): Promise<{ data: RoundEntity[]; meta: any }> {
     let query = supabase.from('rounds').select('*', { count: 'exact' }).eq('game_id', gameId);
     if (options.status) query = query.eq('status', options.status);
+    if (options.date) {
+      // Date-wise filtering: rounds whose start falls on the given local date
+      // (YYYY-MM-DD). Interpreted in the server's timezone (IST in dev), which
+      // matches how the daily seed rounds are generated.
+      const day = new Date(`${options.date}T00:00:00`);
+      if (!isNaN(day.getTime())) {
+        const next = new Date(day.getTime() + 24 * 60 * 60 * 1000);
+        query = query.gte('start_time', day.toISOString()).lt('start_time', next.toISOString());
+      }
+    }
     const page = Math.max(1, options.page || 1);
     const limit = Math.min(100, options.limit || 20);
     const from = (page - 1) * limit;
