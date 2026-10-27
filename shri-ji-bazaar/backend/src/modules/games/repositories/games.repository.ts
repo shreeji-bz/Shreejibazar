@@ -50,18 +50,22 @@ export class GameRepository {
   }
 
   async create(data: Partial<GameEntity>): Promise<GameEntity> {
-    const { data: record } = await supabase.from('games').insert({
+    // The live games table has NOT NULL time columns, so default any that the
+    // admin omits rather than failing the whole create.
+    const { data: record, error } = await supabase.from('games').insert({
       name: data.name,
       slug: data.slug,
       description: data.description || '',
       image: data.image || '',
-      opening_time: data.openingTime,
-      closing_time: data.closingTime,
-      result_time: data.resultTime,
+      opening_time: data.openingTime || '06:00:00',
+      closing_time: data.closingTime || data.resultTime || '06:30:00',
+      result_time: data.resultTime || '06:35:00',
       status: data.status || 'active',
       is_popular: data.isPopular || false,
       sort_order: data.sortOrder || 0,
     }).select().single();
+
+    if (error) throw new Error(error.message);
 
     if (!record) throw new Error('Failed to create game');
     return this.mapRow(record);
