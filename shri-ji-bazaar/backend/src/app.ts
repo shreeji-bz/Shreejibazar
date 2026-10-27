@@ -40,8 +40,17 @@ const app: Express = express();
 // Security
 app.use(helmet());
 
-// CORS
-app.use(cors({ origin: config.corsOrigin, credentials: true }));
+// CORS — CORS_ORIGIN may be a comma-separated list (e.g. the admin panel's
+// localhost origin for local dev + the LAN origin when opened from other
+// devices on the same network).
+app.use(cors({
+  // '*' (the default) reflects the requesting origin; a comma list is split
+  // into explicit allowed origins.
+  origin: config.corsOrigin === '*' || !config.corsOrigin
+    ? true
+    : config.corsOrigin.split(',').map((s) => s.trim()),
+  credentials: true,
+}));
 
 // Body parsing
 app.use(express.json({ limit: '10mb' }));
