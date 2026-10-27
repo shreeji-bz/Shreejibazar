@@ -20,12 +20,17 @@
 class AppEnv {
   AppEnv._();
 
-  /// >>> CHANGE ME WHEN THE BACKEND MOVES <<<
-  /// 2026-10-26: LAN address of the dev machine is now 10.27.174.76 (the router
-  /// reissued it; it was 10.97.119.19, then 10.205.236.19). Keep in sync with
-  /// [mobile/.env]. If register/home spin forever, check this IP against
-  /// `ipconfig` on the backend machine.
-  static const String API_BASE_URL = 'http://10.27.174.76:3000/api/v1';
+  /// >>> HOW THE APP REACHES THE BACKEND <<<
+  /// 127.0.0.1 + `adb reverse tcp:3000 tcp:3000` (USB tunnel). This is the
+  /// most reliable local-dev setup: it works over mobile data, needs no shared
+  /// Wi-Fi, and never breaks when the PC's LAN IP changes (a router reissue was
+  /// the cause of the "endless home spinner" before). Re-run `adb reverse`
+  /// after every `adb kill-server` / USB reconnect.
+  ///
+  /// Alternative (no USB): put the phone + PC on the same Wi-Fi, then use the
+  /// PC's LAN IP instead (e.g. http://192.168.0.197:3000/api/v1) — check
+  /// `ipconfig` on the backend machine for the current IP.
+  static const String API_BASE_URL = 'http://127.0.0.1:3000/api/v1';
   /// -----------------------------------------
 
   /// Flips on (throw) when [API_BASE_URL] is cleartext http, to catch
