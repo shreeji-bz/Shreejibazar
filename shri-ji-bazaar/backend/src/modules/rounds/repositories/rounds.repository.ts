@@ -160,6 +160,25 @@ export class RoundsRepository {
   }
 
   private mapRow(row: any, gameName?: string): RoundEntity {
-    return { id: row.id, gameId: row.game_id, gameName: gameName || row.games?.name, roundNumber: row.round_number, startTime: row.start_time, endTime: row.end_time, resultTime: row.result_time, status: row.status, result: row.result, declaredAt: row.declared_at, createdAt: row.created_at, updatedAt: row.updated_at };
+    const base: any = {
+      id: row.id,
+      gameId: row.game_id,
+      gameName: gameName || row.games?.name || row.game_name,
+      roundNumber: row.round_number,
+      startTime: row.start_time,
+      endTime: row.end_time,
+      resultTime: row.result_time,
+      status: row.status,
+      result: row.result,
+      declaredAt: row.declared_at,
+      createdAt: row.created_at,
+      updatedAt: row.updated_at,
+    };
+    // The mobile app reads the flat `game_name` / `game_id` fields on rounds
+    // (home upcoming cards, live market). Emit them alongside the camelCase
+    // entity fields so both consumers work.
+    if (row.game_name != null) base.game_name = row.game_name;
+    if (row.game_id != null) base.game_id = row.game_id;
+    return base;
   }
 }
