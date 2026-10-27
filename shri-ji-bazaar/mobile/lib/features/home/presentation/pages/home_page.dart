@@ -109,21 +109,30 @@ class _HomePageState extends State<HomePage> {
       // (To re-add a hardcoded fallback for offline demos, see git history
       // of this file — it was removed because it masked the empty live DB.)
 
-      final games = gamesData.map((g) => GameEntity(
-        id: g['id'] as String,
-        name: g['name'] as String,
-        slug: g['slug'] as String,
-        description: g['description'] as String? ?? '',
-        image: g['image'] as String? ?? '',
-        openingTime: g['opening_time'] as String? ?? '',
-        closingTime: g['closing_time'] as String? ?? '',
-        resultTime: g['result_time'] as String? ?? '',
-        status: g['status'] as String? ?? 'active',
-        isPopular: g['is_popular'] as bool? ?? false,
-        sortOrder: g['sort_order'] as int? ?? 0,
-        createdAt: g['created_at'] is String ? DateTime.parse(g['created_at'] as String) : DateTime.now(),
-        updatedAt: g['updated_at'] is String ? DateTime.parse(g['updated_at'] as String) : DateTime.now(),
-      )).toList();
+      final games = gamesData.map((g) {
+        final m = g as Map;
+        final lastResult = m['last_result'] ?? m['lastResult'];
+        final lastResultAt = m['last_result_at'] ?? m['lastResultAt'];
+        final playConfig = m['play_config'] ?? m['playConfig'];
+        return GameEntity(
+          id: m['id'] as String,
+          name: m['name'] as String,
+          slug: m['slug'] as String,
+          description: m['description'] as String? ?? '',
+          image: m['image'] as String? ?? '',
+          openingTime: m['opening_time'] as String? ?? '',
+          closingTime: m['closing_time'] as String? ?? '',
+          resultTime: m['result_time'] as String? ?? '',
+          status: m['status'] as String? ?? 'active',
+          isPopular: m['is_popular'] as bool? ?? false,
+          sortOrder: m['sort_order'] as int? ?? 0,
+          createdAt: m['created_at'] is String ? DateTime.parse(m['created_at'] as String) : DateTime.now(),
+          updatedAt: m['updated_at'] is String ? DateTime.parse(m['updated_at'] as String) : DateTime.now(),
+          lastResult: lastResult == null ? null : lastResult.toString(),
+          lastResultAt: lastResultAt == null ? null : lastResultAt.toString(),
+          playConfig: playConfig is Map ? Map<String, dynamic>.from(playConfig) : null,
+        );
+      }).toList();
 
       if (mounted) {
         setState(() {
@@ -172,6 +181,8 @@ class _HomePageState extends State<HomePage> {
 
       if (mounted) {
         setState(() {
+          final lastResult = data['last_result'] ?? data['lastResult'];
+          final lastResultAt = data['last_result_at'] ?? data['lastResultAt'];
           _selectedGame = GameDetailEntity(
             id: data['id'] as String,
             name: data['name'] as String,
@@ -187,6 +198,8 @@ class _HomePageState extends State<HomePage> {
             createdAt: DateTime.parse(data['created_at'] as String),
             updatedAt: DateTime.parse(data['updated_at'] as String),
             rounds: rounds,
+            lastResult: lastResult == null ? null : lastResult.toString(),
+            lastResultAt: lastResultAt == null ? null : lastResultAt.toString(),
           );
           _gameDetailsLoading = false;
         });
@@ -573,6 +586,8 @@ class _HomePageState extends State<HomePage> {
   Widget _buildGameCard(GameEntity game, bool isSelected) {
     final icon = _gameIcon(game.name);
     final isActive = game.status.toLowerCase() == 'active';
+    final lastResult = game.lastResult;
+    final drawTime = game.lastResultAt != null ? _formatAmPm(game.lastResultAt) : '';
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
       decoration: BoxDecoration(
@@ -582,6 +597,21 @@ class _HomePageState extends State<HomePage> {
       ),
       child: Column(
         children: [
+          if (lastResult != null || drawTime.isNotEmpty)
+            Padding(
+              padding: const EdgeInsets.fromLTRB(16, 10, 16, 0),
+              child: Row(
+                children: [
+                  Text(
+                    'Last Result : ${lastResult ?? '--'}',
+                    style: AppTextStyles.bodySmall.copyWith(color: AppColors.goldBright, fontWeight: FontWeight.w600),
+                  ),
+                  const Spacer(),
+                  if (drawTime.isNotEmpty)
+                    Text('Drawn : $drawTime', style: AppTextStyles.caption.copyWith(color: AppColors.textSecondary)),
+                ],
+              ),
+            ),
           ListTile(
             leading: Container(
               width: 48,
@@ -672,6 +702,11 @@ class _HomePageState extends State<HomePage> {
                     Text('Open: ${_formatAmPm(game.openingTime)}', style: AppTextStyles.caption),
                     Text('Close: ${_formatAmPm(game.closingTime)}', style: AppTextStyles.caption),
                     Text('Result: ${_formatAmPm(game.resultTime)}', style: AppTextStyles.caption),
+                    if (game.lastResult != null)
+                      Text(
+                        'Last Result: ${game.lastResult}${game.lastResultAt != null ? ' · ${_formatAmPm(game.lastResultAt)}' : ''}',
+                        style: AppTextStyles.bodySmall.copyWith(color: AppColors.goldBright, fontWeight: FontWeight.w600),
+                      ),
                   ],
                 ),
               ),

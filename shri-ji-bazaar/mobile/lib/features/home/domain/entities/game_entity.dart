@@ -12,6 +12,9 @@ class GameEntity {
   final int sortOrder;
   final DateTime createdAt;
   final DateTime updatedAt;
+  final String? lastResult;
+  final String? lastResultAt;
+  final Map<String, dynamic>? playConfig;
 
   GameEntity({
     required this.id,
@@ -27,5 +30,8 @@ class GameEntity {
     required this.sortOrder,
     required this.createdAt,
     required this.updatedAt,
+    this.lastResult,
+    this.lastResultAt,
+    this.playConfig,
   });
 }
