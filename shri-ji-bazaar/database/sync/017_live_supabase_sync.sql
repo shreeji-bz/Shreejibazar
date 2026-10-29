@@ -31,12 +31,124 @@
 --
 -- Idempotent + additive. No data loss, no row deletes.
 -- Run it as a single statement batch (the dashboard runs the whole paste).
+--
+-- Self-contained: if the project has NO base schema at all (fresh project,
+-- or one where users/games/rounds were created in a different schema),
+-- section 0 creates them. On projects that already have them, section 0 is
+-- a no-op (CREATE TABLE IF NOT EXISTS).
 -- ============================================================
 
 -- ----------------------------------------------------------
--- 0. Guard: every section below is skipped if its object is absent,
---    so a partial/legacy live DB cannot abort the whole script.
+-- 0. Base schema: create the prerequisite tables when absent.
+--    (42P01 "relation public.users does not exist" means the live project
+--     predates the whole app schema — not just the betting tables.)
 -- ----------------------------------------------------------
+CREATE TABLE IF NOT EXISTS public.users (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  name TEXT NOT NULL,
+  mobile TEXT UNIQUE,
+  email TEXT UNIQUE,
+  avatar TEXT,
+  referral_code TEXT UNIQUE,
+  referred_by UUID REFERENCES public.users(id),
+  status TEXT NOT NULL DEFAULT 'active' CHECK (status IN ('active', 'inactive', 'suspended')),
+  password_hash TEXT NOT NULL DEFAULT '',
+  password_reset_code TEXT,
+  password_reset_expires_at TIMESTAMPTZ,
+  last_login TIMESTAMPTZ,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+
+CREATE TABLE IF NOT EXISTS public.games (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  name TEXT NOT NULL,
+  slug TEXT UNIQUE,
+  display_name TEXT,
+  description TEXT NOT NULL DEFAULT '',
+  image TEXT NOT NULL DEFAULT '',
+  opening_time TEXT NOT NULL DEFAULT '',
+  closing_time TEXT NOT NULL DEFAULT '',
+  result_time TEXT NOT NULL DEFAULT '',
+  status TEXT NOT NULL DEFAULT 'active' CHECK (status IN ('active', 'inactive', 'maintenance')),
+  is_popular BOOLEAN NOT NULL DEFAULT false,
+  sort_order INTEGER NOT NULL DEFAULT 0,
+  active BOOLEAN NOT NULL DEFAULT true,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+
+CREATE TABLE IF NOT EXISTS public.rounds (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  game_id UUID NOT NULL REFERENCES public.games(id) ON DELETE CASCADE,
+  round_number TEXT NOT NULL,
+  start_time TIMESTAMPTZ,
+  end_time TIMESTAMPTZ,
+  result_time TIMESTAMPTZ,
+  result TEXT,
+  status TEXT NOT NULL DEFAULT 'open' CHECK (status IN ('pending', 'open', 'closed', 'result_declared', 'settled')),
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+CREATE INDEX IF NOT EXISTS idx_rounds_game ON public.rounds(game_id);
+CREATE INDEX IF NOT EXISTS idx_rounds_status ON public.rounds(status);
+
+CREATE TABLE IF NOT EXISTS public.point_wallets (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id UUID NOT NULL REFERENCES public.users(id) ON DELETE CASCADE,
+  balance INTEGER NOT NULL DEFAULT 0,
+  total_earned INTEGER NOT NULL DEFAULT 0,
+  total_spent INTEGER NOT NULL DEFAULT 0,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+
+CREATE TABLE IF NOT EXISTS public.point_transactions (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id UUID NOT NULL REFERENCES public.users(id) ON DELETE CASCADE,
+  type TEXT NOT NULL,
+  amount INTEGER NOT NULL,
+  description TEXT NOT NULL DEFAULT '',
+  reference_id UUID,
+  reference_type TEXT,
+  balance_before INTEGER NOT NULL DEFAULT 0,
+  balance_after INTEGER NOT NULL DEFAULT 0,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+CREATE INDEX IF NOT EXISTS idx_point_transactions_user ON public.point_transactions(user_id);
+
+CREATE TABLE IF NOT EXISTS public.payments (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id UUID NOT NULL REFERENCES public.users(id) ON DELETE CASCADE,
+  processed_by UUID,
+  type TEXT NOT NULL,
+  amount INTEGER NOT NULL CHECK (amount > 0),
+  currency TEXT NOT NULL DEFAULT 'INR',
+  method TEXT,
+  status TEXT NOT NULL DEFAULT 'pending',
+  reference_id TEXT,
+  reference_type TEXT,
+  notes TEXT,
+  admin_notes TEXT,
+  balance_before INTEGER NOT NULL DEFAULT 0,
+  balance_after INTEGER NOT NULL DEFAULT 0,
+  txn_id TEXT,
+  provider TEXT NOT NULL DEFAULT 'manual',
+  utr_number TEXT,
+  screenshot_url TEXT,
+  bank_name TEXT,
+  account_number TEXT,
+  ifsc_code TEXT,
+  account_holder_name TEXT,
+  rejection_reason TEXT,
+  approved_by UUID,
+  processed_at TIMESTAMPTZ,
+  approved_at TIMESTAMPTZ,
+  completed_at TIMESTAMPTZ,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+CREATE INDEX IF NOT EXISTS idx_payments_user ON public.payments(user_id);
 
 -- ----------------------------------------------------------
 -- 1. wagers + wager_types: create them when absent, then normalise.
@@ -242,12 +354,16 @@ CREATE INDEX IF NOT EXISTS idx_settlement_items_wager ON public.settlement_items
 --          min_stake/max_stake/is_active/sort_order, no game_id
 --    The seed detects which columns exist and writes what fits, so it works
 --    on either shape and never aborts the batch.
+--
+--    seed_wager_types_for_game(p_game_id) seeds one game. A trigger on games
+--    calls it for every newly created game, so a fresh project gets its play
+--    types even though the games are created later through the admin panel.
 -- ----------------------------------------------------------
-DO $$
+CREATE OR REPLACE FUNCTION public.seed_wager_types_for_game(p_game_id UUID)
+RETURNS INTEGER AS $$
 DECLARE
-  g RECORD;
   t RECORD;
-  v_count INTEGER;
+  v_count INTEGER := 0;
   v_exists BOOLEAN;
   v_has_game_id BOOLEAN;
   v_has_slug BOOLEAN;
@@ -257,8 +373,7 @@ DECLARE
   v_has_min_stake BOOLEAN;
 BEGIN
   IF to_regclass('public.wager_types') IS NULL THEN
-    RAISE NOTICE 'wager_types missing — skipping seed';
-    RETURN;
+    RETURN 0;
   END IF;
 
   SELECT
@@ -282,68 +397,94 @@ BEGIN
       ('palti',    'Palti',    'Copy-paste number with/without palti (reversal)', 90, 10, 5000, 6)
     ) AS v(slug, name, description, payout_multiplier, min_points, max_points, sort_order)
   LOOP
-    FOR g IN SELECT id, name FROM public.games WHERE COALESCE(status,'active') = 'active' LOOP
-      -- Does this (game, play type) already exist? Dynamic SQL because the
-      -- slug/code columns differ between table shapes and Postgres resolves
-      -- column references at parse time, before any CASE can skip them.
-      v_exists := false;
-      IF v_has_game_id THEN
-        IF v_has_slug AND v_has_code THEN
-          EXECUTE 'SELECT EXISTS (SELECT 1 FROM public.wager_types wt WHERE wt.game_id = $1 AND (wt.slug = $2 OR wt.code = $2))'
-            INTO v_exists USING g.id, t.slug;
-        ELSIF v_has_slug THEN
-          EXECUTE 'SELECT EXISTS (SELECT 1 FROM public.wager_types wt WHERE wt.game_id = $1 AND wt.slug = $2)'
-            INTO v_exists USING g.id, t.slug;
-        ELSIF v_has_code THEN
-          EXECUTE 'SELECT EXISTS (SELECT 1 FROM public.wager_types wt WHERE wt.game_id = $1 AND wt.code = $2)'
-            INTO v_exists USING g.id, t.slug;
-        END IF;
-      ELSE
-        -- global (non game-scoped) table
-        IF v_has_slug AND v_has_code THEN
-          EXECUTE 'SELECT EXISTS (SELECT 1 FROM public.wager_types wt WHERE wt.slug = $1 OR wt.code = $1)'
-            INTO v_exists USING t.slug;
-        ELSIF v_has_slug THEN
-          EXECUTE 'SELECT EXISTS (SELECT 1 FROM public.wager_types wt WHERE wt.slug = $1)'
-            INTO v_exists USING t.slug;
-        ELSIF v_has_code THEN
-          EXECUTE 'SELECT EXISTS (SELECT 1 FROM public.wager_types wt WHERE wt.code = $1)'
-            INTO v_exists USING t.slug;
-        END IF;
+    -- Does this (game, play type) already exist? Dynamic SQL because the
+    -- slug/code columns differ between table shapes and Postgres resolves
+    -- column references at parse time, before any CASE can skip them.
+    v_exists := false;
+    IF v_has_game_id THEN
+      IF v_has_slug AND v_has_code THEN
+        EXECUTE 'SELECT EXISTS (SELECT 1 FROM public.wager_types wt WHERE wt.game_id = $1 AND (wt.slug = $2 OR wt.code = $2))'
+          INTO v_exists USING p_game_id, t.slug;
+      ELSIF v_has_slug THEN
+        EXECUTE 'SELECT EXISTS (SELECT 1 FROM public.wager_types wt WHERE wt.game_id = $1 AND wt.slug = $2)'
+          INTO v_exists USING p_game_id, t.slug;
+      ELSIF v_has_code THEN
+        EXECUTE 'SELECT EXISTS (SELECT 1 FROM public.wager_types wt WHERE wt.game_id = $1 AND wt.code = $2)'
+          INTO v_exists USING p_game_id, t.slug;
       END IF;
+    ELSE
+      -- global (non game-scoped) table
+      IF v_has_slug AND v_has_code THEN
+        EXECUTE 'SELECT EXISTS (SELECT 1 FROM public.wager_types wt WHERE wt.slug = $1 OR wt.code = $1)'
+          INTO v_exists USING t.slug;
+      ELSIF v_has_slug THEN
+        EXECUTE 'SELECT EXISTS (SELECT 1 FROM public.wager_types wt WHERE wt.slug = $1)'
+          INTO v_exists USING t.slug;
+      ELSIF v_has_code THEN
+        EXECUTE 'SELECT EXISTS (SELECT 1 FROM public.wager_types wt WHERE wt.code = $1)'
+          INTO v_exists USING t.slug;
+      END IF;
+    END IF;
 
-      IF NOT v_exists THEN
-        BEGIN
-          IF v_has_game_id AND v_has_slug AND v_has_status AND v_has_min_points THEN
-            INSERT INTO public.wager_types
-              (game_id, name, slug, description, payout_multiplier, min_points, max_points, status)
-            VALUES
-              (g.id, t.name, t.slug, t.description, t.payout_multiplier, t.min_points, t.max_points, 'active');
-          ELSIF v_has_game_id AND v_has_code AND v_has_min_stake THEN
-            INSERT INTO public.wager_types
-              (game_id, name, code, description, payout_multiplier, min_stake, max_stake, is_active, sort_order)
-            VALUES
-              (g.id, t.name, t.slug, t.description, t.payout_multiplier, t.min_points, t.max_points, true, t.sort_order);
-          ELSIF v_has_code AND v_has_min_stake THEN
-            INSERT INTO public.wager_types
-              (name, code, description, digits_required, payout_multiplier, min_stake, max_stake, is_active, sort_order)
-            VALUES
-              (t.name, t.slug, t.description, 1, t.payout_multiplier, t.min_points, t.max_points, true, t.sort_order);
-          ELSIF v_has_slug THEN
-            INSERT INTO public.wager_types
-              (name, slug, description, payout_multiplier, min_points, max_points)
-            VALUES
-              (t.name, t.slug, t.description, t.payout_multiplier, t.min_points, t.max_points);
-          END IF;
-        EXCEPTION WHEN others THEN
-          RAISE NOTICE 'wager_types insert skipped for %/%: %', g.name, t.slug, SQLERRM;
-        END;
-      END IF;
-    END LOOP;
+    IF NOT v_exists THEN
+      BEGIN
+        IF v_has_game_id AND v_has_slug AND v_has_status AND v_has_min_points THEN
+          INSERT INTO public.wager_types
+            (game_id, name, slug, description, payout_multiplier, min_points, max_points, status)
+          VALUES
+            (p_game_id, t.name, t.slug, t.description, t.payout_multiplier, t.min_points, t.max_points, 'active');
+        ELSIF v_has_game_id AND v_has_code AND v_has_min_stake THEN
+          INSERT INTO public.wager_types
+            (game_id, name, code, description, payout_multiplier, min_stake, max_stake, is_active, sort_order)
+          VALUES
+            (p_game_id, t.name, t.slug, t.description, t.payout_multiplier, t.min_points, t.max_points, true, t.sort_order);
+        ELSIF v_has_code AND v_has_min_stake THEN
+          INSERT INTO public.wager_types
+            (name, code, description, digits_required, payout_multiplier, min_stake, max_stake, is_active, sort_order)
+          VALUES
+            (t.name, t.slug, t.description, 1, t.payout_multiplier, t.min_points, t.max_points, true, t.sort_order);
+        ELSIF v_has_slug THEN
+          INSERT INTO public.wager_types
+            (name, slug, description, payout_multiplier, min_points, max_points)
+          VALUES
+            (t.name, t.slug, t.description, t.payout_multiplier, t.min_points, t.max_points);
+        END IF;
+        v_count := v_count + 1;
+      EXCEPTION WHEN others THEN
+        RAISE NOTICE 'wager_types insert skipped for %: %', t.slug, SQLERRM;
+      END;
+    END IF;
+  END LOOP;
+
+  RETURN v_count;
+END;
+$$ LANGUAGE plpgsql;
+
+-- Trigger wrapper (TRIGGER functions take no arguments, so they cannot be
+-- called directly with a game id — the wrapper bridges to the helper above).
+CREATE OR REPLACE FUNCTION public.seed_wager_types_trigger()
+RETURNS TRIGGER AS $$
+BEGIN
+  PERFORM public.seed_wager_types_for_game(NEW.id);
+  RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+-- Seed every game that exists right now.
+DO $$
+DECLARE g RECORD;
+BEGIN
+  FOR g IN SELECT id FROM public.games LOOP
+    PERFORM public.seed_wager_types_for_game(g.id);
   END LOOP;
 END $$;
 
--- ----------------------------------------------------------
+-- Auto-seed play types for games created later (admin panel).
+DROP TRIGGER IF EXISTS trg_seed_wager_types ON public.games;
+CREATE TRIGGER trg_seed_wager_types
+  AFTER INSERT ON public.games
+  FOR EACH ROW EXECUTE FUNCTION public.seed_wager_types_trigger();
+
 -- 7. wallet RPCs: deduct / credit.
 --    Every bet calls deduct_wallet_points; without it the RPC errors and the
 --    backend reports "Insufficient points balance" for everyone.
