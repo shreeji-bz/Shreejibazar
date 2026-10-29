@@ -14,6 +14,7 @@ export class AdminPaymentsController {
     this.router.get('/:id', this.getPaymentById.bind(this));
     this.router.post('/:id/approve', this.approvePayment.bind(this));
     this.router.post('/:id/reject', this.rejectPayment.bind(this));
+    this.router.post('/:id/revert', this.revertPayment.bind(this));
   }
 
   async getPendingDeposits(req: Request, res: Response) {
@@ -91,6 +92,19 @@ export class AdminPaymentsController {
       }
       const payment = await this.paymentsService.rejectPayment(req.params.id, req.admin!.id, adminNotes);
       res.json({ success: true, data: payment, message: 'Payment rejected' });
+    } catch (error: any) {
+      const statusCode = error.message === 'Payment not found' ? 404 : 400;
+      res.status(statusCode).json({ success: false, message: error.message });
+    }
+  }
+
+  /** Remove/revert a COMPLETED deposit: cuts the points back out of the
+   *  user's wallet and marks the payment rejected. */
+  async revertPayment(req: Request, res: Response) {
+    try {
+      const reason = req.body.adminNotes ?? req.body.adminNote ?? 'Deposit removed';
+      const payment = await this.paymentsService.revertPayment(req.params.id, req.admin!.id, reason);
+      res.json({ success: true, data: payment, message: 'Deposit reverted — points cut from wallet' });
     } catch (error: any) {
       const statusCode = error.message === 'Payment not found' ? 404 : 400;
       res.status(statusCode).json({ success: false, message: error.message });

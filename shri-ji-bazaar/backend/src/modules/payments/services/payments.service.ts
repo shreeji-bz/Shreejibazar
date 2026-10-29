@@ -291,6 +291,34 @@ export class PaymentsService {
     return this.paymentsRepo.approve(id, adminId, adminNotes);
   }
 
+  /**
+   * Remove/revert an ALREADY-COMPLETED deposit: cut the credited amount back
+   * out of the user's wallet (debitWallet) and mark the payment rejected.
+   * This is the "add money -> credit, remove money -> auto-cut" requirement.
+   * Idempotent-ish: a payment that is not completed cannot be reverted
+   * (nothing was credited), so it is rejected with a clear error.
+   */
+  async revertPayment(id: string, adminId: string, reason: string): Promise<PaymentEntity> {
+    const payment = await this.paymentsRepo.findById(id);
+    if (!payment) throw new Error('Payment not found');
+    if (payment.type !== 'deposit') {
+      throw new Error('Only completed deposits can be reverted');
+    }
+    if (payment.status !== 'completed') {
+      throw new Error(`Payment is not completed (it's ${payment.status}); nothing to revert`);
+    }
+
+    // Cut the amount back out of the wallet (adds a debit ledger row).
+    await this.paymentsRepo.debitWallet(
+      payment.userId,
+      payment.amount,
+      id,
+      `Deposit reverted${reason ? `: ${reason}` : ''}`,
+    );
+
+    return this.paymentsRepo.markReverted(id, adminId, `Reverted${reason ? `: ${reason}` : ''}`);
+  }
+
   async rejectPayment(id: string, adminId: string, adminNotes: string): Promise<PaymentEntity> {
     const payment = await this.paymentsRepo.findById(id);
     if (!payment) throw new Error('Payment not found');

@@ -121,6 +121,35 @@ export class PaymentsRepository {
     return this.mapRow(record);
   }
 
+  /**
+   * Mark an ALREADY-COMPLETED deposit as rejected (reverted). Unlike
+   * `reject` this does NOT require the payment to be pending — it is the
+   * "remove / claw back a deposit" path, called after `revertPayment` has
+   * already cut the points back out of the user's wallet.
+   */
+  async markReverted(id: string, adminId: string, reason: string): Promise<PaymentEntity> {
+    const payment = await this.findById(id);
+    if (!payment) throw new Error('Payment not found');
+
+    const now = new Date().toISOString();
+    const { data: record, error } = await supabase
+      .from('payments')
+      .update({
+        status: 'rejected',
+        processed_by: adminId,
+        admin_notes: reason,
+        updated_at: now,
+      })
+      .eq('id', id)
+      .select()
+      .single();
+
+    if (error || !record) {
+      throw new Error(`Failed to revert payment: ${error?.message || 'Unknown error'}`);
+    }
+    return this.mapRow(record);
+  }
+
   async reject(id: string, adminId: string, adminNotes: string): Promise<PaymentEntity> {
     const payment = await this.findById(id);
     if (!payment) throw new Error('Payment not found');
