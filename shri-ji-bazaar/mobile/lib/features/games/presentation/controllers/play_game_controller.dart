@@ -88,18 +88,18 @@ class PlayGameController extends ChangeNotifier {
   }
 
   GamePlayConfig _resolveConfig() {
-    // The games API now returns a per-game playConfig: {playTypes, minStake,
-    // maxStake}. When present, the play screen uses this game's own modes and
-    // stake bounds; when absent, it falls back to the standard set. This is
-    // the single place to branch.
+    // The games API now returns a per-game playConfig: {tabs (or playTypes),
+    // minStake, maxStake}. When present, the play screen uses this game's own
+    // tabs and stake bounds; when absent, it falls back to the standard set.
     final raw = game?['play_config'] ?? game?['playConfig'];
     if (raw is! Map || raw.isEmpty) return GamePlayConfig.standard;
 
     final m = Map<String, dynamic>.from(raw);
-    final playTypes = (m['playTypes'] ?? m['play_types']) as List<dynamic>?;
-    final resolved = (playTypes ?? const []).map((t) => t.toString()).toList();
+    final tabs = ((m['tabs'] ?? m['playTypes'] ?? m['play_types']) as List<dynamic>? ?? const [])
+        .map((t) => t.toString())
+        .toList();
     return GamePlayConfig(
-      playTypes: resolved.isEmpty ? GamePlayConfig.standard.playTypes : resolved,
+      tabs: tabs.isEmpty ? GamePlayConfig.standard.tabs : tabs,
       minStake: ((m['minStake'] ?? m['min_stake']) as num?)?.toInt() ?? 10,
       maxStake: ((m['maxStake'] ?? m['max_stake']) as num?)?.toInt() ?? 1000,
     );
