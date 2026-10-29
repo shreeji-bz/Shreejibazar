@@ -705,6 +705,12 @@ BEGIN
     ALTER TABLE public.bonuses ADD CONSTRAINT bonuses_status_check
       CHECK (status IN ('active','inactive','expired'));
   END IF;
+  IF to_regclass('public.settlements') IS NOT NULL THEN
+    -- the backend writes 'partial' when some wagers fail to settle
+    ALTER TABLE public.settlements DROP CONSTRAINT IF EXISTS settlements_status_check;
+    ALTER TABLE public.settlements ADD CONSTRAINT settlements_status_check
+      CHECK (status IN ('pending','processing','completed','partial','failed'));
+  END IF;
 END $$;
 
 -- Done. Verify afterwards:
