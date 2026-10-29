@@ -3,7 +3,7 @@ export interface WagerEntity {
   userId: string;
   gameId: string;
   roundId: string;
-  wagerTypeId: string;
+  wagerTypeId: string | null;
   playType: string;
   selection: string;
   palti: boolean;

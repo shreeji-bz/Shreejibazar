@@ -148,7 +148,8 @@ export class WagersService {
       userId: data.userId,
       gameId: data.gameId,
       roundId: roundId,
-      wagerTypeId: data.wagerTypeId || '',
+      // wager_type_id is a UUID column; send NULL (not '') when no type is chosen.
+      wagerTypeId: data.wagerTypeId || null,
       playType: data.playType,
       selection: data.selection,
       palti: data.palti ?? false,
