@@ -1,6 +1,7 @@
 import { Navigate } from 'react-router-dom';
 import { AdminLayout } from '../layouts/AdminLayout';
 import { Login } from '../pages/auth/Login';
+import { LandingPage } from '../pages/landing/LandingPage';
 import { useAuthStore } from '../store/authStore';
 import { Dashboard } from '../pages/dashboard/Dashboard';
 import { Users } from '../pages/users/Users';
@@ -75,7 +76,8 @@ export const routes = [
       { path: 'apk-manager', element: <ApkManagerPage /> },
       { path: 'videos', element: <VideosPage /> },
       { path: 'contact-settings', element: <ContactSettingsPage /> },
-      { index: true, element: <Navigate to="/dashboard" replace /> },
+      { index: true, element: <Navigate to="/home" replace /> },
+      { path: 'home', element: <LandingPage /> },
     ],
   },
 ];

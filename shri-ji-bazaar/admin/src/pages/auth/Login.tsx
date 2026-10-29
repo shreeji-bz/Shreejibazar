@@ -14,7 +14,7 @@ export const Login = () => {
   const navigate = useNavigate();
   const { login: setAuth, isAuthenticated } = useAuthStore();
 
-  if (isAuthenticated) return <Navigate to="/dashboard" replace />;
+  if (isAuthenticated) return <Navigate to="/home" replace />;
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -24,7 +24,9 @@ export const Login = () => {
       const response = (await loginApi(email, password)) as any;
       if (response.success) {
         setAuth(response.data.token, response.data.admin);
-        navigate('/dashboard');
+        // Client spec: first view after login is the brand screen, not the
+        // dashboard. Menu opens from the hamburger.
+        navigate('/home');
       } else {
         setError(response.message || 'Login failed');
       }
