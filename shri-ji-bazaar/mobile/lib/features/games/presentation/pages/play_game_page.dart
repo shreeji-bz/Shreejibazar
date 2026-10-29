@@ -98,7 +98,7 @@ class _PlayGamePageState extends State<PlayGamePage> {
       body: Consumer<PlayGameController>(
         builder: (context, c, _) {
           if (c.loading && c.game == null) {
-            return const Center(child: CircularProgressIndicator(color: AppColors.success));
+            return Center(child: CircularProgressIndicator(color: AppColors.success));
           }
           if (c.errorMessage != null && c.game == null) {
             return _MessageBody(message: c.errorMessage!, onRetry: () => c.load());
@@ -119,8 +119,8 @@ class _PlayGamePageState extends State<PlayGamePage> {
                           _buildTabContent(c),
                           const SizedBox(height: 12),
                         ] else
-                          const Padding(
-                            padding: EdgeInsets.all(40),
+                          Padding(
+                            padding: const EdgeInsets.all(40),
                             child: Center(
                               child: Text(
                                 'No open market yet for this date.\nTry today or another date.',
@@ -181,7 +181,7 @@ class _PlayGamePageState extends State<PlayGamePage> {
     if (!mounted) return;
     if (_controller.errorMessage == null) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Submitted. Check "My Plays" for status.'), backgroundColor: AppColors.success),
+        SnackBar(content: Text('Submitted. Check "My Plays" for status.'), backgroundColor: AppColors.success),
       );
     } else {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -303,7 +303,7 @@ class _DateSelector extends StatelessWidget {
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
       child: Row(
         children: [
-          const Text('MARKET DATE : ', style: TextStyle(color: AppColors.textMuted, fontSize: 11, fontWeight: FontWeight.w700, letterSpacing: 1)),
+          Text('MARKET DATE : ', style: TextStyle(color: AppColors.textMuted, fontSize: 11, fontWeight: FontWeight.w700, letterSpacing: 1)),
           Expanded(
             child: DropdownButton<String>(
               value: opts.entries.where((e) => e.value == today).firstOrNull?.key,
@@ -312,11 +312,11 @@ class _DateSelector extends StatelessWidget {
                         value: e.key,
                         child: Text(
                           e.key == 'TODAY' ? 'TODAY' : 'TOMORROW · ${_fmt(e.value)}',
-                          style: const TextStyle(color: AppColors.textPrimary, fontSize: 13, fontWeight: FontWeight.w600),
+                          style: TextStyle(color: AppColors.textPrimary, fontSize: 13, fontWeight: FontWeight.w600),
                         ),
                       ))
                   .toList(),
-              hint: Text(_fmt(today), style: const TextStyle(color: AppColors.textPrimary, fontSize: 13)),
+              hint: Text(_fmt(today), style: TextStyle(color: AppColors.textPrimary, fontSize: 13)),
               underline: const SizedBox.shrink(),
               onChanged: (v) {
                 if (v == null) return;
@@ -325,7 +325,7 @@ class _DateSelector extends StatelessWidget {
             ),
           ),
           IconButton(
-            icon: const Icon(Icons.calendar_month_rounded, color: AppColors.gold, size: 20),
+            icon: Icon(Icons.calendar_month_rounded, color: AppColors.gold, size: 20),
             onPressed: _pick,
             tooltip: 'Pick a date',
           ),
@@ -410,7 +410,7 @@ class _JodiPanel extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Text('Jodi Numbers (00 - 99)', style: AppTextStyles.sectionHeading),
+        Text('Jodi Numbers (00 - 99)', style: AppTextStyles.sectionHeading),
         const SizedBox(height: 10),
         GridView.builder(
           shrinkWrap: true,
@@ -432,7 +432,7 @@ class _JodiPanel extends StatelessWidget {
           },
         ),
         const SizedBox(height: 16),
-        const Text('Andar Haruf (अंदर)', style: AppTextStyles.sectionHeading),
+        Text('Andar Haruf (अंदर)', style: AppTextStyles.sectionHeading),
         const SizedBox(height: 10),
         Row(
           children: List.generate(10, (i) {
@@ -463,7 +463,7 @@ class _NumberChip extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Material(
-      color: selected ? AppColors.success : const Color(0xFF2E5AAC),
+      color: selected ? AppColors.success : Color(0xFF2E5AAC),
       borderRadius: BorderRadius.circular(6),
       child: InkWell(
         borderRadius: BorderRadius.circular(6),
@@ -520,7 +520,7 @@ class _CrossingPanel extends StatelessWidget {
               width: double.infinity,
               child: ElevatedButton(
                 onPressed: canSave ? _save : null,
-                style: ElevatedButton.styleFrom(backgroundColor: AppColors.success, padding: const EdgeInsets.symmetric(vertical: 12)),
+                style: ElevatedButton.styleFrom(backgroundColor: AppColors.success, padding: EdgeInsets.symmetric(vertical: 12)),
                 child: const Text('SAVE', style: TextStyle(color: Colors.white, fontWeight: FontWeight.w700)),
               ),
             ),
@@ -537,11 +537,11 @@ class _CrossingPanel extends StatelessWidget {
       style: AppTextStyles.cardTitle.copyWith(color: AppColors.textPrimary),
       decoration: InputDecoration(
         labelText: label,
-        labelStyle: const TextStyle(color: AppColors.textSecondary),
+        labelStyle: TextStyle(color: AppColors.textSecondary),
         contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
         border: const OutlineInputBorder(),
         enabledBorder: OutlineInputBorder(borderSide: BorderSide(color: AppColors.border)),
-        focusedBorder: OutlineInputBorder(borderSide: const BorderSide(color: AppColors.success)),
+        focusedBorder: OutlineInputBorder(borderSide: BorderSide(color: AppColors.success)),
       ),
     );
   }
@@ -589,11 +589,11 @@ class _CopyPastePanelState extends State<_CopyPastePanel> {
           style: AppTextStyles.cardTitle.copyWith(color: AppColors.textPrimary),
           decoration: InputDecoration(
             labelText: 'Enter Number',
-            labelStyle: const TextStyle(color: AppColors.textSecondary),
+            labelStyle: TextStyle(color: AppColors.textSecondary),
             contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
             border: const OutlineInputBorder(),
             enabledBorder: OutlineInputBorder(borderSide: BorderSide(color: AppColors.border)),
-            focusedBorder: OutlineInputBorder(borderSide: const BorderSide(color: AppColors.success)),
+            focusedBorder: OutlineInputBorder(borderSide: BorderSide(color: AppColors.success)),
           ),
         ),
         const SizedBox(height: 10),
@@ -603,11 +603,11 @@ class _CopyPastePanelState extends State<_CopyPastePanel> {
           style: AppTextStyles.cardTitle.copyWith(color: AppColors.textPrimary),
           decoration: InputDecoration(
             labelText: 'Amount',
-            labelStyle: const TextStyle(color: AppColors.textSecondary),
+            labelStyle: TextStyle(color: AppColors.textSecondary),
             contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
             border: const OutlineInputBorder(),
             enabledBorder: OutlineInputBorder(borderSide: BorderSide(color: AppColors.border)),
-            focusedBorder: OutlineInputBorder(borderSide: const BorderSide(color: AppColors.success)),
+            focusedBorder: OutlineInputBorder(borderSide: BorderSide(color: AppColors.success)),
           ),
         ),
         const SizedBox(height: 12),
@@ -627,7 +627,7 @@ class _CopyPastePanelState extends State<_CopyPastePanel> {
           width: double.infinity,
           child: ElevatedButton(
             onPressed: widget.numberController.text.trim().isNotEmpty ? _save : null,
-            style: ElevatedButton.styleFrom(backgroundColor: AppColors.success, padding: const EdgeInsets.symmetric(vertical: 12)),
+            style: ElevatedButton.styleFrom(backgroundColor: AppColors.success, padding: EdgeInsets.symmetric(vertical: 12)),
             child: const Text('SAVE', style: TextStyle(color: Colors.white, fontWeight: FontWeight.w700)),
           ),
         ),
@@ -699,16 +699,16 @@ class _SavedEntriesTable extends StatelessWidget {
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                const Text('NUMBER  ·  AMOUNT  ·  ACTION', style: TextStyle(color: AppColors.textMuted, fontSize: 11, fontWeight: FontWeight.w700, letterSpacing: 1)),
+                Text('NUMBER  ·  AMOUNT  ·  ACTION', style: TextStyle(color: AppColors.textMuted, fontSize: 11, fontWeight: FontWeight.w700, letterSpacing: 1)),
                 if (visible.isNotEmpty)
-                  Text('${visible.length} · ${controller.totalStake} pts', style: const TextStyle(color: AppColors.gold, fontSize: 12, fontWeight: FontWeight.w700)),
+                  Text('${visible.length} · ${controller.totalStake} pts', style: TextStyle(color: AppColors.gold, fontSize: 12, fontWeight: FontWeight.w700)),
               ],
             ),
           ),
           if (visible.isEmpty)
             Padding(
               padding: const EdgeInsets.all(16),
-              child: Center(child: Text('No entries yet. Tap numbers or use the forms above.', style: const TextStyle(color: AppColors.textMuted, fontSize: 12))),
+              child: Center(child: Text('No entries yet. Tap numbers or use the forms above.', style: TextStyle(color: AppColors.textMuted, fontSize: 12))),
             )
           else
             Column(
@@ -718,7 +718,7 @@ class _SavedEntriesTable extends StatelessWidget {
                     key: ValueKey(e.uid),
                     direction: DismissDirection.endToStart,
                     onDismissed: (_) => controller.removeEntry(e),
-                    background: Container(alignment: Alignment.centerRight, padding: const EdgeInsets.only(right: 16), color: AppColors.error.withValues(alpha: 0.2), child: const Icon(Icons.delete_rounded, color: AppColors.error)),
+                    background: Container(alignment: Alignment.centerRight, padding: EdgeInsets.only(right: 16), color: AppColors.error.withValues(alpha: 0.2), child: Icon(Icons.delete_rounded, color: AppColors.error)),
                     child: Container(
                       margin: const EdgeInsets.symmetric(horizontal: 14, vertical: 4),
                       padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 12),
@@ -728,12 +728,12 @@ class _SavedEntriesTable extends StatelessWidget {
                           Expanded(
                             child: Text(
                               '${e.selection}${e.palti ? ' (Palti)' : ''}',
-                              style: const TextStyle(color: AppColors.goldBright, fontSize: 15, fontWeight: FontWeight.w700, fontFamily: 'monospace'),
+                              style: TextStyle(color: AppColors.goldBright, fontSize: 15, fontWeight: FontWeight.w700, fontFamily: 'monospace'),
                             ),
                           ),
-                          Text('${e.pointsStaked} pts', style: const TextStyle(color: AppColors.textSecondary, fontSize: 13)),
+                          Text('${e.pointsStaked} pts', style: TextStyle(color: AppColors.textSecondary, fontSize: 13)),
                           const SizedBox(width: 8),
-                          IconButton(icon: const Icon(Icons.delete_outline_rounded, color: AppColors.textMuted, size: 18), onPressed: () => controller.removeEntry(e)),
+                          IconButton(icon: Icon(Icons.delete_outline_rounded, color: AppColors.textMuted, size: 18), onPressed: () => controller.removeEntry(e)),
                         ],
                       ),
                     ),
@@ -763,10 +763,10 @@ class _SubmitBar extends StatelessWidget {
       context: context,
       builder: (ctx) => AlertDialog(
         backgroundColor: AppColors.card,
-        title: const Text('Confirm submission', style: TextStyle(color: AppColors.textPrimary)),
+        title: Text('Confirm submission', style: TextStyle(color: AppColors.textPrimary)),
         content: Text(
           'Place ${c.currentEntries.length} bet(s) on ${GamePlayConfig.tabLabel(c.activePlayTypes[c.activeTabIndex])} for a total of ₹$total?',
-          style: const TextStyle(color: AppColors.textSecondary),
+          style: TextStyle(color: AppColors.textSecondary),
         ),
         actions: [
           TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Cancel')),
@@ -793,7 +793,7 @@ class _SubmitBar extends StatelessWidget {
           final canSubmit = c.currentEntries.isNotEmpty && !c.submitting;
           return Row(
             children: [
-              Text('₹${c.totalStake}', style: const TextStyle(color: AppColors.textPrimary, fontSize: 22, fontWeight: FontWeight.w800)),
+              Text('₹${c.totalStake}', style: TextStyle(color: AppColors.textPrimary, fontSize: 22, fontWeight: FontWeight.w800)),
               const Spacer(),
               SizedBox(
                 width: 140,
@@ -835,7 +835,7 @@ class _MessageBody extends StatelessWidget {
           children: [
             Icon(Icons.error_outline_rounded, size: 48, color: AppColors.error.withValues(alpha: 0.5)),
             const SizedBox(height: 12),
-            Text(message, textAlign: TextAlign.center, style: const TextStyle(color: AppColors.textSecondary, fontSize: 14)),
+            Text(message, textAlign: TextAlign.center, style: TextStyle(color: AppColors.textSecondary, fontSize: 14)),
             const SizedBox(height: 16),
             ElevatedButton(
               onPressed: onRetry,

@@ -1,6 +1,6 @@
 import { NavLink } from 'react-router-dom';
 import { useAppStore } from '../store/appStore';
-import { LayoutDashboard, Users, Gamepad2, Timer, Trophy, Wallet, Gift, Users2, Bell, Ticket, Image, FileText, Settings, LogOut, Receipt, CreditCard, Shield } from 'lucide-react';
+import { LayoutDashboard, Users, Gamepad2, Timer, Trophy, Wallet, Gift, Users2, Bell, Ticket, Image, FileText, Settings, LogOut, Receipt, CreditCard, Shield, Coins, Smartphone, QrCode, Landmark, BarChart3, SlidersHorizontal, ImagePlus, Package, Video, MessageCircle } from 'lucide-react';
 import { useAuthStore } from '../store/authStore';
 
 const menuItems = [
@@ -21,6 +21,16 @@ const menuItems = [
   { to: '/settings', icon: Settings, label: 'Settings' },
   { to: '/staff', icon: Shield, label: 'Staff' },
   { to: '/audit-logs', icon: FileText, label: 'Audit Logs' },
+  { to: '/add-fund-report', icon: Coins, label: 'Add Fund Report' },
+  { to: '/withdrawals/upi', icon: Smartphone, label: 'Withdrawal UPI' },
+  { to: '/withdrawals/qr', icon: QrCode, label: 'Withdrawal QR' },
+  { to: '/withdrawals/bank', icon: Landmark, label: 'Withdrawal Bank' },
+  { to: '/jantri-report', icon: BarChart3, label: 'Jantri Report' },
+  { to: '/games/rates', icon: SlidersHorizontal, label: 'Games Rate' },
+  { to: '/app-images', icon: ImagePlus, label: 'App Image' },
+  { to: '/apk-manager', icon: Package, label: 'Apk Manager' },
+  { to: '/videos', icon: Video, label: 'Video' },
+  { to: '/contact-settings', icon: MessageCircle, label: 'Contact Settings' },
 ];
 
 export const Sidebar = () => {
@@ -29,9 +39,16 @@ export const Sidebar = () => {
 
   return (
     <aside className={`fixed top-0 left-0 h-screen bg-card border-r border-border transition-all duration-300 z-40 ${sidebarOpen ? 'w-64' : 'w-16'}`}>
-      <div className="p-4 border-b border-border">
-        <h1 className={`text-gold-bright font-bold text-lg ${sidebarOpen ? '' : 'hidden'}`}>Shri Ji Bazaar</h1>
-        {!sidebarOpen && <div className="w-8 h-8 rounded-full bg-gold-gradient flex items-center justify-center text-white text-xs font-bold">SJ</div>}
+      <div className="p-4 border-b border-border flex items-center gap-3">
+        <div className="w-10 h-10 shrink-0 rounded-xl overflow-hidden">
+          <img src="/assets/logo.webp" alt="Shri Ji Bazaar" className="w-full h-full object-cover" />
+        </div>
+        {sidebarOpen && (
+          <div>
+            <h1 className="text-gold-bright font-bold text-base leading-tight">Shri Ji Bazaar</h1>
+            <p className="text-text-muted text-xs">Admin</p>
+          </div>
+        )}
       </div>
       <nav className="p-2 space-y-1 overflow-y-auto h-[calc(100vh-60px)]">
         {menuItems.map((item) => (

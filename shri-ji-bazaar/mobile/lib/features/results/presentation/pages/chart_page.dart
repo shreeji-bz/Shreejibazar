@@ -78,7 +78,7 @@ class _ChartPageState extends State<ChartPage> {
       builder: (context, child) {
         return Theme(
           data: Theme.of(context).copyWith(
-            colorScheme: const ColorScheme.dark(
+            colorScheme: ColorScheme.dark(
               primary: AppColors.gold,
               surface: AppColors.card,
               onSurface: AppColors.textPrimary,
@@ -132,7 +132,7 @@ class _ChartPageState extends State<ChartPage> {
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
             decoration: BoxDecoration(
               color: AppColors.card,
-              border: const Border(bottom: BorderSide(color: AppColors.border)),
+              border: Border(bottom: BorderSide(color: AppColors.border)),
             ),
             child: Row(
               children: [
@@ -153,7 +153,7 @@ class _ChartPageState extends State<ChartPage> {
             padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
             decoration: BoxDecoration(
               color: AppColors.card,
-              border: const Border(bottom: BorderSide(color: AppColors.border)),
+              border: Border(bottom: BorderSide(color: AppColors.border)),
             ),
             child: Row(
               children: [
@@ -170,7 +170,7 @@ class _ChartPageState extends State<ChartPage> {
                       child: Row(
                         children: [
                           Text(_getMonthName(_selectedDate), style: AppTextStyles.body.copyWith(fontWeight: FontWeight.w600)),
-                          const Icon(Icons.arrow_drop_down_rounded, color: AppColors.textSecondary),
+                          Icon(Icons.arrow_drop_down_rounded, color: AppColors.textSecondary),
                         ],
                       ),
                     ),
@@ -187,7 +187,7 @@ class _ChartPageState extends State<ChartPage> {
                     child: Row(
                       children: [
                         Text('${_selectedDate.year}', style: AppTextStyles.body.copyWith(fontWeight: FontWeight.w600)),
-                        const Icon(Icons.arrow_drop_down_rounded, color: AppColors.textSecondary),
+                        Icon(Icons.arrow_drop_down_rounded, color: AppColors.textSecondary),
                       ],
                     ),
                   ),
@@ -203,7 +203,7 @@ class _ChartPageState extends State<ChartPage> {
                   ),
                   child: IconButton(
                     onPressed: _loadResults,
-                    icon: const Icon(Icons.search_rounded, color: AppColors.textPrimary, size: 22),
+                    icon: Icon(Icons.search_rounded, color: AppColors.textPrimary, size: 22),
                   ),
                 ),
               ],
@@ -231,7 +231,7 @@ class _ChartPageState extends State<ChartPage> {
                     children: [
                       // Header row
                       Container(
-                        decoration: const BoxDecoration(
+                        decoration: BoxDecoration(
                           border: Border(bottom: BorderSide(color: AppColors.border, width: 1.5)),
                         ),
                         child: Row(
@@ -274,10 +274,10 @@ class _ChartPageState extends State<ChartPage> {
                                   width: 40,
                                   padding: const EdgeInsets.symmetric(vertical: 8),
                                   alignment: Alignment.center,
-                                  decoration: const BoxDecoration(
+                                  decoration: BoxDecoration(
                                     border: Border(right: BorderSide(color: AppColors.border, width: 1)),
                                   ),
-                                  child: Text('$day', style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 13, color: AppColors.textPrimary), textAlign: TextAlign.center),
+                                  child: Text('$day', style: TextStyle(fontWeight: FontWeight.w600, fontSize: 13, color: AppColors.textPrimary), textAlign: TextAlign.center),
                                 ),
                                 ..._markets.map((market) {
                                   final value = dayData[market];

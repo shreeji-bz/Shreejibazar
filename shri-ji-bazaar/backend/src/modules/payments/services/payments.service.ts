@@ -334,7 +334,7 @@ export class PaymentsService {
     return this.enrichWithUser([mapped]).then((enriched) => enriched[0] ?? null);
   }
 
-  async getAllPayments({ page, limit, type, status, dateFrom, dateTo, search }: {
+  async getAllPayments({ page, limit, type, status, dateFrom, dateTo, search, methods }: {
     page: number;
     limit: number;
     type?: string;
@@ -342,6 +342,8 @@ export class PaymentsService {
     dateFrom?: string;
     dateTo?: string;
     search?: string;
+    /** Comma-separated payment methods (upi,bank_transfer,qr,paytm,phonepe,cash,points,admin). */
+    methods?: string;
   }): Promise<{ data: any[]; total: number; page: number; limit: number }> {
     const from = (page - 1) * limit;
     const to = from + limit - 1;
@@ -352,6 +354,10 @@ export class PaymentsService {
     if (status) query = query.eq('status', status);
     if (dateFrom) query = query.gte('created_at', dateFrom);
     if (dateTo) query = query.lte('created_at', dateTo);
+    if (methods) {
+      const list = methods.split(',').map((m) => m.trim()).filter(Boolean);
+      if (list.length) query = query.in('method', list);
+    }
     if (search) {
       query = query.or(`reference_id.ilike.%${search}%,user_id.ilike.%${search}%`);
     }

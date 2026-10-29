@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
 import 'app_colors.dart';
 
+/// Text styles that follow the active theme: colors resolve through
+/// [AppColors] at build time, so switching light/dark re-skins them all.
 class AppTextStyles {
   // Display / Large heading
-  static const TextStyle display = TextStyle(
+  static TextStyle get display => TextStyle(
     fontSize: 32,
     fontWeight: FontWeight.bold,
     color: AppColors.goldBright,
@@ -12,7 +14,7 @@ class AppTextStyles {
   );
 
   // Main heading
-  static const TextStyle heading = TextStyle(
+  static TextStyle get heading => TextStyle(
     fontSize: 24,
     fontWeight: FontWeight.bold,
     color: AppColors.textPrimary,
@@ -20,7 +22,7 @@ class AppTextStyles {
   );
 
   // Section heading
-  static const TextStyle sectionHeading = TextStyle(
+  static TextStyle get sectionHeading => TextStyle(
     fontSize: 18,
     fontWeight: FontWeight.w600,
     color: AppColors.goldBright,
@@ -28,7 +30,7 @@ class AppTextStyles {
   );
 
   // Card title
-  static const TextStyle cardTitle = TextStyle(
+  static TextStyle get cardTitle => TextStyle(
     fontSize: 16,
     fontWeight: FontWeight.w600,
     color: AppColors.textPrimary,
@@ -36,7 +38,7 @@ class AppTextStyles {
   );
 
   // Body text
-  static const TextStyle body = TextStyle(
+  static TextStyle get body => TextStyle(
     fontSize: 14,
     fontWeight: FontWeight.normal,
     color: AppColors.textSecondary,
@@ -44,7 +46,7 @@ class AppTextStyles {
   );
 
   // Caption
-  static const TextStyle caption = TextStyle(
+  static TextStyle get caption => TextStyle(
     fontSize: 12,
     fontWeight: FontWeight.normal,
     color: AppColors.textMuted,
@@ -52,7 +54,7 @@ class AppTextStyles {
   );
 
   // Small body text
-  static const TextStyle bodySmall = TextStyle(
+  static TextStyle get bodySmall => TextStyle(
     fontSize: 12,
     fontWeight: FontWeight.normal,
     color: AppColors.textSecondary,
@@ -60,16 +62,16 @@ class AppTextStyles {
   );
 
   // Button text
-  static const TextStyle button = TextStyle(
+  static TextStyle get button => TextStyle(
     fontSize: 16,
     fontWeight: FontWeight.w600,
-    color: AppColors.textPrimary,
+    color: Colors.white,
     height: 1.2,
     letterSpacing: 0.5,
   );
 
   // Gold text variant
-  static const TextStyle goldHeading = TextStyle(
+  static TextStyle get goldHeading => TextStyle(
     fontSize: 22,
     fontWeight: FontWeight.bold,
     color: AppColors.goldBright,
@@ -77,7 +79,7 @@ class AppTextStyles {
   );
 
   // App name / brand
-  static const TextStyle appName = TextStyle(
+  static TextStyle get appName => TextStyle(
     fontSize: 20,
     fontWeight: FontWeight.w800,
     color: AppColors.gold,
@@ -86,7 +88,7 @@ class AppTextStyles {
   );
 
   // Banner title
-  static const TextStyle bannerTitle = TextStyle(
+  static final TextStyle bannerTitle = TextStyle(
     fontSize: 20,
     fontWeight: FontWeight.w800,
     color: Colors.white,
@@ -94,7 +96,7 @@ class AppTextStyles {
   );
 
   // Market title
-  static const TextStyle marketTitle = TextStyle(
+  static TextStyle get marketTitle => TextStyle(
     fontSize: 16,
     fontWeight: FontWeight.w700,
     color: AppColors.goldBright,
@@ -102,7 +104,7 @@ class AppTextStyles {
   );
 
   // Points display
-  static const TextStyle points = TextStyle(
+  static TextStyle get points => TextStyle(
     fontSize: 20,
     fontWeight: FontWeight.bold,
     color: AppColors.goldBright,
@@ -110,7 +112,7 @@ class AppTextStyles {
   );
 
   // Result number
-  static const TextStyle resultNumber = TextStyle(
+  static TextStyle get resultNumber => TextStyle(
     fontSize: 28,
     fontWeight: FontWeight.bold,
     color: AppColors.goldBright,

@@ -46,6 +46,36 @@ export class ResultsService {
     };
   }
 
+  /**
+   * Jantri report: for a date range, declared results grouped by
+   * (local date, game) — the per-day/per-game outcome summary the admin
+   * dashboard needs.
+   */
+  async getReport(from?: string, to?: string): Promise<Array<{ date: string; game: string; gameName: string; count: number }>> {
+    let query = supabase
+      .from('rounds')
+      .select('id, game_id, updated_at, games(name)')
+      .eq('status', 'result_declared')
+      .not('result', 'is', null)
+      .limit(2000);
+    if (from) query = query.gte('updated_at', from);
+    if (to) query = query.lte('updated_at', to);
+    const { data } = await query;
+    const buckets = new Map<string, { date: string; game: string; gameName: string; count: number }>();
+    for (const row of (data || []) as any[]) {
+      const iso: string = row.updated_at || '';
+      const local = new Date(iso);
+      const date = local.toLocaleDateString('en-CA'); // YYYY-MM-DD local
+      const key = `${date}|${row.game_id}`;
+      const existing = buckets.get(key);
+      if (existing) existing.count += 1;
+      else buckets.set(key, { date, game: row.game_id, gameName: row.games?.name || '', count: 1 });
+    }
+    return Array.from(buckets.values()).sort((a, b) =>
+      a.date === b.date ? a.gameName.localeCompare(b.gameName) : a.date < b.date ? 1 : -1,
+    );
+  }
+
   async getByRound(roundId: string): Promise<ResultEntity | null> {
     const { data } = await supabase
       .from('rounds')

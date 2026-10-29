@@ -18,8 +18,18 @@ class LoginPage extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
               const SizedBox(height: 60),
-              // Logo / Title
-              Icon(Icons.casino_rounded, size: 80, color: Theme.of(context).colorScheme.primary),
+              // App logo / Title
+              ClipRRect(
+                borderRadius: BorderRadius.circular(16),
+                child: Image.asset(
+                  'assets/logos/logo.webp',
+                  width: 80,
+                  height: 80,
+                  fit: BoxFit.cover,
+                  errorBuilder: (context, error, stack) =>
+                      Container(width: 80, height: 80, decoration: BoxDecoration(color: Theme.of(context).colorScheme.primary, borderRadius: BorderRadius.circular(16))),
+                ),
+              ),
               const SizedBox(height: 16),
               Text(
                 'Shri Ji Bazaar',

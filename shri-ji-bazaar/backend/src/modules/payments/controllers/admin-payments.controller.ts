@@ -42,11 +42,12 @@ export class AdminPaymentsController {
       const limit = Math.min(100, parseInt(req.query.limit as string) || 20);
       const type = req.query.type as string | undefined;
       const status = req.query.status as string | undefined;
-      const dateFrom = req.query.dateFrom as string | undefined;
-      const dateTo = req.query.dateTo as string | undefined;
+      const methods = req.query.methods as string | undefined;
+      const dateFrom = (req.query.dateFrom || req.query.from) as string | undefined;
+      const dateTo = (req.query.dateTo || req.query.to) as string | undefined;
       const search = req.query.search as string | undefined;
 
-      const result = await this.paymentsService.getAllPayments({ page, limit, type, status, dateFrom, dateTo, search });
+      const result = await this.paymentsService.getAllPayments({ page, limit, type, status, dateFrom, dateTo, search, methods });
       res.json({
         success: true,
         data: result.data,

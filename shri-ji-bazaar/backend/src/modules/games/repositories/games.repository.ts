@@ -127,6 +127,32 @@ export class GameRepository {
   }
 
 
+  /** Every game + its play config (admin "Games Rate" read). */
+  async allPlayConfigs(): Promise<Array<{ slug: string; name: string; status: string; config: any }>> {
+    const { data: games } = await supabase.from('games').select('id, slug, name, status').order('sort_order');
+    const configs = await this.playConfigsForSlugs((games || []).map((g) => g.slug));
+    return (games || []).map((g) => ({
+      slug: g.slug,
+      name: g.name,
+      status: g.status,
+      config: configs.get(g.slug) ?? null,
+    }));
+  }
+
+  /** Save (upsert) one game's play config (admin "Games Rate" write). */
+  async savePlayConfig(slug: string, config: any): Promise<{ slug: string; config: any }> {
+    await this.findBySlug(slug); // 404-equivalent: verify the game exists
+    const { error } = await supabase
+      .from('settings')
+      .upsert({
+        key: `play_config.${slug}`,
+        value: typeof config === 'string' ? config : JSON.stringify(config),
+        updated_at: new Date().toISOString(),
+      });
+    if (error) throw new Error(error.message);
+    return { slug, config };
+  }
+
   async toggleStatus(id: string, status: 'active' | 'inactive' | 'maintenance'): Promise<GameEntity> {
     const { data: record } = await supabase
       .from('games')

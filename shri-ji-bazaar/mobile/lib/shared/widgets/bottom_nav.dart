@@ -13,7 +13,7 @@ class BottomNav extends StatelessWidget {
     return Container(
       decoration: BoxDecoration(
         color: AppColors.card,
-        border: const Border(top: BorderSide(color: AppColors.border)),
+        border: Border(top: BorderSide(color: AppColors.border)),
       ),
       child: BottomNavigationBar(
         backgroundColor: AppColors.card,

@@ -65,7 +65,7 @@ class _WalletPageState extends State<WalletPage> {
                       const Spacer(),
                       Text(
                         'SHREE JI BAZAR',
-                        style: const TextStyle(
+                        style: TextStyle(
                           fontSize: 16,
                           fontWeight: FontWeight.w700,
                           color: AppColors.textPrimary,
@@ -75,7 +75,7 @@ class _WalletPageState extends State<WalletPage> {
                       const Spacer(),
                       Text(
                         '₹ ${balance.toStringAsFixed(0)}',
-                        style: const TextStyle(
+                        style: TextStyle(
                           fontSize: 16,
                           fontWeight: FontWeight.w700,
                           color: AppColors.textPrimary,

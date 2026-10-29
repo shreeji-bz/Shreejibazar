@@ -337,7 +337,7 @@ class _HomePageState extends State<HomePage> {
     final points = controller.points?.balance ?? 0;
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-      decoration: const BoxDecoration(
+      decoration: BoxDecoration(
         color: AppColors.card,
         border: Border(bottom: BorderSide(color: AppColors.border)),
       ),
@@ -530,7 +530,7 @@ class _HomePageState extends State<HomePage> {
 
   Widget _buildLiveMarketSection() {
     if (_loading)
-      return const Center(child: Padding(padding: EdgeInsets.all(24), child: CircularProgressIndicator(color: AppColors.success)));
+      return Center(child: Padding(padding: EdgeInsets.all(24), child: CircularProgressIndicator(color: AppColors.success)));
     if (_liveRounds.isEmpty)
       return _buildEmptyMarketCard('No Live Market', 'WAITING', AppColors.warning);
     return Column(
@@ -585,7 +585,7 @@ class _HomePageState extends State<HomePage> {
                         borderRadius: BorderRadius.circular(12),
                         border: Border.all(color: AppColors.success.withValues(alpha: 0.4)),
                       ),
-                      child: const Text('RUNNING', style: TextStyle(color: AppColors.success, fontSize: 11, fontWeight: FontWeight.w700, letterSpacing: 1.5)),
+                      child: Text('RUNNING', style: TextStyle(color: AppColors.success, fontSize: 11, fontWeight: FontWeight.w700, letterSpacing: 1.5)),
                     ),
                   ],
                 ),
@@ -599,9 +599,9 @@ class _HomePageState extends State<HomePage> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(timeLeft, style: const TextStyle(color: AppColors.error, fontSize: 16, fontWeight: FontWeight.w700, fontFamily: 'monospace')),
+                    Text(timeLeft, style: TextStyle(color: AppColors.error, fontSize: 16, fontWeight: FontWeight.w700, fontFamily: 'monospace')),
                     const SizedBox(height: 2),
-                    const Text('Time Left', style: TextStyle(color: AppColors.textMuted, fontSize: 10)),
+                    Text('Time Left', style: TextStyle(color: AppColors.textMuted, fontSize: 10)),
                   ],
                 ),
               ),
@@ -609,9 +609,9 @@ class _HomePageState extends State<HomePage> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text('Last Result : $lastResult', style: const TextStyle(color: AppColors.goldBright, fontSize: 13, fontWeight: FontWeight.w600)),
+                    Text('Last Result : $lastResult', style: TextStyle(color: AppColors.goldBright, fontSize: 13, fontWeight: FontWeight.w600)),
                     const SizedBox(height: 6),
-                    Text('Result Time : $resultTime', style: const TextStyle(color: AppColors.textMuted, fontSize: 11)),
+                    Text('Result Time : $resultTime', style: TextStyle(color: AppColors.textMuted, fontSize: 11)),
                   ],
                 ),
               ),
@@ -691,7 +691,7 @@ class _HomePageState extends State<HomePage> {
                     children: [
                       Text(name, style: AppTextStyles.marketTitle),
                       const SizedBox(height: 3),
-                      const Text('WAITING', style: TextStyle(color: AppColors.textMuted, fontSize: 11, fontWeight: FontWeight.w600, letterSpacing: 1)),
+                      Text('WAITING', style: TextStyle(color: AppColors.textMuted, fontSize: 11, fontWeight: FontWeight.w600, letterSpacing: 1)),
                     ],
                   ),
                 ),
@@ -1081,7 +1081,7 @@ class _HomePageState extends State<HomePage> {
         });
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Wager placed! Check "My Plays" for status.'), backgroundColor: AppColors.success),
+            SnackBar(content: Text('Wager placed! Check "My Plays" for status.'), backgroundColor: AppColors.success),
           );
         }
         if (mounted) Navigator.of(context).pop();
@@ -1106,8 +1106,8 @@ class _HomePageState extends State<HomePage> {
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                const Text('PLAY TYPE', style: TextStyle(color: AppColors.textSecondary, fontSize: 11, fontWeight: FontWeight.w700, letterSpacing: 1)),
-                Text(playType.toUpperCase(), style: const TextStyle(color: AppColors.gold, fontSize: 12, fontWeight: FontWeight.w700)),
+                Text('PLAY TYPE', style: TextStyle(color: AppColors.textSecondary, fontSize: 11, fontWeight: FontWeight.w700, letterSpacing: 1)),
+                Text(playType.toUpperCase(), style: TextStyle(color: AppColors.gold, fontSize: 12, fontWeight: FontWeight.w700)),
               ],
             ),
             const SizedBox(height: 10),
@@ -1125,7 +1125,7 @@ class _HomePageState extends State<HomePage> {
               ],
             ),
             const SizedBox(height: 16),
-            const Text('YOUR NUMBER', style: TextStyle(color: AppColors.textSecondary, fontSize: 11, fontWeight: FontWeight.w700, letterSpacing: 1)),
+            Text('YOUR NUMBER', style: TextStyle(color: AppColors.textSecondary, fontSize: 11, fontWeight: FontWeight.w700, letterSpacing: 1)),
             const SizedBox(height: 8),
             SizedBox(
               width: 120,
@@ -1137,14 +1137,14 @@ class _HomePageState extends State<HomePage> {
                 decoration: InputDecoration(
                   counterText: '',
                   hintText: playType == 'single' ? '0–9' : playType == 'panel' ? 'e.g. 123' : 'e.g. 12',
-                  hintStyle: const TextStyle(color: AppColors.textMuted, fontSize: 14),
+                  hintStyle: TextStyle(color: AppColors.textMuted, fontSize: 14),
                 ),
               ),
             ),
             const SizedBox(height: 16),
             Row(
               children: [
-                const Text('Stake', style: TextStyle(color: AppColors.textSecondary, fontSize: 13)),
+                Text('Stake', style: TextStyle(color: AppColors.textSecondary, fontSize: 13)),
                 const SizedBox(width: 8),
                 Text('50 pts', style: AppTextStyles.points.copyWith(fontSize: 14, color: AppColors.gold)),
               ],
@@ -1154,7 +1154,7 @@ class _HomePageState extends State<HomePage> {
               Container(
                 padding: const EdgeInsets.all(12),
                 decoration: BoxDecoration(color: AppColors.error.withValues(alpha: 0.1), borderRadius: BorderRadius.circular(8)),
-                child: Text(error!, style: const TextStyle(color: AppColors.error, fontSize: 13)),
+                child: Text(error!, style: TextStyle(color: AppColors.error, fontSize: 13)),
               ),
             ],
             const SizedBox(height: 16),
@@ -1238,7 +1238,7 @@ class _UnreachableBanner extends StatelessWidget {
       ),
       child: Row(
         children: [
-          const Icon(Icons.cloud_off_rounded, color: AppColors.error, size: 22),
+          Icon(Icons.cloud_off_rounded, color: AppColors.error, size: 22),
           const SizedBox(width: 10),
           Expanded(
             child: Column(

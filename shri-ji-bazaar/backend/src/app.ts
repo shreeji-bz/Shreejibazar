@@ -141,6 +141,7 @@ apiRouter.use('/admin/wagers', authenticateAdmin, sharedWagersModule.adminRouter
 apiRouter.use('/admin/payments', authenticateAdmin, paymentsModule.adminRouter);
 apiRouter.use('/admin/referrals', authenticateAdmin, new ReferralsModule().adminRouter);
 apiRouter.use('/admin/games', authenticateAdmin, gamesModule.adminRouter);
+apiRouter.use('/admin/users', authenticateAdmin, new UsersModule().adminRouter);
 apiRouter.use('/admin/rounds', authenticateAdmin, roundsModule.adminRouter);
 apiRouter.use('/admin/results', authenticateAdmin, resultsModule.adminRouter);
 apiRouter.use('/admin/banners', authenticateAdmin, bannersModule.adminRouter);

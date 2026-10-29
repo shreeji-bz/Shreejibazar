@@ -8,10 +8,23 @@ export class ResultsController {
 
   initializeRoutes() {
     this.router.get('/latest', this.getLatestResults.bind(this));
+    this.router.get('/report', this.getReport.bind(this));
     this.router.get('/game/:gameId', this.getResultsByGame.bind(this));
     this.router.get('/round/:roundId', this.getResultByRound.bind(this));
     this.router.get('/', this.getAllResults.bind(this));
     this.router.post('/declare', this.declareResult.bind(this));
+  }
+
+  /** Jantri report: declared results grouped by day + game in a date range. */
+  async getReport(req: Request, res: Response) {
+    try {
+      const from = (req.query.from || req.query.dateFrom) as string | undefined;
+      const to = (req.query.to || req.query.dateTo) as string | undefined;
+      const data = await this.resultsService.getReport(from, to);
+      res.json({ success: true, data });
+    } catch (error: any) {
+      res.status(500).json({ success: false, message: error.message });
+    }
   }
 
   async getLatestResults(req: Request, res: Response) {
