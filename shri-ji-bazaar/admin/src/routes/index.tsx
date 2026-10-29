@@ -78,6 +78,9 @@ export const routes = [
       { path: 'contact-settings', element: <ContactSettingsPage /> },
       { index: true, element: <Navigate to="/home" replace /> },
       { path: 'home', element: <LandingPage /> },
+      // Any unrecognised path lands on the brand screen instead of a blank
+      // white screen.
+      { path: '*', element: <Navigate to="/home" replace /> },
     ],
   },
 ];
