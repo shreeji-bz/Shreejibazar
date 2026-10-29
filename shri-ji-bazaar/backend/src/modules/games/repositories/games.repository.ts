@@ -50,18 +50,22 @@ export class GameRepository {
   }
 
   async create(data: Partial<GameEntity>): Promise<GameEntity> {
-    const { data: record } = await supabase.from('games').insert({
+    // The live games table has NOT NULL time columns, so default any that the
+    // admin omits rather than failing the whole create.
+    const { data: record, error } = await supabase.from('games').insert({
       name: data.name,
       slug: data.slug,
       description: data.description || '',
       image: data.image || '',
-      opening_time: data.openingTime,
-      closing_time: data.closingTime,
-      result_time: data.resultTime,
+      opening_time: data.openingTime || '06:00:00',
+      closing_time: data.closingTime || data.resultTime || '06:30:00',
+      result_time: data.resultTime || '06:35:00',
       status: data.status || 'active',
       is_popular: data.isPopular || false,
       sort_order: data.sortOrder || 0,
     }).select().single();
+
+    if (error) throw new Error(error.message);
 
     if (!record) throw new Error('Failed to create game');
     return this.mapRow(record);
@@ -87,6 +91,66 @@ export class GameRepository {
 
   async delete(id: string): Promise<void> {
     await supabase.from('games').update({ status: 'inactive', updated_at: new Date().toISOString() }).eq('id', id);
+  }
+
+  async latestDeclaredResultsForGames(ids: string[]): Promise<Map<string, { result: string; at: string }>> {
+    const out = new Map<string, { result: string; at: string }>();
+    if (!ids.length) return out;
+    const { data } = await supabase
+      .from('rounds')
+      .select('id, game_id, result, updated_at')
+      .in('game_id', ids)
+      .eq('status', 'result_declared')
+      .not('result', 'is', null)
+      .order('updated_at', { ascending: false })
+      .limit(200);
+    for (const row of data || []) {
+      if (!out.has(row.game_id)) out.set(row.game_id, { result: row.result, at: row.updated_at });
+    }
+    return out;
+  }
+
+  async playConfigsForSlugs(slugs: string[]): Promise<Map<string, any>> {
+    const out = new Map<string, any>();
+    if (!slugs.length) return out;
+    const keys = slugs.map((s) => `play_config.${s}`);
+    const { data } = await supabase.from('settings').select('key, value').in('key', keys);
+    for (const row of data || []) {
+      const slug = row.key.replace('play_config.', '');
+      let parsed: any = row.value;
+      if (typeof row.value === 'string') {
+        try { parsed = JSON.parse(row.value); } catch { parsed = {}; }
+      }
+      out.set(slug, parsed && typeof parsed === 'object' ? parsed : {});
+    }
+    return out;
+  }
+
+
+  /** Every game + its play config (admin "Games Rate" read). */
+  async allPlayConfigs(): Promise<Array<{ slug: string; name: string; status: string; config: any }>> {
+    const { data: games } = await supabase.from('games').select('id, slug, name, status').order('sort_order');
+    const configs = await this.playConfigsForSlugs((games || []).map((g) => g.slug));
+    return (games || []).map((g) => ({
+      slug: g.slug,
+      name: g.name,
+      status: g.status,
+      config: configs.get(g.slug) ?? null,
+    }));
+  }
+
+  /** Save (upsert) one game's play config (admin "Games Rate" write). */
+  async savePlayConfig(slug: string, config: any): Promise<{ slug: string; config: any }> {
+    await this.findBySlug(slug); // 404-equivalent: verify the game exists
+    const { error } = await supabase
+      .from('settings')
+      .upsert({
+        key: `play_config.${slug}`,
+        value: typeof config === 'string' ? config : JSON.stringify(config),
+        updated_at: new Date().toISOString(),
+      });
+    if (error) throw new Error(error.message);
+    return { slug, config };
   }
 
   async toggleStatus(id: string, status: 'active' | 'inactive' | 'maintenance'): Promise<GameEntity> {

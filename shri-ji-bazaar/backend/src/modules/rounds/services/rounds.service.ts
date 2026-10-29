@@ -1,19 +1,59 @@
 import { RoundsRepository } from '../repositories/rounds.repository';
 import { supabase } from '../../../config/database.config';
+import { RoundEntity } from '../entities/round.entity';
 
 export class RoundsService {
+  /**
+   * Optional settle callback injected by the composition root so that
+   * declaring a result also settles the round's wagers, without the rounds
+   * module importing the wagers module (which would be a circular dep).
+   */
+  private settleRoundFn?: (roundId: string, result: string) => Promise<unknown>;
+
   constructor(private roundsRepo: RoundsRepository) {}
 
-  async getUpcoming(gameId?: string) {
-    return this.roundsRepo.findUpcoming(gameId);
+  setSettleRound(fn: (roundId: string, result: string) => Promise<unknown>) {
+    this.settleRoundFn = fn;
+  }
+
+  async getUpcoming(gameId?: string, date?: string) {
+    return this.roundsRepo.findUpcoming(gameId, date);
+  }
+
+  /**
+   * Multi-card LIVE MARKET feed: every round currently running on an active
+   * game, each stamped with that game's most recent declared result ("Last
+   * Result: 09") and its open/close/result schedule. The client renders one
+   * card per row with a live "Time Left" countdown to end_time.
+   */
+  async getLive(limit = 20) {
+    const [rounds, lastResults] = await Promise.all([
+      this.roundsRepo.findLive(limit),
+      this.roundsRepo.lastResultByGame(),
+    ]);
+    return rounds.map((r) => {
+      const anyR = r as any;
+      return {
+        ...anyR,
+        lastResult: lastResults[r.gameId]?.result ?? null,
+        lastResultAt: lastResults[r.gameId]?.at ?? null,
+      };
+    });
+  }
+
+  async getResults(gameId?: string, limit = 20) {
+    // Round rows; enrich with the game's schedule so the LAST RESULTS cards
+    // can show Open/Close time + the declared value without a second call.
+    const rounds = await this.roundsRepo.getLatestResults(gameId, limit);
+    return (rounds as any[]).map((r) => ({
+      ...r,
+      open_time: r.openTime ?? null,
+      close_time: r.closeTime ?? null,
+    }));
   }
 
   async getByGameId(gameId: string, options: any) {
     return this.roundsRepo.findByGameId(gameId, options);
-  }
-
-  async getResults(gameId?: string, limit = 20) {
-    return this.roundsRepo.getLatestResults(gameId, limit);
   }
 
   async getActive(gameId?: string) {
@@ -28,6 +68,23 @@ export class RoundsService {
     // round (rounds.result) and status moves to result_declared.
     const updated = await this.roundsRepo.updateStatus(roundId, 'result_declared', result);
 
+    // Settle this round's open wagers against the result so winners are paid.
+    if (this.settleRoundFn) {
+      try {
+        await this.settleRoundFn(roundId, result);
+      } catch (e) {
+        // Settlement should never block result declaration from being recorded.
+        console.error(`Rounds: auto-settlement failed for round ${roundId}:`, e);
+      }
+    }
+
+    // Date-wise auto-advance: open tomorrow's round for this game.
+    try {
+      await this.ensureNextDayRound(round);
+    } catch (e) {
+      console.error(`Rounds: next-day round generation failed for round ${roundId}:`, e);
+    }
+
     const { io } = require('../../../config/websocket.config');
     if (io) {
       io.to(`game:${round.gameId}`).emit('result:declared', {
@@ -39,6 +96,27 @@ export class RoundsService {
     }
 
     return updated;
+  }
+
+  /**
+   * When a round's result is declared, make sure the next day's market for the
+   * same game is open and playable. Reads the game's schedule (opening_time /
+   * result_time) and creates a new 'open' round one day later.
+   */
+  private async ensureNextDayRound(round: RoundEntity): Promise<RoundEntity | null> {
+    const { data: game } = await supabase
+      .from('games')
+      .select('opening_time, result_time')
+      .eq('id', round.gameId)
+      .single();
+    if (!game?.opening_time) return null;
+
+    const openDate = new Date(round.startTime);
+    openDate.setDate(openDate.getDate() + 1);
+
+    const open = openDate.toISOString();
+    const close = new Date(openDate.getTime() + 30 * 60 * 1000).toISOString();
+    return this.roundsRepo.ensureRoundForDate(round.gameId, open, close, game.result_time);
   }
 
   async listAll(options: any = {}) {

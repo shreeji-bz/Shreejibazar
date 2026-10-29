@@ -41,8 +41,8 @@ class _OtpVerificationPageState extends State<OtpVerificationPage> {
               const SizedBox(height: 40),
               TextButton.icon(
                 onPressed: () => context.pop(),
-                icon: const Icon(Icons.arrow_back_ios, color: AppColors.goldBright, size: 18),
-                label: const Text('Back', style: TextStyle(color: AppColors.goldBright)),
+                icon: Icon(Icons.arrow_back_ios, color: AppColors.goldBright, size: 18),
+                label: Text('Back', style: TextStyle(color: AppColors.goldBright)),
               ),
               const SizedBox(height: 40),
               Text('Verify OTP', style: AppTextStyles.display),
@@ -76,7 +76,7 @@ class _OtpVerificationPageState extends State<OtpVerificationPage> {
                         ),
                         focusedBorder: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(12),
-                          borderSide: const BorderSide(color: AppColors.goldBright, width: 2),
+                          borderSide: BorderSide(color: AppColors.goldBright, width: 2),
                         ),
                         errorText: _errorText,
                       ),
@@ -92,7 +92,7 @@ class _OtpVerificationPageState extends State<OtpVerificationPage> {
               ),
               if (_errorText != null) ...[
                 const SizedBox(height: 12),
-                Text(_errorText!, style: const TextStyle(color: AppColors.error, fontSize: 13)),
+                Text(_errorText!, style: TextStyle(color: AppColors.error, fontSize: 13)),
               ],
               const SizedBox(height: 24),
               Center(

@@ -1,29 +1,61 @@
 /// Per-game play configuration.
 ///
-/// Not every game supports every play type. This lets each game declare which
-/// modes its tab bar shows, the number format each mode accepts, and the
-/// stake bounds. The play screen reads this to render only what the game
-/// supports — no assumption that all games are identical.
+/// The Play screen shows three tabs that mirror the reference UI:
+///   * `jodi`     — a 00–99 grid plus an "Andar Haruf" (0–9) single-digit row
+///   * `crossing` — free "digit + amount" entry
+///   * `palti`    — copy-paste number with a With/Without Palti toggle
+///
+/// Not every game necessarily supports every tab, so each game declares the
+/// tabs it shows and the stake bounds. The play screen renders only what the
+/// config allows.
 class GamePlayConfig {
-  final List<String> playTypes; // the tabs to show, in order
+  final List<String> tabs; // ['jodi', 'crossing', 'palti'] in order
   final int minStake;
   final int maxStake;
 
   const GamePlayConfig({
-    required this.playTypes,
+    required this.tabs,
     this.minStake = 10,
     this.maxStake = 1000,
   });
 
-  /// Default config: all four backend play types.
+  /// Default config: all three tabs, in the reference order.
   static const GamePlayConfig standard = GamePlayConfig(
-    playTypes: ['single', 'jodi', 'double', 'panel'],
+    tabs: ['jodi', 'crossing', 'palti'],
   );
 
-  /// Number format a given play type requires (mirrors backend validation).
-  static int digitsFor(String playType) =>
-      playType == 'single' ? 1 : (playType == 'panel' ? 3 : 2);
+  /// The set of UI tabs a game exposes.
+  static const Set<String> allTabs = {'jodi', 'crossing', 'palti'};
 
-  /// Human label for a play type.
-  static String labelFor(String playType) => playType.toUpperCase();
+  /// Tab header label.
+  static String tabLabel(String tab) {
+    switch (tab) {
+      case 'crossing':
+        return 'Crossing';
+      case 'palti':
+        return 'Copy Paste';
+      default:
+        return 'Jodi';
+    }
+  }
+
+  /// Human label for a *bet* play type (used in entry tables / confirm dialog).
+  static String labelFor(String playType) {
+    switch (playType) {
+      case 'single':
+        return 'Andar Haruf';
+      case 'jodi':
+        return 'Jodi';
+      case 'panel':
+        return 'Panel';
+      case 'double':
+        return 'Double';
+      case 'crossing':
+        return 'Crossing';
+      case 'palti':
+        return 'Palti';
+      default:
+        return playType.toUpperCase();
+    }
+  }
 }

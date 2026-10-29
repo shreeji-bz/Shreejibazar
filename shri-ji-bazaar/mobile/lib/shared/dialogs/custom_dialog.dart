@@ -23,21 +23,21 @@ class CustomDialog extends StatelessWidget {
   Widget build(BuildContext context) {
     return Dialog(
       backgroundColor: AppColors.card,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20), side: const BorderSide(color: AppColors.border)),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20), side: BorderSide(color: AppColors.border)),
       child: Padding(
         padding: const EdgeInsets.all(24),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Text(title, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: AppColors.goldBright)),
+            Text(title, style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: AppColors.goldBright)),
             const SizedBox(height: 12),
-            Text(message, textAlign: TextAlign.center, style: const TextStyle(color: AppColors.textSecondary, fontSize: 14)),
+            Text(message, textAlign: TextAlign.center, style: TextStyle(color: AppColors.textSecondary, fontSize: 14)),
             const SizedBox(height: 24),
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceEvenly,
               children: [
                 if (cancelText != null)
-                  TextButton(onPressed: onCancel, child: Text(cancelText!, style: const TextStyle(color: AppColors.textSecondary))),
+                  TextButton(onPressed: onCancel, child: Text(cancelText!, style: TextStyle(color: AppColors.textSecondary))),
                 if (confirmText != null)
                   ElevatedButton(onPressed: onConfirm, style: ElevatedButton.styleFrom(backgroundColor: AppColors.gold), child: Text(confirmText!)),
               ],

@@ -1,3 +1,38 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+/* Theme tokens: light is the fixed default; dark applies when .dark is on <html> */
+:root {
+  --background: #F6F4EF;
+  --background-secondary: #FFFFFF;
+  --card: #FFFFFF;
+  --card-secondary: #F1EDE3;
+  --card-tertiary: #EAE4D6;
+  --border: #D8D0BE;
+  --text-primary: #1A1608;
+  --text-secondary: #5A5142;
+  --text-muted: #8A7E68;
+  --gold-dark: #8A5A00;
+  --gold: #B8860B;
+  --gold-bright: #A97800;
+  --gold-light: #D89B18;
+  --gold-muted: #C9A227;
+}
+
+.dark {
+  --background: #050505;
+  --background-secondary: #0A0A0A;
+  --card: #120C05;
+  --card-secondary: #1A1005;
+  --card-tertiary: #211508;
+  --border: #2A2008;
+  --text-primary: #FFFFFF;
+  --text-secondary: #B8A98A;
+  --text-muted: #7A6E5A;
+  --gold-dark: #8A5A00;
+  --gold: #D89B18;
+  --gold-bright: #C9A227;
+  --gold-light: #E8C547;
+  --gold-muted: #B8942B;
+}

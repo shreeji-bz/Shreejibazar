@@ -14,6 +14,8 @@ export interface IPaymentsRepository {
   findPendingWithdrawals(limit?: number): Promise<PaymentEntity[]>;
   approve(id: string, adminId: string, adminNotes?: string): Promise<PaymentEntity>;
   reject(id: string, adminId: string, adminNotes: string): Promise<PaymentEntity>;
+  /** Mark a completed deposit as rejected (revert) after the wallet has been debited. */
+  markReverted(id: string, adminId: string, reason: string): Promise<PaymentEntity>;
   getAll(
     page: number,
     limit: number,

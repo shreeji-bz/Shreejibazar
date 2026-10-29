@@ -29,17 +29,26 @@ class _SplashPageState extends State<SplashPage> {
     final splashController = Provider.of<SplashController>(context, listen: false);
     final auth = Provider.of<AuthController>(context, listen: false);
 
-    // Wait for auth check to complete if still loading
+    // Wait for the auth check, but NEVER spin the loader forever: when the
+    // backend is unreachable (offline, dropped USB tunnel, etc.) the auth
+    // check alone can stall ~90s (30s x3 retries + refresh). Cap the wait at
+    // 5s and fall through to login/home with whatever state we have.
+    final authTimer = Stopwatch()..start();
     while (auth.status == AuthStatus.loading || auth.status == AuthStatus.initial) {
+      if (authTimer.elapsed > const Duration(seconds: 5)) break;
       await Future.delayed(const Duration(milliseconds: 100));
       if (!mounted) return;
     }
 
     if (!mounted) return;
 
-    // Check maintenance mode before routing
+    // Check maintenance mode before routing. A hard timeout guarantees the
+    // splash never blocks routing on a slow/dead backend — on timeout we just
+    // skip the check and route normally.
     try {
-      final entity = await splashController.getSettings();
+      final entity = await splashController
+          .getSettings()
+          .timeout(const Duration(seconds: 5), onTimeout: () => null);
       if (entity?.maintenanceMode == true && mounted) {
         context.go(RouteNames.maintenance);
         return;

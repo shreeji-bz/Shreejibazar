@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 import 'package:shri_ji_bazaar/core/theme/app_text_styles.dart';
+import 'package:shri_ji_bazaar/core/theme/theme_controller.dart';
 import 'package:shri_ji_bazaar/core/widgets/sidebar_toggle.dart';
 import 'package:shri_ji_bazaar/core/routes/route_names.dart';
 import '../controllers/settings_controller.dart';
@@ -17,11 +18,10 @@ class SettingsPage extends StatelessWidget {
         title: const Text('Settings'),
       ),
       body: SafeArea(
-        child: Consumer<SettingsController>(
-          builder: (context, settingsController, _) {
+        child: Consumer<ThemeController>(
+          builder: (context, themeController, _) {
             final language = 'English';
             final notificationsEnabled = true;
-            final darkThemeEnabled = true;
 
             return ListView(
               padding: const EdgeInsets.all(16),
@@ -45,9 +45,10 @@ class SettingsPage extends StatelessWidget {
                 _SettingsTile(
                   icon: Icons.dark_mode_rounded,
                   title: 'Dark Theme',
+                  subtitle: themeController.isDark ? 'On' : 'Off (light mode)',
                   trailing: Switch(
-                    value: darkThemeEnabled,
-                    onChanged: (value) {},
+                    value: themeController.isDark,
+                    onChanged: themeController.setDark,
                   ),
                 ),
                 const Divider(height: 1),

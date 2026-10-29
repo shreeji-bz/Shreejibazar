@@ -291,6 +291,34 @@ export class PaymentsService {
     return this.paymentsRepo.approve(id, adminId, adminNotes);
   }
 
+  /**
+   * Remove/revert an ALREADY-COMPLETED deposit: cut the credited amount back
+   * out of the user's wallet (debitWallet) and mark the payment rejected.
+   * This is the "add money -> credit, remove money -> auto-cut" requirement.
+   * Idempotent-ish: a payment that is not completed cannot be reverted
+   * (nothing was credited), so it is rejected with a clear error.
+   */
+  async revertPayment(id: string, adminId: string, reason: string): Promise<PaymentEntity> {
+    const payment = await this.paymentsRepo.findById(id);
+    if (!payment) throw new Error('Payment not found');
+    if (payment.type !== 'deposit') {
+      throw new Error('Only completed deposits can be reverted');
+    }
+    if (payment.status !== 'completed') {
+      throw new Error(`Payment is not completed (it's ${payment.status}); nothing to revert`);
+    }
+
+    // Cut the amount back out of the wallet (adds a debit ledger row).
+    await this.paymentsRepo.debitWallet(
+      payment.userId,
+      payment.amount,
+      id,
+      `Deposit reverted${reason ? `: ${reason}` : ''}`,
+    );
+
+    return this.paymentsRepo.markReverted(id, adminId, `Reverted${reason ? `: ${reason}` : ''}`);
+  }
+
   async rejectPayment(id: string, adminId: string, adminNotes: string): Promise<PaymentEntity> {
     const payment = await this.paymentsRepo.findById(id);
     if (!payment) throw new Error('Payment not found');
@@ -334,7 +362,7 @@ export class PaymentsService {
     return this.enrichWithUser([mapped]).then((enriched) => enriched[0] ?? null);
   }
 
-  async getAllPayments({ page, limit, type, status, dateFrom, dateTo, search }: {
+  async getAllPayments({ page, limit, type, status, dateFrom, dateTo, search, methods }: {
     page: number;
     limit: number;
     type?: string;
@@ -342,6 +370,8 @@ export class PaymentsService {
     dateFrom?: string;
     dateTo?: string;
     search?: string;
+    /** Comma-separated payment methods (upi,bank_transfer,qr,paytm,phonepe,cash,points,admin). */
+    methods?: string;
   }): Promise<{ data: any[]; total: number; page: number; limit: number }> {
     const from = (page - 1) * limit;
     const to = from + limit - 1;
@@ -352,6 +382,10 @@ export class PaymentsService {
     if (status) query = query.eq('status', status);
     if (dateFrom) query = query.gte('created_at', dateFrom);
     if (dateTo) query = query.lte('created_at', dateTo);
+    if (methods) {
+      const list = methods.split(',').map((m) => m.trim()).filter(Boolean);
+      if (list.length) query = query.in('method', list);
+    }
     if (search) {
       query = query.or(`reference_id.ilike.%${search}%,user_id.ilike.%${search}%`);
     }

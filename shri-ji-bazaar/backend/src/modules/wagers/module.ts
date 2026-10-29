@@ -9,11 +9,12 @@ import { authenticateToken } from '../../common/middleware/auth.middleware';
 export class WagersModule {
   public router = Router();
   public adminRouter = Router();
+  public service: WagersService;
   constructor() {
     const repository = new WagersRepository();
-    const service = new WagersService(repository);
-    const adminController = new AdminWagersController(service, repository);
-    const userController = new WagersController(service, repository, this.router);
+    this.service = new WagersService(repository);
+    const adminController = new AdminWagersController(this.service, repository);
+    const userController = new WagersController(this.service, repository, this.router);
 
     // Admin routes
     this.adminRouter.get('/', adminController.getAllWagers.bind(adminController));
