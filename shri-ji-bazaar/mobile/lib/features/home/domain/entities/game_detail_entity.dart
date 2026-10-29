@@ -37,6 +37,8 @@ class GameDetailEntity {
   final DateTime createdAt;
   final DateTime updatedAt;
   final List<RoundEntity> rounds;
+  final String? lastResult;
+  final String? lastResultAt;
 
   GameDetailEntity({
     required this.id,
@@ -53,5 +55,7 @@ class GameDetailEntity {
     required this.createdAt,
     required this.updatedAt,
     required this.rounds,
+    this.lastResult,
+    this.lastResultAt,
   });
 }
