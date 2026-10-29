@@ -9,8 +9,10 @@ export class ResultsModule {
 
   constructor() {
     const service = new ResultsService();
+    // Public router: no adminOnly flag, so game-scoped declare is not exposed here.
     new ResultsController(service, this.router);
     this.adminRouter.use(authenticateAdmin);
-    new ResultsController(service, this.adminRouter);
+    // Admin router: flag true exposes the admin-only game-scoped declare route.
+    new ResultsController(service, this.adminRouter, true);
   }
 }

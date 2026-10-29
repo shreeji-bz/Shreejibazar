@@ -76,18 +76,18 @@ class AboutPage extends StatelessWidget {
               Card(
                 child: Column(
                   children: [
-                    const ListTile(title: Text('Developer', style: AppTextStyles.cardTitle), subtitle: Text('Shri Ji Bazaar Team')),
+                    ListTile(title: Text('Developer', style: AppTextStyles.cardTitle), subtitle: Text('Shri Ji Bazaar Team')),
                     const Divider(height: 1),
                     ListTile(
-                      title: const Text('Website', style: AppTextStyles.cardTitle),
-                      subtitle: const Text('www.shrijibazaar.com', style: AppTextStyles.bodySmall),
+                      title: Text('Website', style: AppTextStyles.cardTitle),
+                      subtitle: Text('www.shrijibazaar.com', style: AppTextStyles.bodySmall),
                       trailing: const Icon(Icons.open_in_new_rounded, size: 18),
                       onTap: () => _openLink(context, 'https://www.shrijibazaar.com'),
                     ),
                     const Divider(height: 1),
                     ListTile(
-                      title: const Text('Email', style: AppTextStyles.cardTitle),
-                      subtitle: const Text('support@shrijibazaar.com', style: AppTextStyles.bodySmall),
+                      title: Text('Email', style: AppTextStyles.cardTitle),
+                      subtitle: Text('support@shrijibazaar.com', style: AppTextStyles.bodySmall),
                       trailing: const Icon(Icons.open_in_new_rounded, size: 18),
                       onTap: () => _openLink(context, 'mailto:support@shrijibazaar.com'),
                     ),

@@ -108,57 +108,15 @@ export class AdminWagersController {
 
   async settleRoundWagers(req: Request, res: Response) {
     try {
-      const { resultText, winningSelection } = req.body;
+      const { resultText } = req.body;
       if (!resultText) {
         return res.status(400).json({ success: false, message: 'resultText is required' });
       }
 
-      const activeWagers = await this.wagersService.getActiveWagersForRound(req.params.roundId);
-      const settledWagers: any[] = [];
-
-      for (const wager of activeWagers) {
-        const isWinner = this.checkWagerWin(wager, winningSelection || resultText);
-        const payout = isWinner ? wager.potentialPayout : 0;
-
-        try {
-          const settled = await this.wagersService.settleWager(wager.id, {
-            resultText,
-            isWinner,
-            pointsWon: payout,
-          });
-          settledWagers.push(settled);
-        } catch (err) {
-          settledWagers.push({ id: wager.id, error: (err as Error).message });
-        }
-      }
-
-      res.json({
-        success: true,
-        data: {
-          totalSettled: settledWagers.length,
-          wagers: settledWagers,
-        },
-      });
+      const data = await this.wagersService.settleRound(req.params.roundId, resultText);
+      res.json({ success: true, data });
     } catch (error: any) {
       res.status(500).json({ success: false, message: error.message });
-    }
-  }
-
-  private checkWagerWin(wager: any, resultText: string): boolean {
-    const resultDigits = resultText.replace(/\s/g, '').split('');
-    const selection = wager.selection.trim();
-
-    switch (wager.playType) {
-      case 'single':
-        return resultDigits.includes(selection);
-      case 'double':
-        return resultText.replace(/\s/g, '').includes(selection);
-      case 'jodi':
-        return resultText.replace(/\s/g, '').includes(selection);
-      case 'panel':
-        return selection.split('').every((digit: string) => resultDigits.includes(digit));
-      default:
-        return false;
     }
   }
 }

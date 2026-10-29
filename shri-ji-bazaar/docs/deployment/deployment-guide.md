@@ -2,7 +2,7 @@
 
 ## Prerequisites
 - Docker and Docker Compose
-- Node.js 18+
+- Node.js 20+
 - Flutter SDK
 
 ## Steps

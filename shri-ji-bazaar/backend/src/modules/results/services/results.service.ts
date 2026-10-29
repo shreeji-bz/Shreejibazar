@@ -46,6 +46,36 @@ export class ResultsService {
     };
   }
 
+  /**
+   * Jantri report: for a date range, declared results grouped by
+   * (local date, game) — the per-day/per-game outcome summary the admin
+   * dashboard needs.
+   */
+  async getReport(from?: string, to?: string): Promise<Array<{ date: string; game: string; gameName: string; count: number }>> {
+    let query = supabase
+      .from('rounds')
+      .select('id, game_id, updated_at, games(name)')
+      .eq('status', 'result_declared')
+      .not('result', 'is', null)
+      .limit(2000);
+    if (from) query = query.gte('updated_at', from);
+    if (to) query = query.lte('updated_at', to);
+    const { data } = await query;
+    const buckets = new Map<string, { date: string; game: string; gameName: string; count: number }>();
+    for (const row of (data || []) as any[]) {
+      const iso: string = row.updated_at || '';
+      const local = new Date(iso);
+      const date = local.toLocaleDateString('en-CA'); // YYYY-MM-DD local
+      const key = `${date}|${row.game_id}`;
+      const existing = buckets.get(key);
+      if (existing) existing.count += 1;
+      else buckets.set(key, { date, game: row.game_id, gameName: row.games?.name || '', count: 1 });
+    }
+    return Array.from(buckets.values()).sort((a, b) =>
+      a.date === b.date ? a.gameName.localeCompare(b.gameName) : a.date < b.date ? 1 : -1,
+    );
+  }
+
   async getByRound(roundId: string): Promise<ResultEntity | null> {
     const { data } = await supabase
       .from('rounds')
@@ -54,6 +84,74 @@ export class ResultsService {
       .single();
 
     return data ? this.mapRow(data) : null;
+  }
+
+  // Game-scoped declare: find the game's open round (latest start_time) and
+  // mark it result_declared; if none exists, insert one so every market
+  // accumulates its own result history (rounds table, no results table live).
+  async declareByGame(gameId: string, result: string, adminId?: string): Promise<any> {
+    const { data: game } = await supabase.from('games').select('id, slug, opening_time, closing_time, result_time').eq('id', gameId).single();
+    if (!game) throw new Error('Game not found');
+
+    const openRound = await this.findOpenRound(gameId);
+
+    let roundId: string;
+    let created = false;
+    if (openRound) {
+      roundId = openRound.id;
+      const { error } = await supabase
+        .from('rounds')
+        .update({ status: 'result_declared', result, updated_at: new Date().toISOString() })
+        .eq('id', roundId);
+      if (error) throw new Error(error.message);
+    } else {
+      const { data: record, error } = await supabase
+        .from('rounds')
+        .insert({
+          game_id: gameId,
+          round_number: String(Date.now()),
+          start_time: this.composeTime(game.opening_time),
+          end_time: this.composeTime(game.closing_time),
+          status: 'result_declared',
+          result,
+          updated_at: new Date().toISOString(),
+        })
+        .select()
+        .single();
+      if (error || !record) throw new Error(error ? error.message : 'Failed to create round');
+      roundId = record.id;
+      created = true;
+    }
+
+    const { io } = require('../../../config/websocket.config');
+    if (io) {
+      io.to(`game:${gameId}`).emit('result:declared', {
+        gameId,
+        roundId,
+        result,
+        declaredAt: new Date().toISOString(),
+      });
+    }
+
+    return { gameId, roundId, result, created, adminId };
+  }
+
+  private async findOpenRound(gameId: string): Promise<any | null> {
+    const { data } = await supabase
+      .from('rounds')
+      .select('id')
+      .eq('game_id', gameId)
+      .eq('status', 'open')
+      .order('start_time', { ascending: false })
+      .limit(1);
+    return data && data.length > 0 ? data[0] : null;
+  }
+
+  // opening_time/closing_time are 'HH:MM' app-local; interpret as today's date.
+  private composeTime(hhmm: string | null): string {
+    if (!hhmm) return new Date().toISOString();
+    const [y, m, d] = new Date().toLocaleDateString('en-CA').split('-');
+    return new Date(`${y}-${m}-${d}T${hhmm}:00`).toISOString();
   }
 
   async declareResult(roundId: string, result: string, adminId?: string): Promise<any> {

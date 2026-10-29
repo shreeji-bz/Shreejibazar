@@ -8,6 +8,7 @@ export class RoundsController {
 
   initializeRoutes() {
     this.router.get('/upcoming', this.getUpcoming.bind(this));
+    this.router.get('/live', this.getLive.bind(this));
     this.router.get('/active', this.getActive.bind(this));
     this.router.get('/game/:gameId', this.getByGame.bind(this));
     this.router.get('/results', this.getResults.bind(this));
@@ -19,12 +20,23 @@ export class RoundsController {
     this.router.put('/:id', this.updateRound.bind(this));
     this.router.post('/:id/close', this.closeRound.bind(this));
     this.router.post('/:id/result', this.declareResult.bind(this));
-    this.router.post('/:id/result', this.declareResult.bind(this));
   }
 
   async getUpcoming(req: Request, res: Response) {
     try {
-      const data = await this.roundsService.getUpcoming(req.query.gameId as string | undefined);
+      const data = await this.roundsService.getUpcoming(
+        req.query.gameId as string | undefined,
+        req.query.date as string | undefined
+      );
+      res.json({ success: true, data });
+    } catch (error: any) {
+      res.status(500).json({ success: false, message: error.message });
+    }
+  }
+
+  async getLive(req: Request, res: Response) {
+    try {
+      const data = await this.roundsService.getLive(parseInt(req.query.limit as string) || 20);
       res.json({ success: true, data });
     } catch (error: any) {
       res.status(500).json({ success: false, message: error.message });

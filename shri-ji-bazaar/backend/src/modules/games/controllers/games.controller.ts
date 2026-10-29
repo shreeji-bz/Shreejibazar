@@ -10,6 +10,9 @@ export class GamesController {
     this.router.get('/', this.getAll.bind(this));
     this.router.get('/popular', this.getPopular.bind(this));
     this.router.get('/recent', this.getRecent.bind(this));
+    // Play/rate configs (admin "Games Rate") — registered before /:id.
+    this.router.get('/play-configs', this.getPlayConfigs.bind(this));
+    this.router.put('/play-configs/:slug', this.savePlayConfig.bind(this));
     this.router.get('/:id', this.getById.bind(this));
     this.router.post('/', this.create.bind(this));
     this.router.patch('/:id', this.update.bind(this));
@@ -89,6 +92,26 @@ export class GamesController {
     try {
       await this.gameService.delete(req.params.id);
       res.json({ success: true, message: 'Game deleted' });
+    } catch (error: any) {
+      res.status(400).json({ success: false, message: error.message });
+    }
+  }
+
+  async getPlayConfigs(req: Request, res: Response) {
+    try {
+      const data = await this.gameService.getPlayConfigs();
+      res.json({ success: true, data });
+    } catch (error: any) {
+      res.status(500).json({ success: false, message: error.message });
+    }
+  }
+
+  async savePlayConfig(req: Request, res: Response) {
+    try {
+      const { slug } = req.params;
+      if (!slug) return res.status(400).json({ success: false, message: 'slug is required' });
+      const data = await this.gameService.savePlayConfig(slug, req.body || {});
+      res.json({ success: true, data });
     } catch (error: any) {
       res.status(400).json({ success: false, message: error.message });
     }

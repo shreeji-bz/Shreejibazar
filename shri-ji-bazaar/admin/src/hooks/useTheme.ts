@@ -1,7 +1,7 @@
-import { useState, useCallback } from 'react';
+import { useThemeStore } from '../store/themeStore';
 
-export function useTheme() {
-  const [isDark, setIsDark] = useState(false);
-  const toggle = useCallback(() => setIsDark(d => !d), []);
-  return { isDark, toggle };
+export { useThemeStore };
+
+export function useIsDark(): boolean {
+  return useThemeStore((s) => s.isDark);
 }

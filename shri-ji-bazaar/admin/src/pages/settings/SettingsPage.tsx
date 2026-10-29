@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { useThemeStore } from '../../store/themeStore';
 
 interface SettingsData {
   [key: string]: any;
@@ -56,6 +57,8 @@ const LABEL_MAP: Record<string, string> = {
 };
 
 export default function SettingsPage() {
+  const isDark = useThemeStore((s) => s.isDark);
+  const toggleTheme = useThemeStore((s) => s.toggle);
   const [settings, setSettings] = useState<SettingsData>({});
   const [formData, setFormData] = useState<SettingsData>({});
   const [loading, setLoading] = useState(true);
@@ -217,6 +220,31 @@ export default function SettingsPage() {
             {saveMessage.text}
           </div>
         )}
+
+        <div className="mb-6 bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+          <h2 className="text-lg font-semibold text-gray-900 mb-4">Appearance</h2>
+          <div className="flex items-center justify-between">
+            <div>
+              <span className="text-sm font-medium text-gray-700">Dark mode</span>
+              <p className="text-xs text-gray-400 mt-1">Switch the admin panel between light and dark themes.</p>
+            </div>
+            <button
+              type="button"
+              onClick={toggleTheme}
+              className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out ${
+                isDark ? 'bg-indigo-600' : 'bg-gray-200'
+              }`}
+              role="switch"
+              aria-checked={isDark}
+            >
+              <span
+                className={`inline-block h-5 w-5 rounded-full bg-white shadow transform transition-transform duration-200 ease-in-out ${
+                  isDark ? 'translate-x-5' : 'translate-x-0'
+                }`}
+              />
+            </button>
+          </div>
+        </div>
 
         <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
           {SETTING_CATEGORIES.map((category) => (

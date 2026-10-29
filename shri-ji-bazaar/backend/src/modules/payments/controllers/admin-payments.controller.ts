@@ -14,6 +14,7 @@ export class AdminPaymentsController {
     this.router.get('/:id', this.getPaymentById.bind(this));
     this.router.post('/:id/approve', this.approvePayment.bind(this));
     this.router.post('/:id/reject', this.rejectPayment.bind(this));
+    this.router.post('/:id/revert', this.revertPayment.bind(this));
   }
 
   async getPendingDeposits(req: Request, res: Response) {
@@ -42,11 +43,12 @@ export class AdminPaymentsController {
       const limit = Math.min(100, parseInt(req.query.limit as string) || 20);
       const type = req.query.type as string | undefined;
       const status = req.query.status as string | undefined;
-      const dateFrom = req.query.dateFrom as string | undefined;
-      const dateTo = req.query.dateTo as string | undefined;
+      const methods = req.query.methods as string | undefined;
+      const dateFrom = (req.query.dateFrom || req.query.from) as string | undefined;
+      const dateTo = (req.query.dateTo || req.query.to) as string | undefined;
       const search = req.query.search as string | undefined;
 
-      const result = await this.paymentsService.getAllPayments({ page, limit, type, status, dateFrom, dateTo, search });
+      const result = await this.paymentsService.getAllPayments({ page, limit, type, status, dateFrom, dateTo, search, methods });
       res.json({
         success: true,
         data: result.data,
@@ -90,6 +92,19 @@ export class AdminPaymentsController {
       }
       const payment = await this.paymentsService.rejectPayment(req.params.id, req.admin!.id, adminNotes);
       res.json({ success: true, data: payment, message: 'Payment rejected' });
+    } catch (error: any) {
+      const statusCode = error.message === 'Payment not found' ? 404 : 400;
+      res.status(statusCode).json({ success: false, message: error.message });
+    }
+  }
+
+  /** Remove/revert a COMPLETED deposit: cuts the points back out of the
+   *  user's wallet and marks the payment rejected. */
+  async revertPayment(req: Request, res: Response) {
+    try {
+      const reason = req.body.adminNotes ?? req.body.adminNote ?? 'Deposit removed';
+      const payment = await this.paymentsService.revertPayment(req.params.id, req.admin!.id, reason);
+      res.json({ success: true, data: payment, message: 'Deposit reverted — points cut from wallet' });
     } catch (error: any) {
       const statusCode = error.message === 'Payment not found' ? 404 : 400;
       res.status(statusCode).json({ success: false, message: error.message });

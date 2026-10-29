@@ -2,9 +2,12 @@ import joi from 'joi';
 
 export const placeWagerSchema = joi.object({
   gameId: joi.string().uuid().required(),
-  roundId: joi.string().uuid().required(),
-  playType: joi.string().valid('single', 'jodi', 'panel', 'double').required(),
+  // Empty string means "resolve the open round server-side" (the mobile app
+  // sends '' when it does not know the round id yet).
+  roundId: joi.string().uuid().allow('').optional(),
+  playType: joi.string().valid('single', 'jodi', 'panel', 'double', 'crossing', 'palti').required(),
   selection: joi.string().required(),
+  palti: joi.boolean().optional(),
   pointsStaked: joi.number().integer().positive().required(),
   wagerTypeId: joi.string().uuid().optional(),
   idempotencyKey: joi.string().optional(),

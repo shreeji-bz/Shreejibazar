@@ -26,11 +26,12 @@ class _HomePageState extends State<HomePage> {
   Timer? _refreshTimer;
 
   final ApiService _api = ApiService();
-  Map<String, dynamic>? _liveMarket;
-  List<dynamic> _upcomingMarkets = [];
+  List<dynamic> _liveRounds = []; // all rounds currently running (multi-card)
+  List<dynamic> _upcomingToday = []; // today's not-yet-open markets (short list)
   List<dynamic> _recentResults = [];
   List<GameEntity> _allGames = [];
   bool _loading = true;
+  bool _loadFailed = false;
   String? _selectedGameId;
   GameDetailEntity? _selectedGame;
   bool _gameDetailsLoading = false;
@@ -67,75 +68,77 @@ class _HomePageState extends State<HomePage> {
   Future<void> _loadAllData() async {
     setState(() => _loading = true);
     try {
+      final today = _todayIso();
       final results = await Future.wait([
-        _api.get('/rounds/active'),
-        _api.get('/rounds/upcoming'),
+        _api.get('/rounds/live'),
+        _api.get('/rounds/upcoming', queryParameters: {'date': today}),
         _api.get('/results/latest', queryParameters: {'limit': 10}),
         _api.get('/games'),
       ]);
 
-      final activeData = results[0] as Map<String, dynamic>?;
+      final liveData = results[0] as List<dynamic>? ?? [];
       final upcomingData = results[1] as List<dynamic>? ?? [];
       final resultsData = results[2] as List<dynamic>? ?? [];
       var gamesData = results[3] as List<dynamic>? ?? <dynamic>[];
 
-      final upcomingWithNames = <Map<String, dynamic>>[];
-      for (final round in upcomingData) {
-        // Read the joined game name from the backend shape first. The Supabase
-        // one-to-many join `select('*, games(name)')` returns it under the
-        // "games" key (verified against the live API). Then fall back to a
-        // client-side join on game_id against the /games response.
-        String? gameName;
-        gameName = round['game_name'] as String?;
-        final nested = round['games'];
-        if (nested is Map) gameName = nested['name'] as String? ?? gameName;
-        if (gameName == null || gameName.isEmpty) {
-          final gameId = round['game_id'] as String?;
-          if (gameId != null) {
-            final match = gamesData.cast<Map<String, dynamic>>().firstWhere(
-              (g) => g['id'] == gameId,
-              orElse: () => <String, dynamic>{},
-            );
-            gameName = match['name'] as String?;
-          }
-        }
-        upcomingWithNames.add(
-          Map<String, dynamic>.from(round)..['gameName'] = (gameName ?? 'Unknown').toUpperCase(),
-        );
-      }
-
       // Show real data from the DB. Fallback only when the whole request
       // failed (offline / wrong URL), NOT when the DB is genuinely empty.
-      // (To re-add a hardcoded fallback for offline demos, see git history
-      // of this file — it was removed because it masked the empty live DB.)
+      //
+      // LIVE MARKET = every round running right now (multi-card).
+      // UPCOMING = ONLY today's not-yet-open markets (a short list, not the
+      // next 20 days) — matching the reference design.
 
-      final games = gamesData.map((g) => GameEntity(
-        id: g['id'] as String,
-        name: g['name'] as String,
-        slug: g['slug'] as String,
-        description: g['description'] as String? ?? '',
-        image: g['image'] as String? ?? '',
-        openingTime: g['opening_time'] as String? ?? '',
-        closingTime: g['closing_time'] as String? ?? '',
-        resultTime: g['result_time'] as String? ?? '',
-        status: g['status'] as String? ?? 'active',
-        isPopular: g['is_popular'] as bool? ?? false,
-        sortOrder: g['sort_order'] as int? ?? 0,
-        createdAt: g['created_at'] is String ? DateTime.parse(g['created_at'] as String) : DateTime.now(),
-        updatedAt: g['updated_at'] is String ? DateTime.parse(g['updated_at'] as String) : DateTime.now(),
-      )).toList();
+      // Focus: the 8 playable markets. Inactive games (admin-deactivated or
+      // leftover test rows) stay out of the player app entirely — admins
+      // manage them in the admin panel.
+      final games = gamesData
+          .where((g) => (g['status'] ?? 'active').toString() == 'active')
+          .map((g) {
+            final m = g as Map;
+            final lastResult = m['last_result'] ?? m['lastResult'];
+            final lastResultAt = m['last_result_at'] ?? m['lastResultAt'];
+            final playConfig = m['play_config'] ?? m['playConfig'];
+            return GameEntity(
+              id: m['id'] as String,
+              name: m['name'] as String,
+              slug: m['slug'] as String,
+              description: m['description'] as String? ?? '',
+              image: m['image'] as String? ?? '',
+              openingTime: m['opening_time'] as String? ?? '',
+              closingTime: m['closing_time'] as String? ?? '',
+              resultTime: m['result_time'] as String? ?? '',
+              status: m['status'] as String? ?? 'active',
+              isPopular: m['is_popular'] as bool? ?? false,
+              sortOrder: m['sort_order'] as int? ?? 0,
+              createdAt: m['created_at'] is String ? DateTime.parse(m['created_at'] as String) : DateTime.now(),
+              updatedAt: m['updated_at'] is String ? DateTime.parse(m['updated_at'] as String) : DateTime.now(),
+              lastResult: lastResult == null ? null : lastResult.toString(),
+              lastResultAt: lastResultAt == null ? null : lastResultAt.toString(),
+              playConfig: playConfig is Map ? Map<String, dynamic>.from(playConfig) : null,
+            );
+          })
+          .toList()
+        ..sort((a, b) => a.sortOrder.compareTo(b.sortOrder));
 
       if (mounted) {
         setState(() {
-          _liveMarket = activeData;
-          _upcomingMarkets = upcomingWithNames;
+          _liveRounds = liveData;
+          _upcomingToday = upcomingData;
           _recentResults = resultsData;
           _allGames = games;
           _loading = false;
+          _loadFailed = false;
         });
       }
     } catch (e) {
-      if (mounted) setState(() => _loading = false);
+      // Backend unreachable (offline / dropped USB tunnel): stop the spinner
+      // and surface a retry banner instead of an empty, silent page.
+      if (mounted) {
+        setState(() {
+          _loading = false;
+          _loadFailed = true;
+        });
+      }
     }
   }
 
@@ -172,6 +175,8 @@ class _HomePageState extends State<HomePage> {
 
       if (mounted) {
         setState(() {
+          final lastResult = data['last_result'] ?? data['lastResult'];
+          final lastResultAt = data['last_result_at'] ?? data['lastResultAt'];
           _selectedGame = GameDetailEntity(
             id: data['id'] as String,
             name: data['name'] as String,
@@ -187,6 +192,8 @@ class _HomePageState extends State<HomePage> {
             createdAt: DateTime.parse(data['created_at'] as String),
             updatedAt: DateTime.parse(data['updated_at'] as String),
             rounds: rounds,
+            lastResult: lastResult == null ? null : lastResult.toString(),
+            lastResultAt: lastResultAt == null ? null : lastResultAt.toString(),
           );
           _gameDetailsLoading = false;
         });
@@ -213,22 +220,6 @@ class _HomePageState extends State<HomePage> {
     }
   }
 
-  String _formatTimeLeft(String? endTime) {
-    if (endTime == null) return '';
-    try {
-      final end = DateTime.parse(endTime);
-      final now = DateTime.now();
-      final diff = end.difference(now);
-      if (diff.isNegative) return '00h 00m 00s';
-      final h = diff.inHours.toString().padLeft(2, '0');
-      final m = (diff.inMinutes % 60).toString().padLeft(2, '0');
-      final s = (diff.inSeconds % 60).toString().padLeft(2, '0');
-      return '$h:$m:$s';
-    } catch (_) {
-      return '';
-    }
-  }
-
   String _formatAmPm(String? timeStr) {
     if (timeStr == null) return '';
     try {
@@ -240,6 +231,41 @@ class _HomePageState extends State<HomePage> {
     } catch (_) {
       return timeStr;
     }
+  }
+
+  /// Today's date as YYYY-MM-DD (local) — used to scope the upcoming list
+  /// to the day so it stays short, like the reference design.
+  String _todayIso() {
+    final d = DateTime.now();
+    return '${d.year}-${d.month.toString().padLeft(2, '0')}-${d.day.toString().padLeft(2, '0')}';
+  }
+
+  /// "05:50 PM" style clock from an HH:MM(:SS) time-of-day string.
+  String _formatClock(String? timeStr) {
+    if (timeStr == null || timeStr.isEmpty) return '';
+    try {
+      final t = timeStr.split(':');
+      int h = int.parse(t[0]);
+      final m = t.length > 1 ? int.parse(t[1]) : 0;
+      final period = h >= 12 ? 'PM' : 'AM';
+      final h12 = h % 12 == 0 ? 12 : h % 12;
+      return '$h12:${m.toString().padLeft(2, '0')} $period';
+    } catch (_) {
+      return timeStr;
+    }
+  }
+
+  /// Ticking "0h 3m 43sec left" countdown to an ISO datetime.
+  String _formatCountdown(String? isoEnd) {
+    if (isoEnd == null || isoEnd.isEmpty) return '00h 00m 00s';
+    final end = DateTime.tryParse(isoEnd);
+    if (end == null) return '00h 00m 00s';
+    final diff = end.difference(DateTime.now());
+    if (diff.isNegative) return '00h 00m 00s';
+    final h = diff.inHours.toString().padLeft(2, '0');
+    final m = (diff.inMinutes % 60).toString().padLeft(2, '0');
+    final s = (diff.inSeconds % 60).toString().padLeft(2, '0');
+    return '${h}h ${m}m ${s}s left';
   }
 
   String _getLastResultForGame(String gameName) {
@@ -284,6 +310,8 @@ class _HomePageState extends State<HomePage> {
                 children: [
                   _buildHeader(context, homeController),
                   const SizedBox(height: 12),
+                  if (_loadFailed)
+                    _UnreachableBanner(onRetry: _loadData),
                   _buildBannerCarousel(homeController.banners),
                   const SizedBox(height: 16),
                   _buildActionButtons(),
@@ -291,6 +319,8 @@ class _HomePageState extends State<HomePage> {
                   _buildLiveMarketSection(),
                   const SizedBox(height: 16),
                   _buildUpcomingSection(),
+                  const SizedBox(height: 16),
+                  _buildLastResultsSection(),
                   const SizedBox(height: 16),
                   _buildGamesSection(),
                   if (_selectedGameId != null && _gameDetailsLoading)
@@ -320,7 +350,7 @@ class _HomePageState extends State<HomePage> {
     final points = controller.points?.balance ?? 0;
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-      decoration: const BoxDecoration(
+      decoration: BoxDecoration(
         color: AppColors.card,
         border: Border(bottom: BorderSide(color: AppColors.border)),
       ),
@@ -348,7 +378,7 @@ class _HomePageState extends State<HomePage> {
           ),
           const SizedBox(width: 10),
           Text(
-            'WIN BAZAR',
+            'SHREE JI BAZAR',
             style: AppTextStyles.appName.copyWith(
               color: AppColors.gold,
               fontSize: 18,
@@ -513,16 +543,114 @@ class _HomePageState extends State<HomePage> {
 
   Widget _buildLiveMarketSection() {
     if (_loading)
-      return const Center(child: Padding(padding: EdgeInsets.all(24), child: CircularProgressIndicator(color: AppColors.success)));
-    else if (_liveMarket != null)
-      return _buildLiveMarketCard(_liveMarket!);
-    else
+      return Center(child: Padding(padding: EdgeInsets.all(24), child: CircularProgressIndicator(color: AppColors.success)));
+    if (_liveRounds.isEmpty)
       return _buildEmptyMarketCard('No Live Market', 'WAITING', AppColors.warning);
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 16),
+          child: Text('LIVE MARKET', style: AppTextStyles.sectionHeading),
+        ),
+        const SizedBox(height: 10),
+        ...List.generate(_liveRounds.length, (index) {
+          return _buildLiveMarketCard(_liveRounds[index] as Map<String, dynamic>);
+        }),
+      ],
+    );
   }
 
+  /// One running round, styled like the reference LIVE MARKET card:
+  /// name + RUNNING pill + red "Time Left" countdown, then a footer row with
+  /// Last Result / Result Time and a Play button.
+  Widget _buildLiveMarketCard(Map<String, dynamic> market) {
+    final name = (market['game_name'] ?? market['gameName'] ?? 'LIVE MARKET').toString().toUpperCase();
+    final timeLeft = _formatCountdown(market['end_time'] ?? market['endTime']);
+    final lastResult = market['lastResult']?.toString() ?? _getLastResultForGame(name);
+    final resultTime = _formatClock(market['result_time'] ?? market['resultTime']);
+    final gameId = market['game_id'] ?? market['gameId'];
+
+    return Container(
+      margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: AppColors.card,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: AppColors.border),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(name, style: AppTextStyles.marketTitle.copyWith(fontSize: 18)),
+                    const SizedBox(height: 4),
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 3),
+                      decoration: BoxDecoration(
+                        color: AppColors.success.withValues(alpha: 0.15),
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(color: AppColors.success.withValues(alpha: 0.4)),
+                      ),
+                      child: Text('RUNNING', style: TextStyle(color: AppColors.success, fontSize: 11, fontWeight: FontWeight.w700, letterSpacing: 1.5)),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          Row(
+            children: [
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(timeLeft, style: TextStyle(color: AppColors.error, fontSize: 16, fontWeight: FontWeight.w700, fontFamily: 'monospace')),
+                    const SizedBox(height: 2),
+                    Text('Time Left', style: TextStyle(color: AppColors.textMuted, fontSize: 10)),
+                  ],
+                ),
+              ),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text('Last Result : $lastResult', style: TextStyle(color: AppColors.goldBright, fontSize: 13, fontWeight: FontWeight.w600)),
+                    const SizedBox(height: 6),
+                    Text('Result Time : $resultTime', style: TextStyle(color: AppColors.textMuted, fontSize: 11)),
+                  ],
+                ),
+              ),
+              Container(
+                decoration: BoxDecoration(color: AppColors.success, borderRadius: BorderRadius.circular(10)),
+                child: TextButton.icon(
+                  onPressed: () {
+                    if (gameId != null) _onPlayGame(gameId.toString(), name);
+                  },
+                  icon: const Icon(Icons.play_arrow_rounded, color: Colors.white, size: 20),
+                  label: const Text('Play', style: TextStyle(color: Colors.white, fontWeight: FontWeight.w800)),
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  /// Short "today's markets not open yet" list — the reference's
+  /// UPCOMING MARKET rows (name + WAITING + Wait button + Open/Close footer).
   Widget _buildUpcomingSection() {
-    if (_upcomingMarkets.isEmpty)
+    if (_upcomingToday.isEmpty) {
       return _buildEmptyMarketCard('No Upcoming Markets', 'WAITING', AppColors.warning);
+    }
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -531,18 +659,215 @@ class _HomePageState extends State<HomePage> {
           child: Text('UPCOMING MARKET', style: AppTextStyles.sectionHeading),
         ),
         const SizedBox(height: 10),
-        ...List.generate(_upcomingMarkets.length, (index) {
-          final market = _upcomingMarkets[index];
-          final rawName = market['gameName'] as String?;
-          final name = (rawName?.trim().isNotEmpty == true ? rawName! : 'Unknown').toUpperCase();
-          final resultTime = market['result_time'] ?? market['resultTime'];
+        ...List.generate(_upcomingToday.length, (index) {
+          final market = _upcomingToday[index] as Map<String, dynamic>;
+          final rawName = market['game_name'] ?? market['gameName'];
+          final name = ((rawName?.toString().isNotEmpty == true ? rawName!.toString() : 'Unknown')).toUpperCase();
+          final openTime = _formatClock(market['open_time'] ?? market['openTime'] ?? market['opening_time']);
+          final closeTime = _formatClock(market['close_time'] ?? market['closeTime'] ?? market['closing_time']);
+          final gameId = market['game_id'] ?? market['gameId'];
+          // Round window (ISO): market only accepts bets between these.
+          final startsAt = market['start_time'] ?? market['startTime'];
+          final endsAt = market['end_time'] ?? market['endTime'];
           return _buildUpcomingMarketCard(
             name: name,
-            status: 'WAITING',
-            statusColor: AppColors.warning,
-            openTime: _formatAmPm(market['start_time'] ?? market['startTime']),
-            closeTime: _formatAmPm(market['end_time'] ?? market['endTime']),
-            resultTime: _formatAmPm(resultTime),
+            openTime: openTime,
+            closeTime: closeTime,
+            startsAt: startsAt?.toString(),
+            endsAt: endsAt?.toString(),
+            onPlay: () {
+              if (gameId != null) _onPlayGame(gameId.toString(), name);
+            },
+          );
+        }),
+      ],
+    );
+  }
+
+  Widget _buildUpcomingMarketCard({
+    required String name,
+    required String openTime,
+    required String closeTime,
+    String? startsAt,
+    String? endsAt,
+    required VoidCallback onPlay,
+  }) {
+    // State from the round's real window: waiting (before start), live
+    // (inside), or closed (after end). The 1s ticker re-renders this card,
+    // so it flips automatically the moment the market opens.
+    final start = startsAt != null && startsAt.isNotEmpty ? DateTime.tryParse(startsAt) : null;
+    final end = endsAt != null && endsAt.isNotEmpty ? DateTime.tryParse(endsAt) : null;
+    final now = DateTime.now();
+    final isLive = start != null && end != null && !now.isBefore(start) && now.isBefore(end);
+    final isClosed = end != null && !now.isBefore(end);
+    final openClock = openTime.isNotEmpty ? openTime : (start != null ? _formatClock(start.toLocal().toIso8601String().split('T').last) : '');
+
+    final Color accent = isLive ? AppColors.success : (isClosed ? AppColors.warning : AppColors.warning);
+    final String statusLabel = isLive ? 'LIVE' : (isClosed ? 'CLOSED' : 'WAITING');
+
+    final Widget button;
+    if (isLive) {
+      button = ElevatedButton(
+        onPressed: onPlay,
+        style: ElevatedButton.styleFrom(backgroundColor: AppColors.success, padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8)),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: const [
+            Icon(Icons.play_arrow_rounded, color: Colors.white, size: 15),
+            SizedBox(width: 6),
+            Text('Play', style: TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.w700)),
+          ],
+        ),
+      );
+    } else if (isClosed) {
+      button = ElevatedButton(
+        onPressed: () {
+          if (!mounted) return;
+          ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+            content: Text('Market closed — waiting for the result to be declared.'),
+            backgroundColor: AppColors.warning,
+          ));
+        },
+        style: ElevatedButton.styleFrom(backgroundColor: AppColors.cardTertiary, padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8)),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: const [
+            Icon(Icons.hourglass_bottom_rounded, color: Colors.white, size: 15),
+            SizedBox(width: 6),
+            Text('Closed', style: TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.w700)),
+          ],
+        ),
+      );
+    } else {
+      final opensIn = start != null ? _formatCountdown(start.toUtc().toIso8601String()) : '';
+      button = ElevatedButton(
+        onPressed: () {
+          if (!mounted) return;
+          ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+            content: Text('$name opens at ${openClock.isNotEmpty ? openClock : (start?.toLocal().toString().split(' ').last) ?? 'the scheduled time'} ($opensIn). You can place bets once it goes live.'),
+            backgroundColor: AppColors.warning,
+          ));
+        },
+        style: ElevatedButton.styleFrom(backgroundColor: AppColors.cardTertiary, padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8)),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: const [
+            Icon(Icons.timer_outlined, color: Colors.white, size: 15),
+            SizedBox(width: 6),
+            Text('Wait', style: TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.w700)),
+          ],
+        ),
+      );
+    }
+
+    return Container(
+      margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+      decoration: BoxDecoration(
+        color: AppColors.card,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: AppColors.border),
+      ),
+      child: Column(
+        children: [
+          Padding(
+            padding: const EdgeInsets.fromLTRB(14, 12, 14, 12),
+            child: Row(
+              children: [
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(name, style: AppTextStyles.marketTitle),
+                      const SizedBox(height: 3),
+                      Text(statusLabel, style: TextStyle(color: isLive ? AppColors.success : AppColors.warning, fontSize: 11, fontWeight: FontWeight.w600, letterSpacing: 1)),
+                    ],
+                  ),
+                ),
+                button,
+              ],
+            ),
+          ),
+          Container(
+            color: accent,
+            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 9),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text('Open Time : $openClock', style: const TextStyle(color: Colors.white, fontSize: 11)),
+                Text('Close Time : $closeTime', style: const TextStyle(color: Colors.white, fontSize: 11)),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  /// Reference's LAST RESULTS section: each declared result as a row with the
+  /// game name, a big green result badge, and Open/Close time footer.
+  Widget _buildLastResultsSection() {
+    if (_recentResults.isEmpty) {
+      return _buildEmptyMarketCard('No Results Yet', 'WAITING', AppColors.warning);
+    }
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 16),
+          child: Text('LAST RESULTS', style: AppTextStyles.sectionHeading),
+        ),
+        const SizedBox(height: 10),
+        ...List.generate(_recentResults.length, (index) {
+          final r = _recentResults[index] as Map<String, dynamic>;
+          final rawName = r['game_name'] ?? r['gameName'];
+          final name = ((rawName?.toString().isNotEmpty == true ? rawName!.toString() : 'Unknown')).toUpperCase();
+          final value = r['result']?.toString() ?? '--';
+          final openTime = _formatClock(r['open_time'] ?? r['openTime'] ?? r['opening_time']);
+          final closeTime = _formatClock(r['close_time'] ?? r['closeTime'] ?? r['closing_time']);
+          return Container(
+            margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+            decoration: BoxDecoration(
+              color: AppColors.card,
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: AppColors.border),
+            ),
+            child: Column(
+              children: [
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(14, 12, 14, 12),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Text(name, style: AppTextStyles.marketTitle.copyWith(fontSize: 15)),
+                      Container(
+                        width: 44,
+                        height: 44,
+                        alignment: Alignment.center,
+                        decoration: BoxDecoration(
+                          color: AppColors.success,
+                          shape: BoxShape.circle,
+                        ),
+                        child: Text(
+                          value.length > 3 ? value : value,
+                          style: const TextStyle(color: Colors.white, fontSize: 14, fontWeight: FontWeight.w800),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                Container(
+                  color: AppColors.success,
+                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 9),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Text('Open Time : $openTime', style: const TextStyle(color: Colors.white, fontSize: 11)),
+                      Text('Close Time : $closeTime', style: const TextStyle(color: Colors.white, fontSize: 11)),
+                    ],
+                  ),
+                ),
+              ],
+            ),
           );
         }),
       ],
@@ -573,6 +898,8 @@ class _HomePageState extends State<HomePage> {
   Widget _buildGameCard(GameEntity game, bool isSelected) {
     final icon = _gameIcon(game.name);
     final isActive = game.status.toLowerCase() == 'active';
+    final lastResult = game.lastResult;
+    final drawTime = game.lastResultAt != null ? _formatAmPm(game.lastResultAt) : '';
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
       decoration: BoxDecoration(
@@ -582,6 +909,21 @@ class _HomePageState extends State<HomePage> {
       ),
       child: Column(
         children: [
+          if (lastResult != null || drawTime.isNotEmpty)
+            Padding(
+              padding: const EdgeInsets.fromLTRB(16, 10, 16, 0),
+              child: Row(
+                children: [
+                  Text(
+                    'Last Result : ${lastResult ?? '--'}',
+                    style: AppTextStyles.bodySmall.copyWith(color: AppColors.goldBright, fontWeight: FontWeight.w600),
+                  ),
+                  const Spacer(),
+                  if (drawTime.isNotEmpty)
+                    Text('Drawn : $drawTime', style: AppTextStyles.caption.copyWith(color: AppColors.textSecondary)),
+                ],
+              ),
+            ),
           ListTile(
             leading: Container(
               width: 48,
@@ -672,6 +1014,11 @@ class _HomePageState extends State<HomePage> {
                     Text('Open: ${_formatAmPm(game.openingTime)}', style: AppTextStyles.caption),
                     Text('Close: ${_formatAmPm(game.closingTime)}', style: AppTextStyles.caption),
                     Text('Result: ${_formatAmPm(game.resultTime)}', style: AppTextStyles.caption),
+                    if (game.lastResult != null)
+                      Text(
+                        'Last Result: ${game.lastResult}${game.lastResultAt != null ? ' · ${_formatAmPm(game.lastResultAt)}' : ''}',
+                        style: AppTextStyles.bodySmall.copyWith(color: AppColors.goldBright, fontWeight: FontWeight.w600),
+                      ),
                   ],
                 ),
               ),
@@ -734,179 +1081,6 @@ class _HomePageState extends State<HomePage> {
               );
             }),
         ],
-      ),
-    );
-  }
-
-  Widget _buildLiveMarketCard(Map<String, dynamic> market) {
-    // Same shape as upcoming: the Supabase join returns the game under the
-    // "games" key (verified against the live API). No hard-coded default name.
-    String? liveName;
-    liveName = market['game_name'] as String?;
-    final nestedLive = market['games'];
-    if (nestedLive is Map) liveName = nestedLive['name'] as String? ?? liveName;
-    if (liveName == null || liveName.isEmpty) {
-      liveName = market['game_name'] as String? ?? market['gameName'] as String?;
-    }
-    final name = (liveName ?? 'LIVE MARKET').toUpperCase();
-    final timeLeft = _formatTimeLeft(market['end_time'] ?? market['endTime']);
-    final lastResult = _getLastResultForGame(name);
-    final resultTime = _formatAmPm(market['result_time'] ?? market['resultTime']);
-
-    return Container(
-      margin: const EdgeInsets.symmetric(horizontal: 12),
-      padding: const EdgeInsets.all(14),
-      decoration: BoxDecoration(
-        color: AppColors.card,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: AppColors.border),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Text(name, style: AppTextStyles.marketTitle.copyWith(fontSize: 18)),
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 3),
-                decoration: BoxDecoration(
-                  color: AppColors.success.withValues(alpha: 0.15),
-                  borderRadius: BorderRadius.circular(12),
-                  border: Border.all(color: AppColors.success.withValues(alpha: 0.4)),
-                ),
-                child: Text(
-                  'RUNNING',
-                  style: TextStyle(
-                    color: AppColors.success,
-                    fontSize: 11,
-                    fontWeight: FontWeight.w700,
-                    letterSpacing: 1.5,
-                  ),
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 12),
-          Row(
-            children: [
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(timeLeft, style: AppTextStyles.cardTitle.copyWith(color: AppColors.goldBright, fontFamily: 'monospace', fontSize: 18)),
-                    const SizedBox(height: 2),
-                    Text('Time Left', style: AppTextStyles.caption.copyWith(color: AppColors.textSecondary)),
-                  ],
-                ),
-              ),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text('Last Result : $lastResult', style: AppTextStyles.bodySmall.copyWith(color: AppColors.goldBright, fontWeight: FontWeight.w600)),
-                    const SizedBox(height: 8),
-                    Text('Result Time : $resultTime', style: AppTextStyles.caption.copyWith(color: AppColors.textSecondary)),
-                  ],
-                ),
-              ),
-              Container(
-                decoration: BoxDecoration(
-                  color: AppColors.success,
-                  borderRadius: BorderRadius.circular(10),
-                ),
-                child: TextButton.icon(
-                  onPressed: () {
-                    final gameId = market['game_id'] as String?;
-                    if (gameId == null) return;
-                    _openWagerSheet(gameId);
-                  },
-                  icon: const Icon(Icons.play_arrow_rounded, color: Colors.white, size: 20),
-                  label: Text('Play', style: AppTextStyles.body.copyWith(color: Colors.white, fontWeight: FontWeight.w800)),
-                ),
-              ),
-            ],
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildUpcomingMarketCard({
-    required String name,
-    required String status,
-    required Color statusColor,
-    required String openTime,
-    required String closeTime,
-    String? resultTime,
-  }) {
-    return ClipRRect(
-      borderRadius: BorderRadius.circular(12),
-      child: Container(
-        margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
-        decoration: BoxDecoration(
-          color: AppColors.card,
-          borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: AppColors.border),
-        ),
-        child: Column(
-        children: [
-          // White body: game name + status pill + Wait button
-          Padding(
-            padding: const EdgeInsets.fromLTRB(14, 12, 14, 12),
-            child: Row(
-              children: [
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(name, style: AppTextStyles.marketTitle),
-                      const SizedBox(height: 3),
-                      Text(
-                        status,
-                        style: TextStyle(color: AppColors.textSecondary, fontSize: 11, fontWeight: FontWeight.w600, letterSpacing: 1),
-                      ),
-                    ],
-                  ),
-                ),
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
-                  decoration: BoxDecoration(
-                    color: AppColors.success,
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      const Icon(Icons.timer_outlined, color: Colors.white, size: 15),
-                      const SizedBox(width: 6),
-                      Text('Wait', style: const TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.w700)),
-                    ],
-                  ),
-                ),
-              ],
-            ),
-          ),
-          // Solid green footer strip with open / close times
-          Container(
-            color: AppColors.success,
-            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 9),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Text(
-                  'Open Time : $openTime',
-                  style: const TextStyle(color: Colors.white, fontSize: 11),
-                ),
-                Text(
-                  'Close Time : $closeTime',
-                  style: const TextStyle(color: Colors.white, fontSize: 11),
-                ),
-              ],
-            ),
-          ),
-        ],
-        ),
       ),
     );
   }
@@ -1003,7 +1177,7 @@ class _HomePageState extends State<HomePage> {
         });
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Wager placed! Check "My Plays" for status.'), backgroundColor: AppColors.success),
+            SnackBar(content: Text('Wager placed! Check "My Plays" for status.'), backgroundColor: AppColors.success),
           );
         }
         if (mounted) Navigator.of(context).pop();
@@ -1028,8 +1202,8 @@ class _HomePageState extends State<HomePage> {
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                const Text('PLAY TYPE', style: TextStyle(color: AppColors.textSecondary, fontSize: 11, fontWeight: FontWeight.w700, letterSpacing: 1)),
-                Text(playType.toUpperCase(), style: const TextStyle(color: AppColors.gold, fontSize: 12, fontWeight: FontWeight.w700)),
+                Text('PLAY TYPE', style: TextStyle(color: AppColors.textSecondary, fontSize: 11, fontWeight: FontWeight.w700, letterSpacing: 1)),
+                Text(playType.toUpperCase(), style: TextStyle(color: AppColors.gold, fontSize: 12, fontWeight: FontWeight.w700)),
               ],
             ),
             const SizedBox(height: 10),
@@ -1047,7 +1221,7 @@ class _HomePageState extends State<HomePage> {
               ],
             ),
             const SizedBox(height: 16),
-            const Text('YOUR NUMBER', style: TextStyle(color: AppColors.textSecondary, fontSize: 11, fontWeight: FontWeight.w700, letterSpacing: 1)),
+            Text('YOUR NUMBER', style: TextStyle(color: AppColors.textSecondary, fontSize: 11, fontWeight: FontWeight.w700, letterSpacing: 1)),
             const SizedBox(height: 8),
             SizedBox(
               width: 120,
@@ -1059,14 +1233,14 @@ class _HomePageState extends State<HomePage> {
                 decoration: InputDecoration(
                   counterText: '',
                   hintText: playType == 'single' ? '0–9' : playType == 'panel' ? 'e.g. 123' : 'e.g. 12',
-                  hintStyle: const TextStyle(color: AppColors.textMuted, fontSize: 14),
+                  hintStyle: TextStyle(color: AppColors.textMuted, fontSize: 14),
                 ),
               ),
             ),
             const SizedBox(height: 16),
             Row(
               children: [
-                const Text('Stake', style: TextStyle(color: AppColors.textSecondary, fontSize: 13)),
+                Text('Stake', style: TextStyle(color: AppColors.textSecondary, fontSize: 13)),
                 const SizedBox(width: 8),
                 Text('50 pts', style: AppTextStyles.points.copyWith(fontSize: 14, color: AppColors.gold)),
               ],
@@ -1076,7 +1250,7 @@ class _HomePageState extends State<HomePage> {
               Container(
                 padding: const EdgeInsets.all(12),
                 decoration: BoxDecoration(color: AppColors.error.withValues(alpha: 0.1), borderRadius: BorderRadius.circular(8)),
-                child: Text(error!, style: const TextStyle(color: AppColors.error, fontSize: 13)),
+                child: Text(error!, style: TextStyle(color: AppColors.error, fontSize: 13)),
               ),
             ],
             const SizedBox(height: 16),
@@ -1138,6 +1312,59 @@ class _HomePageState extends State<HomePage> {
       default:
         return Icons.casino_rounded;
     }
+  }
+}
+
+/// Shown at the top of the home page when the last data load failed (e.g. the
+/// backend is unreachable / USB tunnel dropped). Gives the user an explicit
+/// reason + a retry action instead of a silent empty page.
+class _UnreachableBanner extends StatelessWidget {
+  final VoidCallback onRetry;
+  const _UnreachableBanner({required this.onRetry});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      margin: const EdgeInsets.symmetric(horizontal: 12),
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: AppColors.error.withValues(alpha: 0.12),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: AppColors.error.withValues(alpha: 0.4)),
+      ),
+      child: Row(
+        children: [
+          Icon(Icons.cloud_off_rounded, color: AppColors.error, size: 22),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Can’t reach the server',
+                  style: TextStyle(color: AppColors.error, fontSize: 13, fontWeight: FontWeight.w700),
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  'Check your connection and try again.',
+                  style: TextStyle(color: AppColors.textSecondary, fontSize: 12),
+                ),
+              ],
+            ),
+          ),
+          TextButton(
+            onPressed: onRetry,
+            style: TextButton.styleFrom(
+              foregroundColor: AppColors.error,
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+              minimumSize: const Size(44, 36),
+              tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+            ),
+            child: const Text('Retry', style: TextStyle(fontWeight: FontWeight.w700, fontSize: 13)),
+          ),
+        ],
+      ),
+    );
   }
 }
 

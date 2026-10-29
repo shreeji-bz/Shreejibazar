@@ -50,18 +50,22 @@ export class GameRepository {
   }
 
   async create(data: Partial<GameEntity>): Promise<GameEntity> {
-    const { data: record } = await supabase.from('games').insert({
+    // The live games table has NOT NULL time columns, so default any that the
+    // admin omits rather than failing the whole create.
+    const { data: record, error } = await supabase.from('games').insert({
       name: data.name,
       slug: data.slug,
       description: data.description || '',
       image: data.image || '',
-      opening_time: data.openingTime,
-      closing_time: data.closingTime,
-      result_time: data.resultTime,
+      opening_time: data.openingTime || '06:00:00',
+      closing_time: data.closingTime || data.resultTime || '06:30:00',
+      result_time: data.resultTime || '06:35:00',
       status: data.status || 'active',
       is_popular: data.isPopular || false,
       sort_order: data.sortOrder || 0,
     }).select().single();
+
+    if (error) throw new Error(error.message);
 
     if (!record) throw new Error('Failed to create game');
     return this.mapRow(record);
@@ -122,6 +126,32 @@ export class GameRepository {
     return out;
   }
 
+
+  /** Every game + its play config (admin "Games Rate" read). */
+  async allPlayConfigs(): Promise<Array<{ slug: string; name: string; status: string; config: any }>> {
+    const { data: games } = await supabase.from('games').select('id, slug, name, status').order('sort_order');
+    const configs = await this.playConfigsForSlugs((games || []).map((g) => g.slug));
+    return (games || []).map((g) => ({
+      slug: g.slug,
+      name: g.name,
+      status: g.status,
+      config: configs.get(g.slug) ?? null,
+    }));
+  }
+
+  /** Save (upsert) one game's play config (admin "Games Rate" write). */
+  async savePlayConfig(slug: string, config: any): Promise<{ slug: string; config: any }> {
+    await this.findBySlug(slug); // 404-equivalent: verify the game exists
+    const { error } = await supabase
+      .from('settings')
+      .upsert({
+        key: `play_config.${slug}`,
+        value: typeof config === 'string' ? config : JSON.stringify(config),
+        updated_at: new Date().toISOString(),
+      });
+    if (error) throw new Error(error.message);
+    return { slug, config };
+  }
 
   async toggleStatus(id: string, status: 'active' | 'inactive' | 'maintenance'): Promise<GameEntity> {
     const { data: record } = await supabase

@@ -209,18 +209,18 @@ class AppSidebar extends StatelessWidget {
                 Row(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    const Text('Referral Code ', style: TextStyle(fontSize: 14, color: AppColors.textSecondary)),
+                    Text('Referral Code ', style: TextStyle(fontSize: 14, color: AppColors.textSecondary)),
                     IconButton(
                       onPressed: () {
                         final code = user?.referralCode ?? '';
                         if (code.isNotEmpty) {
                           Clipboard.setData(ClipboardData(text: code));
                           ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(content: Text('Referral code copied'), backgroundColor: AppColors.success),
+                            SnackBar(content: Text('Referral code copied'), backgroundColor: AppColors.success),
                           );
                         }
                       },
-                      icon: const Icon(Icons.copy_rounded, size: 18, color: AppColors.textSecondary),
+                      icon: Icon(Icons.copy_rounded, size: 18, color: AppColors.textSecondary),
                       tooltip: 'Copy',
                     ),
                   ],
@@ -228,7 +228,7 @@ class AppSidebar extends StatelessWidget {
                 const SizedBox(height: 4),
                 Text(
                   'Referral Code: ${user?.referralCode ?? '------'}',
-                  style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w700, color: AppColors.textPrimary),
+                  style: TextStyle(fontSize: 15, fontWeight: FontWeight.w700, color: AppColors.textPrimary),
                   textAlign: TextAlign.center,
                 ),
               ],
@@ -289,7 +289,7 @@ class _SectionLabel extends StatelessWidget {
       padding: const EdgeInsets.fromLTRB(14, 16, 14, 6),
       child: Text(
         text,
-        style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w700, color: AppColors.textSecondary, letterSpacing: 1.2),
+        style: TextStyle(fontSize: 11, fontWeight: FontWeight.w700, color: AppColors.textSecondary, letterSpacing: 1.2),
       ),
     );
   }
