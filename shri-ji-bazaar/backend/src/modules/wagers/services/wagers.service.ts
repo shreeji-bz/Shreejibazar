@@ -53,42 +53,36 @@ export class WagersService {
       throw new Error('Game is not currently active');
     }
 
-    // Resolve round: use provided roundId if open, otherwise find the active/open round
+    // Resolve + gate the round by its real start->end window. Business rule
+    // (client): a market only accepts wagers BETWEEN its start_time and
+    // end_time — never before it starts, never after it closes.
+    const nowIso = new Date().toISOString();
     let roundId = data.roundId;
     if (!roundId || roundId.trim().length === 0) {
-      const { data: activeRound, error: activeError } = await supabase
+      // No market specified: only a round actually LIVE right now can be
+      // bet on. (Deliberately NO fallback to older "open" rounds — those
+      // were left open because results are declared manually, and routing a
+      // fresh bet onto a stale round was corrupting play history.)
+      const { data: liveRound, error: liveError } = await supabase
         .from('rounds')
-        .select('id, status, round_number')
+        .select('id, status, start_time, end_time, round_number')
         .eq('game_id', data.gameId)
         .eq('status', 'open')
-        .gte('start_time', new Date().toISOString())
-        .lte('end_time', new Date().toISOString())
+        .lte('start_time', nowIso)
+        .gte('end_time', nowIso)
         .limit(1)
         .maybeSingle();
 
-      if (activeError || !activeRound) {
-        // Fallback: any open round for this game
-        const { data: anyOpenRound } = await supabase
-          .from('rounds')
-          .select('id, status, round_number')
-          .eq('game_id', data.gameId)
-          .eq('status', 'open')
-          .order('start_time', { ascending: false })
-          .limit(1)
-          .maybeSingle();
-
-        if (!anyOpenRound) {
-          throw new Error('No open round available for this game. Please try again later.');
-        }
-        roundId = anyOpenRound.id;
-      } else {
-        roundId = activeRound.id;
+      if (liveError || !liveRound) {
+        throw new Error('No market is open right now. Check the game schedule.');
       }
+      roundId = liveRound.id;
     } else {
-      // Validate provided round exists and is open
+      // Validate the provided round exists, is open, AND is inside its
+      // start->end window.
       const { data: round, error: roundError } = await supabase
         .from('rounds')
-        .select('id, status, round_number')
+        .select('id, status, start_time, end_time, round_number')
         .eq('id', roundId)
         .single();
 
@@ -98,6 +92,16 @@ export class WagersService {
 
       if (round.status !== 'open') {
         throw new Error('Round is not open for wagering');
+      }
+
+      const nowMs = Date.now();
+      const startMs = new Date(round.start_time).getTime();
+      const endMs = new Date(round.end_time).getTime();
+      if (Number.isFinite(startMs) && nowMs < startMs) {
+        throw new Error('Market not open yet. It opens at ' + new Date(startMs).toISOString());
+      }
+      if (Number.isFinite(endMs) && nowMs > endMs) {
+        throw new Error('Market already closed. Waiting for the result.');
       }
     }
 

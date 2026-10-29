@@ -122,8 +122,57 @@ class PlayGameController extends ChangeNotifier {
   /// date with no generated round yet does NOT silently fall back to the
   /// live round — the user must see "no market for this date".
   bool get canBet {
-    if (selectedDate == _today()) return activeRound != null || dateRound != null;
-    return dateRound != null;
+    if (selectedDate == _today()) return (activeRound != null || dateRound != null) && !marketClosed;
+    return dateRound != null && !marketClosed;
+  }
+
+  /// The market exists but has NOT reached its start time yet. Bets on a
+  /// not-yet-open market must be blocked (the backend also rejects them).
+  bool get notStartedYet {
+    final round = effectiveRound;
+    if (round == null) return false;
+    final startMs = _parseMillis(round['start_time'] ?? round['startTime']);
+    return startMs != null && DateTime.now().millisecondsSinceEpoch < startMs;
+  }
+
+  /// The market's bet window has passed (end_time is in the past) and no
+  /// result is declared yet — no more bets may be placed on it.
+  bool get marketClosed {
+    final round = effectiveRound;
+    if (round == null) return false;
+    final endMs = _parseMillis(round['end_time'] ?? round['endTime']);
+    return endMs != null && DateTime.now().millisecondsSinceEpoch > endMs;
+  }
+
+  /// Human start time of the effective round, for the "opens at" message.
+  String? get roundOpensAt {
+    final round = effectiveRound;
+    if (round == null) return null;
+    final startMs = _parseMillis(round['start_time'] ?? round['startTime']);
+    if (startMs == null) return null;
+    return DateTime.fromMillisecondsSinceEpoch(startMs).toLocal().toString().split('.').first;
+  }
+
+  static int? _parseMillis(dynamic raw) {
+    if (raw == null) return null;
+    final t = DateTime.tryParse(raw.toString());
+    return t?.millisecondsSinceEpoch;
+  }
+
+  /// Message for the blocked-before-open case.
+  String notStartedYetMessage() {
+    final when = roundOpensAt;
+    return when != null ? 'This market opens at $when — no bets yet.' : 'This market has not opened yet.';
+  }
+
+  /// Message for the window-passed case.
+  String marketClosedMessage() {
+    final round = effectiveRound;
+    final result = round?['result'] ?? round?['result_value'];
+    if (result == null || result.toString().isEmpty) {
+      return 'Betting closed for this market.\nWaiting for the result to be declared.';
+    }
+    return 'Result: $result';
   }
 
   void selectTab(int index) {
@@ -198,6 +247,18 @@ class PlayGameController extends ChangeNotifier {
     final list = currentEntries;
     if (list.isEmpty) return false;
     if (submitting) return false; // guard against repeated taps
+    // A market that hasn't reached its start time takes no bets yet.
+    if (notStartedYet) {
+      errorMessage = notStartedYetMessage();
+      notifyListeners();
+      return false;
+    }
+    // A market whose window has passed takes no more bets.
+    if (marketClosed) {
+      errorMessage = marketClosedMessage();
+      notifyListeners();
+      return false;
+    }
     submitting = true;
     errorMessage = null;
     notifyListeners();

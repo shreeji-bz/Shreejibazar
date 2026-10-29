@@ -115,10 +115,46 @@ class _PlayGamePageState extends State<PlayGamePage> {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        if (c.canBet) ...[
+                        if (c.canBet && !c.notStartedYet && !c.marketClosed) ...[
                           _buildTabContent(c),
                           const SizedBox(height: 12),
-                        ] else
+                        ] else if (!c.canBet && c.marketClosed)
+                          Padding(
+                            padding: const EdgeInsets.all(40),
+                            child: Center(
+                              child: Column(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  Icon(Icons.lock_clock, size: 40, color: AppColors.warning),
+                                  const SizedBox(height: 12),
+                                  Text(
+                                    c.marketClosedMessage(),
+                                    textAlign: TextAlign.center,
+                                    style: TextStyle(color: AppColors.textMuted, fontSize: 13),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          )
+                        else if (c.canBet && c.notStartedYet)
+                          Padding(
+                            padding: const EdgeInsets.all(40),
+                            child: Center(
+                              child: Column(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  Icon(Icons.timer_outlined, size: 40, color: AppColors.warning),
+                                  const SizedBox(height: 12),
+                                  Text(
+                                    c.notStartedYetMessage(),
+                                    textAlign: TextAlign.center,
+                                    style: TextStyle(color: AppColors.textMuted, fontSize: 13),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          )
+                        else
                           Padding(
                             padding: const EdgeInsets.all(40),
                             child: Center(

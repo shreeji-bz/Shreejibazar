@@ -653,10 +653,15 @@ class _HomePageState extends State<HomePage> {
           final openTime = _formatClock(market['open_time'] ?? market['openTime'] ?? market['opening_time']);
           final closeTime = _formatClock(market['close_time'] ?? market['closeTime'] ?? market['closing_time']);
           final gameId = market['game_id'] ?? market['gameId'];
+          // Round window (ISO): market only accepts bets between these.
+          final startsAt = market['start_time'] ?? market['startTime'];
+          final endsAt = market['end_time'] ?? market['endTime'];
           return _buildUpcomingMarketCard(
             name: name,
             openTime: openTime,
             closeTime: closeTime,
+            startsAt: startsAt?.toString(),
+            endsAt: endsAt?.toString(),
             onPlay: () {
               if (gameId != null) _onPlayGame(gameId.toString(), name);
             },
@@ -670,8 +675,78 @@ class _HomePageState extends State<HomePage> {
     required String name,
     required String openTime,
     required String closeTime,
+    String? startsAt,
+    String? endsAt,
     required VoidCallback onPlay,
   }) {
+    // State from the round's real window: waiting (before start), live
+    // (inside), or closed (after end). The 1s ticker re-renders this card,
+    // so it flips automatically the moment the market opens.
+    final start = startsAt != null && startsAt.isNotEmpty ? DateTime.tryParse(startsAt) : null;
+    final end = endsAt != null && endsAt.isNotEmpty ? DateTime.tryParse(endsAt) : null;
+    final now = DateTime.now();
+    final isLive = start != null && end != null && !now.isBefore(start) && now.isBefore(end);
+    final isClosed = end != null && !now.isBefore(end);
+    final openClock = openTime.isNotEmpty ? openTime : (start != null ? _formatClock(start.toLocal().toIso8601String().split('T').last) : '');
+
+    final Color accent = isLive ? AppColors.success : (isClosed ? AppColors.warning : AppColors.warning);
+    final String statusLabel = isLive ? 'LIVE' : (isClosed ? 'CLOSED' : 'WAITING');
+
+    final Widget button;
+    if (isLive) {
+      button = ElevatedButton(
+        onPressed: onPlay,
+        style: ElevatedButton.styleFrom(backgroundColor: AppColors.success, padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8)),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: const [
+            Icon(Icons.play_arrow_rounded, color: Colors.white, size: 15),
+            SizedBox(width: 6),
+            Text('Play', style: TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.w700)),
+          ],
+        ),
+      );
+    } else if (isClosed) {
+      button = ElevatedButton(
+        onPressed: () {
+          if (!mounted) return;
+          ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+            content: Text('Market closed — waiting for the result to be declared.'),
+            backgroundColor: AppColors.warning,
+          ));
+        },
+        style: ElevatedButton.styleFrom(backgroundColor: AppColors.cardTertiary, padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8)),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: const [
+            Icon(Icons.hourglass_bottom_rounded, color: Colors.white, size: 15),
+            SizedBox(width: 6),
+            Text('Closed', style: TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.w700)),
+          ],
+        ),
+      );
+    } else {
+      final opensIn = start != null ? _formatCountdown(start.toUtc().toIso8601String()) : '';
+      button = ElevatedButton(
+        onPressed: () {
+          if (!mounted) return;
+          ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+            content: Text('$name opens at ${openClock.isNotEmpty ? openClock : (start?.toLocal().toString().split(' ').last) ?? 'the scheduled time'} ($opensIn). You can place bets once it goes live.'),
+            backgroundColor: AppColors.warning,
+          ));
+        },
+        style: ElevatedButton.styleFrom(backgroundColor: AppColors.cardTertiary, padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8)),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: const [
+            Icon(Icons.timer_outlined, color: Colors.white, size: 15),
+            SizedBox(width: 6),
+            Text('Wait', style: TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.w700)),
+          ],
+        ),
+      );
+    }
+
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
       decoration: BoxDecoration(
@@ -691,35 +766,21 @@ class _HomePageState extends State<HomePage> {
                     children: [
                       Text(name, style: AppTextStyles.marketTitle),
                       const SizedBox(height: 3),
-                      Text('WAITING', style: TextStyle(color: AppColors.textMuted, fontSize: 11, fontWeight: FontWeight.w600, letterSpacing: 1)),
+                      Text(statusLabel, style: TextStyle(color: isLive ? AppColors.success : AppColors.warning, fontSize: 11, fontWeight: FontWeight.w600, letterSpacing: 1)),
                     ],
                   ),
                 ),
-                ElevatedButton(
-                  onPressed: onPlay,
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: AppColors.success,
-                    padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
-                  ),
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: const [
-                      Icon(Icons.timer_outlined, color: Colors.white, size: 15),
-                      SizedBox(width: 6),
-                      Text('Wait', style: TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.w700)),
-                    ],
-                  ),
-                ),
+                button,
               ],
             ),
           ),
           Container(
-            color: AppColors.success,
+            color: accent,
             padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 9),
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                Text('Open Time : $openTime', style: const TextStyle(color: Colors.white, fontSize: 11)),
+                Text('Open Time : $openClock', style: const TextStyle(color: Colors.white, fontSize: 11)),
                 Text('Close Time : $closeTime', style: const TextStyle(color: Colors.white, fontSize: 11)),
               ],
             ),
