@@ -64,8 +64,8 @@ class _WalletPageState extends State<WalletPage> {
                       const SidebarToggle(),
                       const Spacer(),
                       Text(
-                        'WIN BAZAR',
-                        style: const TextStyle(
+                        'SHREE JI BAZAR',
+                        style: TextStyle(
                           fontSize: 16,
                           fontWeight: FontWeight.w700,
                           color: AppColors.textPrimary,
@@ -75,7 +75,7 @@ class _WalletPageState extends State<WalletPage> {
                       const Spacer(),
                       Text(
                         '₹ ${balance.toStringAsFixed(0)}',
-                        style: const TextStyle(
+                        style: TextStyle(
                           fontSize: 16,
                           fontWeight: FontWeight.w700,
                           color: AppColors.textPrimary,

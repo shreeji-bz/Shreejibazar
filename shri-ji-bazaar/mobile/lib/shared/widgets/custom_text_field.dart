@@ -33,10 +33,10 @@ class CustomTextField extends StatelessWidget {
       validator: validator,
       textInputAction: textInputAction,
       onChanged: onChanged,
-      style: const TextStyle(color: AppColors.textPrimary, fontSize: 14),
+      style: TextStyle(color: AppColors.textPrimary, fontSize: 14),
       decoration: InputDecoration(
         hintText: hintText,
-        hintStyle: const TextStyle(color: AppColors.textMuted, fontSize: 14),
+        hintStyle: TextStyle(color: AppColors.textMuted, fontSize: 14),
         suffixIcon: suffixIcon,
         filled: true,
         fillColor: AppColors.cardSecondary,

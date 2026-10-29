@@ -61,4 +61,14 @@ export class GamesService {
     if (!game) throw new Error('Game not found');
     return this.gameRepository.toggleStatus(id, status);
   }
+
+  /** Admin "Games Rate": every game with its play config for editing. */
+  async getPlayConfigs() {
+    return this.gameRepository.allPlayConfigs();
+  }
+
+  /** Admin "Games Rate": persist one game's play config. */
+  async savePlayConfig(slug: string, config: any) {
+    return this.gameRepository.savePlayConfig(slug, config);
+  }
 }

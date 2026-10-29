@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Check, X, Loader2 } from 'lucide-react';
+import { Check, X, Loader2, Undo2 } from 'lucide-react';
 import { paymentService } from '../../services/payment.service';
 import type { PaginatedPaymentsResponse, Payment } from '../../types/payment.types';
 
@@ -55,6 +55,23 @@ export const PaymentsPage = () => {
       await loadPayments();
     } catch (e: any) {
       setError(e.message || 'Failed to reject payment');
+    } finally {
+      setProcessingId(null);
+    }
+  };
+
+  // Remove/revert a completed deposit: cuts the points back out of the user's wallet.
+  const handleRevert = async (id: string) => {
+    const reason = window.prompt('Reason for reverting this deposit?') ?? '';
+    if (reason === null) return; // prompt dismissed
+    if (!window.confirm('This will immediately cut the credited amount out of the user\'s wallet. Continue?')) return;
+    setProcessingId(id);
+    try {
+      await paymentService.revertPayment(id, reason || undefined);
+      setError('');
+      await loadPayments();
+    } catch (e: any) {
+      setError(e.message || 'Failed to revert payment');
     } finally {
       setProcessingId(null);
     }
@@ -160,6 +177,21 @@ export const PaymentsPage = () => {
                               )}
                               Reject
                             </button>
+                            {payment.type === 'deposit' && payment.status === 'completed' && (
+                              <button
+                                onClick={() => handleRevert(payment.id)}
+                                disabled={processingId === payment.id}
+                                className="inline-flex items-center gap-1 px-3 py-1.5 bg-amber-600 text-white text-xs font-medium rounded-lg hover:bg-amber-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                                title="Remove this deposit and cut the points out of the user's wallet"
+                              >
+                                {processingId === payment.id ? (
+                                  <Loader2 size={12} className="animate-spin" />
+                                ) : (
+                                  <Undo2 size={12} />
+                                )}
+                                Revert
+                              </button>
+                            )}
                           </div>
                         </td>
                       </tr>

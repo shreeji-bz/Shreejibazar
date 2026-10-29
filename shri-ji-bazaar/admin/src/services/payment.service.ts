@@ -31,4 +31,11 @@ export const paymentService = {
     if (!res?.success) throw new Error('Failed to reject payment');
     return res.data;
   },
+
+  /** Remove a COMPLETED deposit: cuts the points back out of the user's wallet. */
+  async revertPayment(id: string, adminNote?: string): Promise<Payment> {
+    const res = await post<{ success: boolean; data: Payment }>(`/v1/admin/payments/${id}/revert`, { adminNote });
+    if (!res?.success) throw new Error((res as any)?.message || 'Failed to revert payment');
+    return res.data;
+  },
 };

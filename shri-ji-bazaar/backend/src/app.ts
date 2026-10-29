@@ -40,8 +40,17 @@ const app: Express = express();
 // Security
 app.use(helmet());
 
-// CORS
-app.use(cors({ origin: config.corsOrigin, credentials: true }));
+// CORS — CORS_ORIGIN may be a comma-separated list (e.g. the admin panel's
+// localhost origin for local dev + the LAN origin when opened from other
+// devices on the same network).
+app.use(cors({
+  // '*' (the default) reflects the requesting origin; a comma list is split
+  // into explicit allowed origins.
+  origin: config.corsOrigin === '*' || !config.corsOrigin
+    ? true
+    : config.corsOrigin.split(',').map((s) => s.trim()),
+  credentials: true,
+}));
 
 // Body parsing
 app.use(express.json({ limit: '10mb' }));
@@ -113,17 +122,26 @@ const adminModule = new AdminModule();
 const paymentsModule = new PaymentsModule();
 const gamesModule = new GamesModule();
 const roundsModule = new RoundsModule();
+const sharedWagersModule = new WagersModule();
 const resultsModule = new ResultsModule();
 const bannersModule = new BannersModule();
 const settingsModule = new SettingsModule();
 const activitiesModule = new ActivitiesModule();
 const pointsModule = new PointsModule();
 const notificationsModule = new NotificationsModule();
+
+// Auto-settlement + date-wise round advance: when a round's result is declared
+// the round's open wagers are settled (winners paid) and the next day's round
+// is opened for that game.
+roundsModule.service.setSettleRound((roundId, result) =>
+  sharedWagersModule.service.settleRound(roundId, result)
+);
 apiRouter.use('/admin/auth', adminModule.publicRouter);
-apiRouter.use('/admin/wagers', authenticateAdmin, new WagersModule().adminRouter);
+apiRouter.use('/admin/wagers', authenticateAdmin, sharedWagersModule.adminRouter);
 apiRouter.use('/admin/payments', authenticateAdmin, paymentsModule.adminRouter);
 apiRouter.use('/admin/referrals', authenticateAdmin, new ReferralsModule().adminRouter);
 apiRouter.use('/admin/games', authenticateAdmin, gamesModule.adminRouter);
+apiRouter.use('/admin/users', authenticateAdmin, new UsersModule().adminRouter);
 apiRouter.use('/admin/rounds', authenticateAdmin, roundsModule.adminRouter);
 apiRouter.use('/admin/results', authenticateAdmin, resultsModule.adminRouter);
 apiRouter.use('/admin/banners', authenticateAdmin, bannersModule.adminRouter);
@@ -147,7 +165,7 @@ apiRouter.use('/payments/imb/webhook', paymentsModule.imbRouter);
 apiRouter.use('/users', authenticateToken, new UsersModule().router);
 apiRouter.use('/games', authenticateToken, new GamesModule().router);
 apiRouter.use('/admin/games', authenticateAdmin, new GamesModule().adminRouter);
-apiRouter.use('/rounds', authenticateToken, new RoundsModule().router);
+apiRouter.use('/rounds', authenticateToken, roundsModule.router);
 // Results - public read access
 apiRouter.use('/results', new ResultsModule().router);
 apiRouter.use('/results', authenticateToken, new ResultsModule().router);

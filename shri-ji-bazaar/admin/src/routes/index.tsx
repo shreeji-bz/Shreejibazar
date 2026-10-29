@@ -1,6 +1,7 @@
 import { Navigate } from 'react-router-dom';
 import { AdminLayout } from '../layouts/AdminLayout';
 import { Login } from '../pages/auth/Login';
+import { LandingPage } from '../pages/landing/LandingPage';
 import { useAuthStore } from '../store/authStore';
 import { Dashboard } from '../pages/dashboard/Dashboard';
 import { Users } from '../pages/users/Users';
@@ -22,6 +23,16 @@ import { WagerDetailPage } from '../pages/wagers/WagerDetailPage';
 import { Payments } from '../pages/payments/Payments';
 import { PaymentDetailPage } from '../pages/payments/PaymentDetailPage';
 import { Staff } from '../pages/staff/Staff';
+import { AddFundReportPage } from '../pages/deposits/AddFundReportPage';
+import { WithdrawalUpiPage } from '../pages/withdrawals/WithdrawalUpiPage';
+import { WithdrawalQrPage } from '../pages/withdrawals/WithdrawalQrPage';
+import { WithdrawalBankPage } from '../pages/withdrawals/WithdrawalBankPage';
+import { JantriReportPage } from '../pages/jantri/JantriReportPage';
+import { GameRatesPage } from '../pages/gamereates/GameRatesPage';
+import { AppImagesPage } from '../pages/appimages/AppImagesPage';
+import { ApkManagerPage } from '../pages/apkmanager/ApkManagerPage';
+import { VideosPage } from '../pages/videos/VideosPage';
+import { ContactSettingsPage } from '../pages/contacts/ContactSettingsPage';
 
 const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
   const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
@@ -55,7 +66,21 @@ export const routes = [
       { path: 'payments', element: <Payments /> },
       { path: 'payments/:id', element: <PaymentDetailPage /> },
       { path: 'staff', element: <Staff /> },
-      { index: true, element: <Navigate to="/dashboard" replace /> },
+      { path: 'games/rates', element: <GameRatesPage /> },
+      { path: 'add-fund-report', element: <AddFundReportPage /> },
+      { path: 'withdrawals/upi', element: <WithdrawalUpiPage /> },
+      { path: 'withdrawals/qr', element: <WithdrawalQrPage /> },
+      { path: 'withdrawals/bank', element: <WithdrawalBankPage /> },
+      { path: 'jantri-report', element: <JantriReportPage /> },
+      { path: 'app-images', element: <AppImagesPage /> },
+      { path: 'apk-manager', element: <ApkManagerPage /> },
+      { path: 'videos', element: <VideosPage /> },
+      { path: 'contact-settings', element: <ContactSettingsPage /> },
+      { index: true, element: <Navigate to="/home" replace /> },
+      { path: 'home', element: <LandingPage /> },
+      // Any unrecognised path lands on the brand screen instead of a blank
+      // white screen.
+      { path: '*', element: <Navigate to="/home" replace /> },
     ],
   },
 ];

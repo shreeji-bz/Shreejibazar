@@ -9,6 +9,8 @@ import 'package:shri_ji_bazaar/features/points/data/datasources/points_datasourc
 import 'package:shri_ji_bazaar/features/points/data/repositories/points_repository.dart';
 import 'package:shri_ji_bazaar/features/points/domain/usecases/get_wallet.dart';
 import 'core/theme/app_theme.dart';
+import 'core/theme/app_colors.dart';
+import 'core/theme/theme_controller.dart';
 import 'core/routes/app_routes.dart';
 import 'core/config/supabase_config.dart';
 import 'features/authentication/presentation/controllers/auth_controller.dart';
@@ -67,18 +69,26 @@ final navigatorKey = GlobalKey<NavigatorState>();
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await SupabaseConfig.initialize();
+  // Restore the persisted light/dark choice before the first frame so the
+  // user isn't flashed with the wrong palette. Light is the default.
+  final themeController = await ThemeController.init();
   SystemChrome.setPreferredOrientations([DeviceOrientation.portraitUp]);
   SystemChrome.setSystemUIOverlayStyle(const SystemUiOverlayStyle(statusBarColor: Colors.transparent));
-  runApp(const ShriJiBazaarApp());
+  runApp(ShriJiBazaarApp(themeController: themeController));
 }
 
 class ShriJiBazaarApp extends StatelessWidget {
-  const ShriJiBazaarApp({super.key});
+  final ThemeController themeController;
+
+  const ShriJiBazaarApp({super.key, required this.themeController});
 
   @override
   Widget build(BuildContext context) {
     return MultiProvider(
       providers: [
+        // Exposed to the whole tree so Settings (and any page) can read or
+        // toggle the theme. The notifier itself carries the choice.
+        ChangeNotifierProvider<ThemeController>.value(value: themeController),
         ChangeNotifierProvider(create: (_) => AuthController()),
         ChangeNotifierProvider(
           create: (_) => SplashController(
@@ -150,12 +160,16 @@ class ShriJiBazaarApp extends StatelessWidget {
           ),
         ),
       ],
-      child: Consumer<AuthController>(
-        builder: (context, auth, _) {
+      child: Consumer2<AuthController, ThemeController>(
+        builder: (context, auth, themeCtrl, _) {
           return MaterialApp.router(
             title: 'Shri Ji Bazaar',
             debugShowCheckedModeBanner: false,
-            theme: AppTheme.light,
+            // Both read AppColors, so flipping AppColors.isDark re-skins the
+            // whole app; themeMode routes Material's fallbacks to the right set.
+            theme: AppTheme.current,
+            darkTheme: AppTheme.current,
+            themeMode: themeCtrl.isDark ? ThemeMode.dark : ThemeMode.light,
             routerConfig: createRouter(context),
           );
         },

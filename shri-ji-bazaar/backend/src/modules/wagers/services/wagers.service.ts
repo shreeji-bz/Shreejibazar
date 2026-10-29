@@ -1,6 +1,13 @@
 import { WagersRepository } from '../repositories/wagers.repository';
 import { supabase } from '../../../config/database.config';
 import { getSettingsMap } from '../../../common/utils/settings.util';
+import {
+  PLAY_TYPE_MULTIPLIERS,
+  assertSelectionValid,
+  isWinner,
+  payoutFor,
+  PlayType,
+} from './wager-settlement';
 
 export class WagersService {
   constructor(private wagersRepo: WagersRepository) {}
@@ -12,6 +19,7 @@ export class WagersService {
     wagerTypeId?: string;
     playType: string;
     selection: string;
+    palti?: boolean;
     pointsStaked: number;
     idempotencyKey?: string;
   }): Promise<any> {
@@ -45,42 +53,36 @@ export class WagersService {
       throw new Error('Game is not currently active');
     }
 
-    // Resolve round: use provided roundId if open, otherwise find the active/open round
+    // Resolve + gate the round by its real start->end window. Business rule
+    // (client): a market only accepts wagers BETWEEN its start_time and
+    // end_time — never before it starts, never after it closes.
+    const nowIso = new Date().toISOString();
     let roundId = data.roundId;
     if (!roundId || roundId.trim().length === 0) {
-      const { data: activeRound, error: activeError } = await supabase
+      // No market specified: only a round actually LIVE right now can be
+      // bet on. (Deliberately NO fallback to older "open" rounds — those
+      // were left open because results are declared manually, and routing a
+      // fresh bet onto a stale round was corrupting play history.)
+      const { data: liveRound, error: liveError } = await supabase
         .from('rounds')
-        .select('id, status, round_number')
+        .select('id, status, start_time, end_time, round_number')
         .eq('game_id', data.gameId)
         .eq('status', 'open')
-        .gte('start_time', new Date().toISOString())
-        .lte('end_time', new Date().toISOString())
+        .lte('start_time', nowIso)
+        .gte('end_time', nowIso)
         .limit(1)
         .maybeSingle();
 
-      if (activeError || !activeRound) {
-        // Fallback: any open round for this game
-        const { data: anyOpenRound } = await supabase
-          .from('rounds')
-          .select('id, status, round_number')
-          .eq('game_id', data.gameId)
-          .eq('status', 'open')
-          .order('start_time', { ascending: false })
-          .limit(1)
-          .maybeSingle();
-
-        if (!anyOpenRound) {
-          throw new Error('No open round available for this game. Please try again later.');
-        }
-        roundId = anyOpenRound.id;
-      } else {
-        roundId = activeRound.id;
+      if (liveError || !liveRound) {
+        throw new Error('No market is open right now. Check the game schedule.');
       }
+      roundId = liveRound.id;
     } else {
-      // Validate provided round exists and is open
+      // Validate the provided round exists, is open, AND is inside its
+      // start->end window.
       const { data: round, error: roundError } = await supabase
         .from('rounds')
-        .select('id, status, round_number')
+        .select('id, status, start_time, end_time, round_number')
         .eq('id', roundId)
         .single();
 
@@ -91,10 +93,21 @@ export class WagersService {
       if (round.status !== 'open') {
         throw new Error('Round is not open for wagering');
       }
+
+      const nowMs = Date.now();
+      const startMs = new Date(round.start_time).getTime();
+      const endMs = new Date(round.end_time).getTime();
+      if (Number.isFinite(startMs) && nowMs < startMs) {
+        throw new Error('Market not open yet. It opens at ' + new Date(startMs).toISOString());
+      }
+      if (Number.isFinite(endMs) && nowMs > endMs) {
+        throw new Error('Market already closed. Waiting for the result.');
+      }
     }
 
-    // Validate wager type if provided
-    let potentialPayout = Math.floor(data.pointsStaked * 1.8);
+    // Potential payout: data-driven (wager_types table) when a wager type is
+    // supplied, otherwise fall back to the per-play-type multiplier table.
+    let potentialPayout = Math.floor(data.pointsStaked * (PLAY_TYPE_MULTIPLIERS[data.playType as PlayType] ?? 1.8));
     if (data.wagerTypeId) {
       const { data: wagerType, error: wagerTypeError } = await supabase
         .from('wager_types')
@@ -103,12 +116,12 @@ export class WagersService {
         .single();
 
       if (!wagerTypeError && wagerType) {
-        potentialPayout = Math.floor(data.pointsStaked * wagerType.payout_multiplier);
+        potentialPayout = Math.floor(data.pointsStaked * Number(wagerType.payout_multiplier));
       }
     }
 
-    // Validate play type and selection
-    this.validatePlayType(data.playType, data.selection);
+    // Validate play type and selection (pure, testable rules).
+    assertSelectionValid(data.playType as PlayType, data.selection);
 
     // Get round info for description
     const { data: roundInfo } = await supabase
@@ -138,6 +151,7 @@ export class WagersService {
       wagerTypeId: data.wagerTypeId || '',
       playType: data.playType,
       selection: data.selection,
+      palti: data.palti ?? false,
       pointsStaked: data.pointsStaked,
       potentialPayout,
       status: 'active',
@@ -298,38 +312,42 @@ export class WagersService {
     };
   }
 
-  private validatePlayType(playType: string, selection: string): void {
-    const validPlayTypes = ['single', 'jodi', 'panel', 'double'];
+  /**
+   * Settle every active wager in a round against a declared result. Shared by
+   * the admin "settle round" action and the auto-settlement that fires when a
+   * result is declared. Credits winners' wallets, marks losers, and returns
+   * a per-wager report.
+   */
+  async settleRound(roundId: string, resultText: string): Promise<{
+    totalSettled: number;
+    won: number;
+    lost: number;
+    totalPaid: number;
+    wagers: any[];
+  }> {
+    const activeWagers = await this.wagersRepo.getActiveWagersForRound(roundId);
+    let won = 0;
+    let lost = 0;
+    let totalPaid = 0;
+    const wagers: any[] = [];
 
-    if (!validPlayTypes.includes(playType)) {
-      throw new Error(`Invalid play type: ${playType}. Must be one of: ${validPlayTypes.join(', ')}`);
+    for (const wager of activeWagers) {
+      const isWin = isWinner(wager.playType as PlayType, wager.selection, resultText, wager.palti ?? false);
+      const pointsWon = isWin ? payoutFor(wager.playType as PlayType, wager.selection, wager.pointsStaked, resultText, wager.palti ?? false) : 0;
+      try {
+        const settled = await this.settleWager(wager.id, { resultText, isWinner: isWin, pointsWon });
+        wagers.push(settled);
+        if (isWin) {
+          won += 1;
+          totalPaid += pointsWon;
+        } else {
+          lost += 1;
+        }
+      } catch (err) {
+        wagers.push({ id: wager.id, error: (err as Error).message });
+      }
     }
 
-    if (!selection || selection.trim().length === 0) {
-      throw new Error('Selection is required');
-    }
-
-    switch (playType) {
-      case 'single':
-        if (!/^\d$/.test(selection.trim())) {
-          throw new Error('Single play type requires a single digit (0-9)');
-        }
-        break;
-      case 'double':
-        if (!/^[0-9]{2}$/.test(selection.trim())) {
-          throw new Error('Double play type requires exactly 2 digits');
-        }
-        break;
-      case 'jodi':
-        if (!/^[0-9]{2}$/.test(selection.trim())) {
-          throw new Error('Jodi play type requires exactly 2 digits');
-        }
-        break;
-      case 'panel':
-        if (selection.trim().length < 3) {
-          throw new Error('Panel play type requires at least 3 digits');
-        }
-        break;
-    }
+    return { totalSettled: activeWagers.length, won, lost, totalPaid, wagers };
   }
 }

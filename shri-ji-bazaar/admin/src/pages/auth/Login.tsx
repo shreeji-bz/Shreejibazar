@@ -14,7 +14,7 @@ export const Login = () => {
   const navigate = useNavigate();
   const { login: setAuth, isAuthenticated } = useAuthStore();
 
-  if (isAuthenticated) return <Navigate to="/dashboard" replace />;
+  if (isAuthenticated) return <Navigate to="/home" replace />;
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -24,7 +24,9 @@ export const Login = () => {
       const response = (await loginApi(email, password)) as any;
       if (response.success) {
         setAuth(response.data.token, response.data.admin);
-        navigate('/dashboard');
+        // Client spec: first view after login is the brand screen, not the
+        // dashboard. Menu opens from the hamburger.
+        navigate('/home');
       } else {
         setError(response.message || 'Login failed');
       }
@@ -39,8 +41,8 @@ export const Login = () => {
     <div className="min-h-screen bg-background flex items-center justify-center">
       <div className="w-full max-w-sm">
         <div className="text-center mb-8">
-          <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-gold-dark via-gold to-gold-bright mx-auto flex items-center justify-center mb-4 shadow-lg shadow-gold/20">
-            <span className="text-white font-bold text-xl">SJ</span>
+          <div className="mx-auto mb-4 w-16 h-16 rounded-2xl overflow-hidden shadow-lg shadow-gold/20 flex items-center justify-center">
+            <img src="/assets/logo.webp" alt="Shri Ji Bazaar" className="w-full h-full object-cover" />
           </div>
           <h1 className="text-2xl font-bold text-gold-bright">Admin Panel</h1>
           <p className="text-text-muted mt-1">Shri Ji Bazaar</p>
