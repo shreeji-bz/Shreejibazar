@@ -3,7 +3,7 @@ import { supabase } from '../../../config/database.config';
 
 export class ReferralsRepository {
   async getStats(userId: string) {
-    const { data: user } = await supabase.from('auth.users').select('referral_code').eq('id', userId).single();
+    const { data: user } = await supabase.from('users').select('referral_code').eq('id', userId).single();
 
     const { count: total } = await supabase.from('referrals').select('*', { count: 'exact', head: true }).eq('referrer_id', userId);
     const { count: completed } = await supabase.from('referrals').select('*', { count: 'exact', head: true }).eq('referrer_id', userId).eq('status', 'completed');
@@ -26,7 +26,7 @@ export class ReferralsRepository {
   async getList(userId: string) {
     const { data } = await supabase
       .from('referrals')
-      .select('*, referred:auth.users!referred_id(name)')
+      .select('*, referred:users!referred_user_id(name)')
       .eq('referrer_id', userId)
       .order('created_at', { ascending: false });
 
@@ -44,14 +44,14 @@ export class ReferralsRepository {
     const to = from + limit - 1;
     const { data } = await supabase
       .from('referrals')
-      .select('*, referrer:auth.users!referrer_id(name), referred:auth.users!referred_id(name)')
+      .select('*, referrer:users!referrer_id(name), referred:users!referred_user_id(name)')
       .order('created_at', { ascending: false })
       .range(from, to);
 
     return (data || []).map((row: any) => ({
       id: row.id,
       referrerId: row.referrer_id,
-      referredId: row.referred_id,
+      referredId: row.referred_user_id,
       referrerName: row.referrer?.name || 'Unknown',
       referredUserName: row.referred?.name || 'Unknown',
       referralCode: row.referral_code,
@@ -63,8 +63,10 @@ export class ReferralsRepository {
 
   async create(data: { referrerId: string; referredId: string; referralCode: string }) {
     const { data: record } = await supabase.from('referrals').insert({
-      ...data,
+      referrer_id: data.referrerId,
+      referred_user_id: data.referredId,
       status: 'pending',
+      points: 0,
       reward_points: 0,
     }).select().single();
     return record;

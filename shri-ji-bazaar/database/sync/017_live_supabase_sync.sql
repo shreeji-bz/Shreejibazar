@@ -618,6 +618,95 @@ BEGIN
   END LOOP;
 END $$;
 
+-- ----------------------------------------------------------
+-- 9. Backend write-path alignment (2026-10-30, verified live).
+--    These were found by auditing every INSERT/UPDATE the backend
+--    issues against the live schema. Each one is a silent runtime
+--    failure, not a cosmetic difference.
+-- ----------------------------------------------------------
+DO $$
+DECLARE r RECORD;
+BEGIN
+  -- 9a. wagers.round_id pointed at game_rounds (an unused, empty table)
+  --     instead of rounds, which is what the backend reads and writes.
+  --     Every bet failed on the foreign key.
+  IF to_regclass('public.wagers') IS NOT NULL
+     AND to_regclass('public.rounds') IS NOT NULL THEN
+    FOR r IN SELECT c.oid, c.conname, pg_get_constraintdef(c.oid) AS def
+             FROM pg_constraint c
+             WHERE c.conrelid = 'public.wagers'::regclass
+               AND c.contype = 'f' AND c.conkey = ARRAY[
+                 (SELECT attnum FROM pg_attribute
+                   WHERE attrelid = 'public.wagers'::regclass AND attname = 'round_id')]::smallint[]
+    LOOP
+      IF r.def LIKE '%game_rounds%' THEN
+        EXECUTE 'ALTER TABLE public.wagers DROP CONSTRAINT ' || quote_ident(r.conname);
+      END IF;
+    END LOOP;
+    ALTER TABLE public.wagers DROP CONSTRAINT IF EXISTS wagers_round_id_fkey;
+    ALTER TABLE public.wagers ADD CONSTRAINT wagers_round_id_fkey
+      FOREIGN KEY (round_id) REFERENCES public.rounds(id) ON DELETE CASCADE;
+  END IF;
+
+  -- 9b. Columns the backend writes that the live schema lacked.
+  IF to_regclass('public.refresh_tokens') IS NOT NULL THEN
+    ALTER TABLE public.refresh_tokens ADD COLUMN IF NOT EXISTS is_revoked BOOLEAN NOT NULL DEFAULT false;
+  END IF;
+  IF to_regclass('public.users') IS NOT NULL THEN
+    ALTER TABLE public.users ADD COLUMN IF NOT EXISTS password_reset_code TEXT;
+    ALTER TABLE public.users ADD COLUMN IF NOT EXISTS password_reset_expires_at TIMESTAMPTZ;
+  END IF;
+  IF to_regclass('public.rounds') IS NOT NULL THEN
+    ALTER TABLE public.rounds ADD COLUMN IF NOT EXISTS result_time TIMESTAMPTZ;
+  END IF;
+  IF to_regclass('public.referrals') IS NOT NULL THEN
+    ALTER TABLE public.referrals ADD COLUMN IF NOT EXISTS reward_points INTEGER NOT NULL DEFAULT 0;
+    ALTER TABLE public.referrals ADD COLUMN IF NOT EXISTS completed_at TIMESTAMPTZ;
+  END IF;
+  IF to_regclass('public.notifications') IS NOT NULL THEN
+    ALTER TABLE public.notifications ADD COLUMN IF NOT EXISTS read_at TIMESTAMPTZ;
+    ALTER TABLE public.notifications ADD COLUMN IF NOT EXISTS data JSONB NOT NULL DEFAULT '{}'::jsonb;
+  END IF;
+  IF to_regclass('public.activities') IS NOT NULL THEN
+    ALTER TABLE public.activities ADD COLUMN IF NOT EXISTS activity_type TEXT NOT NULL DEFAULT 'play';
+    ALTER TABLE public.activities ADD COLUMN IF NOT EXISTS description TEXT NOT NULL DEFAULT '';
+    ALTER TABLE public.activities ADD COLUMN IF NOT EXISTS points_change INTEGER NOT NULL DEFAULT 0;
+    ALTER TABLE public.activities ADD COLUMN IF NOT EXISTS metadata JSONB NOT NULL DEFAULT '{}'::jsonb;
+    -- the mounted activities service omits the legacy columns
+    ALTER TABLE public.activities ALTER COLUMN game_id  DROP NOT NULL;
+    ALTER TABLE public.activities ALTER COLUMN round_id DROP NOT NULL;
+    ALTER TABLE public.activities ALTER COLUMN play_type DROP NOT NULL;
+    ALTER TABLE public.activities ALTER COLUMN selection DROP NOT NULL;
+  END IF;
+
+  -- 9c. NOT NULL ledger columns the backend omits on some paths.
+  IF to_regclass('public.point_transactions') IS NOT NULL THEN
+    ALTER TABLE public.point_transactions ALTER COLUMN balance_before SET DEFAULT 0;
+    ALTER TABLE public.point_transactions ALTER COLUMN balance_after  SET DEFAULT 0;
+  END IF;
+  IF to_regclass('public.payments') IS NOT NULL THEN
+    ALTER TABLE public.payments ALTER COLUMN balance_before SET DEFAULT 0;
+    ALTER TABLE public.payments ALTER COLUMN balance_after  SET DEFAULT 0;
+  END IF;
+
+  -- 9d. CHECK constraints narrower than the values the backend writes.
+  IF to_regclass('public.rounds') IS NOT NULL THEN
+    ALTER TABLE public.rounds DROP CONSTRAINT IF EXISTS rounds_status_check;
+    ALTER TABLE public.rounds ADD CONSTRAINT rounds_status_check
+      CHECK (status IN ('pending','open','closed','result_declared','settled'));
+  END IF;
+  IF to_regclass('public.activities') IS NOT NULL THEN
+    ALTER TABLE public.activities DROP CONSTRAINT IF EXISTS activities_play_type_check;
+    ALTER TABLE public.activities ADD CONSTRAINT activities_play_type_check
+      CHECK (play_type IN ('single','jodi','panel','double','crossing','palti'));
+  END IF;
+  IF to_regclass('public.bonuses') IS NOT NULL THEN
+    ALTER TABLE public.bonuses DROP CONSTRAINT IF EXISTS bonuses_status_check;
+    ALTER TABLE public.bonuses ADD CONSTRAINT bonuses_status_check
+      CHECK (status IN ('active','inactive','expired'));
+  END IF;
+END $$;
+
 -- Done. Verify afterwards:
 --   * place a bet on mobile — it should deduct points and create a wager row
 --   * admin declares a result — the round settles, winners get credited
