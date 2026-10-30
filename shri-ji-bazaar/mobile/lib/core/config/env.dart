@@ -21,22 +21,17 @@ class AppEnv {
   AppEnv._();
 
   /// >>> HOW THE APP REACHES THE BACKEND <<<
-  /// 127.0.0.1 + `adb reverse tcp:3000 tcp:3000` (USB tunnel). This is the
-  /// most reliable local-dev setup: it works over mobile data, needs no shared
-  /// Wi-Fi, and never breaks when the PC's LAN IP changes (a router reissue was
-  /// the cause of the "endless home spinner" before). Re-run `adb reverse`
-  /// after every `adb kill-server` / USB reconnect.
+  /// Public backend — reachable on any network, no USB/LAN tunnel needed.
   ///
-  /// Alternative (no USB): put the phone + PC on the same Wi-Fi, then use the
-  /// PC's LAN IP instead (e.g. http://192.168.0.197:3000/api/v1) — check
-  /// `ipconfig` on the backend machine for the current IP.
-  static const String API_BASE_URL = 'http://127.0.0.1:3000/api/v1';
+  /// Local-dev alternative: http://127.0.0.1:3000/api/v1 +
+  /// `adb reverse tcp:3000 tcp:3000` (or the PC's LAN IP on shared Wi-Fi).
+  static const String API_BASE_URL = 'https://api.shreejibazar.com/api/v1';
   /// -----------------------------------------
 
   /// Flips on (throw) when [API_BASE_URL] is cleartext http, to catch
   /// accidental production builds. Keep false for LAN dev, set true once
   /// you have a real https:// host.
-  static const bool REQUIRE_HTTPS = false;
+  static const bool REQUIRE_HTTPS = true;
 
   /// Build-flag override, e.g. flutter run --dart-define=API_BASE_URL=https://api.example.com/api/v1
   static const String _buildTime = String.fromEnvironment('API_BASE_URL');
