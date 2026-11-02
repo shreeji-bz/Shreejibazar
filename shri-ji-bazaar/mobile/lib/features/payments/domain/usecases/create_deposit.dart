@@ -10,10 +10,14 @@ class CreateDeposit {
     required String method,
     String? referenceId,
     String? notes,
+    String? utrNumber,
+    String? screenshotUrl,
   }) async {
     return await _repository.createDeposit({
       'amount': amount,
       'method': method,
+      'utrNumber': utrNumber,
+      'screenshotUrl': screenshotUrl,
       if (referenceId != null) 'reference_id': referenceId,
       if (notes != null) 'notes': notes,
     });

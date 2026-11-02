@@ -157,6 +157,15 @@ export class PaymentsService {
       throw new Error('Withdrawal amount must be greater than 0');
     }
 
+    // Withdrawals are only accepted 6:00 AM -> 1:00 PM (device local time).
+    // The mobile UI mirrors this gate; this is the authoritative check.
+    const now = new Date();
+    const hour = now.getHours();
+    const inWindow = hour >= 6 && hour < 13;
+    if (!inWindow) {
+      throw new Error('Withdrawals are available 6:00 AM to 1:00 PM. Please try again within that window.');
+    }
+
     if (referenceId) {
       const { data: existing } = await supabase
         .from('payments')

@@ -1,9 +1,7 @@
 import 'package:flutter/material.dart';
-import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 import 'package:shri_ji_bazaar/core/theme/app_text_styles.dart';
 import 'package:shri_ji_bazaar/core/widgets/sidebar_toggle.dart';
-import 'package:shri_ji_bazaar/core/routes/route_names.dart';
 import '../controllers/payment_controller.dart';
 
 class DepositPage extends StatelessWidget {
@@ -14,7 +12,7 @@ class DepositPage extends StatelessWidget {
     return Scaffold(
       appBar: AppBar(
         leading: const SidebarToggle(),
-        title: const Text('Deposit'),
+        title: const Text('Recharge'),
       ),
       body: SafeArea(
         child: SingleChildScrollView(
@@ -23,7 +21,7 @@ class DepositPage extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
               const SizedBox(height: 16),
-              const _DepositForm(),
+              const _RechargeForm(),
             ],
           ),
         ),
@@ -32,88 +30,205 @@ class DepositPage extends StatelessWidget {
   }
 }
 
-class _DepositForm extends StatefulWidget {
-  const _DepositForm();
+const _AMOUNT_CHIPS = [50, 100, 200, 300, 500, 1000, 5000, 10000];
+
+class _RechargeForm extends StatefulWidget {
+  const _RechargeForm();
 
   @override
-  State<_DepositForm> createState() => _DepositFormState();
+  State<_RechargeForm> createState() => _RechargeFormState();
 }
 
-class _DepositFormState extends State<_DepositForm> {
+class _RechargeFormState extends State<_RechargeForm> {
   final _formKey = GlobalKey<FormState>();
   final _amountController = TextEditingController();
-  String _selectedMethod = 'UPI';
+  final _utrController = TextEditingController();
+  int? _selectedChip;
+  bool _showQr = false;
 
   @override
   void dispose() {
     _amountController.dispose();
+    _utrController.dispose();
     super.dispose();
+  }
+
+  void _pickChip(int value) {
+    setState(() {
+      _selectedChip = value;
+      _amountController.text = value.toString();
+    });
   }
 
   @override
   Widget build(BuildContext context) {
+    final amountText = _amountController.text.trim();
+    final amount = double.tryParse(amountText);
+
     return Form(
       key: _formKey,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
+          // ---- Amount ----
+          Text('Enter Amount (Min 20)', style: AppTextStyles.bodySmall),
+          const SizedBox(height: 8),
           TextFormField(
             controller: _amountController,
-            keyboardType: const TextInputType.numberWithOptions(decimal: true),
+            keyboardType: TextInputType.number,
             decoration: const InputDecoration(
-              labelText: 'Amount (INR)',
-              hintText: 'Enter deposit amount',
-              prefixIcon: Icon(Icons.currency_rupee_rounded),
+              hintText: 'Amount',
+              border: OutlineInputBorder(),
+              contentPadding: EdgeInsets.symmetric(horizontal: 14, vertical: 14),
             ),
+            onChanged: (v) => setState(() => _selectedChip =
+                _AMOUNT_CHIPS.firstWhere((c) => c.toString() == v.trim(), orElse: () => -1)),
             validator: (value) {
-              if (value == null || value.isEmpty) return 'Please enter amount';
-              final amount = double.tryParse(value);
-              if (amount == null || amount <= 0) return 'Enter a valid amount';
-              if (amount < 1) return 'Minimum deposit is ₹1';
+              if (value == null || value.isEmpty) return 'Enter amount';
+              final a = double.tryParse(value);
+              if (a == null || a <= 0) return 'Enter a valid amount';
+              if (a < 20) return 'Minimum recharge is ₹20';
               return null;
             },
           ),
-          const SizedBox(height: 24),
-          Text('Payment Method', style: AppTextStyles.sectionHeading),
           const SizedBox(height: 12),
-          ...['UPI', 'IMPS (IMB)', 'Bank Transfer'].map((method) {
-            final isSelected = _selectedMethod == method;
-            return GestureDetector(
-              onTap: () {
-                setState(() => _selectedMethod = method);
-              },
-              child: Container(
-                margin: const EdgeInsets.only(bottom: 10),
-                padding: const EdgeInsets.all(16),
-                decoration: BoxDecoration(
-                  color: Theme.of(context).colorScheme.surface,
-                  borderRadius: BorderRadius.circular(12),
-                  border: Border.all(
-                    color: isSelected ? Theme.of(context).colorScheme.primary : Theme.of(context).colorScheme.primary.withValues(alpha: 0.1),
-                    width: isSelected ? 2 : 1,
-                  ),
-                ),
-                child: Row(
+          // ---- Quick amount chips (reference layout) ----
+          Column(
+            children: [
+              for (final row in [
+                _AMOUNT_CHIPS.sublist(0, 4),
+                _AMOUNT_CHIPS.sublist(4),
+              ])
+                Row(
                   children: [
-                    Icon(_methodIcon(method), color: isSelected ? Theme.of(context).colorScheme.primary : Colors.grey),
-                    const SizedBox(width: 12),
-                    Expanded(
+                    for (final value in row) ...[
+                      Expanded(
+                        child: Padding(
+                          padding: const EdgeInsets.all(4),
+                          child: InkWell(
+                            onTap: () => _pickChip(value),
+                            borderRadius: BorderRadius.circular(8),
+                            child: Container(
+                              alignment: Alignment.center,
+                              padding: const EdgeInsets.symmetric(vertical: 12),
+                              decoration: BoxDecoration(
+                                color: _selectedChip == value
+                                    ? const Color(0xFF25C85A)
+                                    : const Color(0xFF1A1005),
+                                borderRadius: BorderRadius.circular(8),
+                                border: Border.all(
+                                  color: _selectedChip == value
+                                      ? const Color(0xFF25C85A)
+                                      : const Color(0xFF2A1F10),
+                                ),
+                              ),
+                              child: Text(
+                                '₹$value',
+                                style: TextStyle(
+                                  color: _selectedChip == value ? Colors.white : Colors.white70,
+                                  fontWeight: FontWeight.w700,
+                                  fontSize: 14,
+                                ),
+                              ),
+                            ),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ],
+                ),
+            ],
+          ),
+          const SizedBox(height: 16),
+          // ---- UPI QR (dummy) ----
+          Container(
+            padding: const EdgeInsets.all(14),
+            decoration: BoxDecoration(
+              color: const Color(0xFF120C05),
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: const Color(0xFF2A1F10)),
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.all(8),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFF25C85A),
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: const Text('UPI',
+                          style: TextStyle(color: Colors.white, fontWeight: FontWeight.w800)),
+                    ),
+                    const SizedBox(width: 10),
+                    const Expanded(
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Text(method, style: AppTextStyles.body),
-                          if (method == 'IMPS (IMB)')
-                            Text('Instant bank transfer via IMB', style: AppTextStyles.caption),
+                          Text('SHREEJI BAZAAR',
+                              style: TextStyle(color: Colors.white, fontWeight: FontWeight.w700)),
+                          Text('Scan & pay instantly',
+                              style: TextStyle(color: Colors.white54, fontSize: 12)),
                         ],
                       ),
                     ),
-                    if (isSelected) Icon(Icons.check_circle_rounded, color: Theme.of(context).colorScheme.primary),
+                    const Text('SECURE',
+                        style: TextStyle(color: Color(0xFF25C85A), fontSize: 11, fontWeight: FontWeight.w700)),
                   ],
                 ),
-              ),
-            );
-          }),
-          const SizedBox(height: 32),
+                const SizedBox(height: 12),
+                Center(
+                  child: Container(
+                    // Dummy UPI QR placeholder — real merchant QR will be
+                    // generated by the payment provider later.
+                    width: 160,
+                    height: 160,
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: const Icon(Icons.qr_code_scanner, size: 90, color: Colors.black),
+                  ),
+                ),
+                const SizedBox(height: 8),
+                Center(
+                  child: Text(
+                    'UPI ID: shrijibazaar@upi',
+                    style: TextStyle(color: Colors.white54, fontSize: 12),
+                  ),
+                ),
+                if (amount != null && amount > 0)
+                  Padding(
+                    padding: const EdgeInsets.only(top: 8),
+                    child: Align(
+                      alignment: Alignment.centerRight,
+                      child: Text(
+                        'Amount: ₹${amount.toStringAsFixed(2)}',
+                        style: const TextStyle(color: Color(0xFF25C85A), fontWeight: FontWeight.w700),
+                      ),
+                    ),
+                  ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 16),
+          // ---- UTR confirmation after paying ----
+          Text('UTR / Transaction ID (optional, after paying)', style: AppTextStyles.bodySmall),
+          const SizedBox(height: 8),
+          TextFormField(
+            controller: _utrController,
+            keyboardType: TextInputType.number,
+            maxLength: 12,
+            decoration: const InputDecoration(
+              hintText: 'Enter 12-digit UTR',
+              border: OutlineInputBorder(),
+              counterText: '',
+            ),
+          ),
+          const SizedBox(height: 20),
+          // ---- Actions ----
           Consumer<PaymentController>(
             builder: (context, paymentController, _) {
               final isLoading = paymentController.isProcessing;
@@ -135,68 +250,59 @@ class _DepositFormState extends State<_DepositForm> {
                     width: double.infinity,
                     height: 50,
                     child: ElevatedButton(
-                      onPressed: isLoading ? null : () async {
+                      onPressed:
+                          (amount == null || amount <= 0 || isLoading) ? null : () async {
                         if (_formKey.currentState!.validate()) {
-                          final amount = double.parse(_amountController.text.trim());
-
-                          if (_selectedMethod == 'IMPS (IMB)') {
-                            // Create IMB order first, then open WebView
-                            final controller = Provider.of<PaymentController>(context, listen: false);
-                            final result = await controller.initiateImbPayment(amount);
-
-                            if (result == null || !mounted) return;
-
-                            final paymentUrl = result['paymentUrl'] as String? ?? '';
-                            final orderId = result['orderId'] as String? ?? '';
-
-                            if (paymentUrl.isEmpty) {
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                const SnackBar(
-                                  content: Text('Failed to create payment order. Please try again.'),
-                                  backgroundColor: Color(0xFFE53935),
-                                ),
-                              );
-                              return;
-                            }
-
-                            final webViewResult = await context.push<bool>(RouteNames.imbPayment, extra: {
-                              'paymentUrl': paymentUrl,
-                              'orderId': orderId,
-                              'amount': amount,
-                            });
-
-                            if (webViewResult == true && context.mounted) {
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                const SnackBar(
-                                  content: Text('Deposit successful!'),
-                                  backgroundColor: Color(0xFF25C85A),
-                                ),
-                              );
-                              _amountController.clear();
-                              await controller.loadHistory();
-                            }
-                          } else {
-                            // Standard manual deposit
-                            final success = await paymentController.requestDeposit(
-                              amount: amount,
-                              method: _selectedMethod,
+                          final success = await paymentController.requestDeposit(
+                            amount: amount,
+                            method: 'upi',
+                            utrNumber: _utrController.text.trim().isEmpty ? null : _utrController.text.trim(),
+                            screenshotUrl: null,
+                          );
+                          if (success && context.mounted) {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(
+                                  content: Text('Recharge submitted! Points will be added after verification.'),
+                                  backgroundColor: Color(0xFF25C85A)),
                             );
-                            if (success && context.mounted) {
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                const SnackBar(
-                                  content: Text('Deposit request submitted!'),
-                                  backgroundColor: Color(0xFF25C85A),
-                                ),
-                              );
-                              _amountController.clear();
-                            }
+                            _amountController.clear();
+                            _utrController.clear();
+                            setState(() {
+                              _selectedChip = null;
+                              _showQr = false;
+                            });
                           }
                         }
                       },
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: const Color(0xFF25C85A),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                      ),
                       child: isLoading
-                          ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
-                          : Text(_selectedMethod == 'IMPS (IMB)' ? 'Pay Now' : 'Deposit', style: const TextStyle(fontSize: 16)),
+                          ? const SizedBox(
+                              width: 20,
+                              height: 20,
+                              child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
+                          : const Text('Proceed To Pay', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700)),
                     ),
+                  ),
+                  const SizedBox(height: 12),
+                  OutlinedButton.icon(
+                    onPressed: () {
+                      // Watch Deposit Video — plays the URL set in admin (app.video_url).
+                      _showQr = true;
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(content: Text('Deposit video coming soon — see support chat for help.')),
+                      );
+                    },
+                    style: OutlinedButton.styleFrom(
+                      foregroundColor: const Color(0xFF25C85A),
+                      side: const BorderSide(color: Color(0xFF25C85A)),
+                      padding: const EdgeInsets.symmetric(vertical: 14),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                    ),
+                    icon: const Icon(Icons.play_arrow_rounded),
+                    label: const Text('Watch Deposit Video', style: TextStyle(fontSize: 15, fontWeight: FontWeight.w700)),
                   ),
                 ],
               );
@@ -205,18 +311,5 @@ class _DepositFormState extends State<_DepositForm> {
         ],
       ),
     );
-  }
-
-  IconData _methodIcon(String method) {
-    switch (method) {
-      case 'UPI':
-        return Icons.payment_rounded;
-      case 'IMPS (IMB)':
-        return Icons.account_balance_rounded;
-      case 'Bank Transfer':
-        return Icons.account_balance_wallet_rounded;
-      default:
-        return Icons.payment_rounded;
-    }
   }
 }

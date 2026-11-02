@@ -113,6 +113,8 @@ class PaymentController extends ChangeNotifier {
     required String method,
     String? referenceId,
     String? notes,
+    String? utrNumber,
+    String? screenshotUrl,
   }) async {
     final validationError = validateDepositAmount(amount);
     if (validationError != null) {
@@ -127,6 +129,8 @@ class PaymentController extends ChangeNotifier {
         method: method,
         referenceId: referenceId,
         notes: notes,
+        utrNumber: utrNumber,
+        screenshotUrl: screenshotUrl,
       );
       _pendingDeposits.insert(0, payment);
       _history.insert(0, payment);

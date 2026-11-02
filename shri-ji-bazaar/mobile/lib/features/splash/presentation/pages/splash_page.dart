@@ -3,6 +3,8 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 import '../../../../core/routes/route_names.dart';
+import '../../../../core/theme/app_colors.dart';
+import '../../../../core/theme/app_text_styles.dart';
 import '../../../../features/authentication/presentation/controllers/auth_controller.dart';
 import '../controllers/splash_controller.dart';
 
@@ -22,7 +24,7 @@ class _SplashPageState extends State<SplashPage> {
 
   Future<void> _initializeApp() async {
     // Minimum splash display time
-    await Future.delayed(const Duration(seconds: 2));
+    await Future.delayed(const Duration(milliseconds: 600));
 
     if (!mounted) return;
 
@@ -66,8 +68,27 @@ class _SplashPageState extends State<SplashPage> {
 
   @override
   Widget build(BuildContext context) {
-    return const Scaffold(
-      body: Center(child: CircularProgressIndicator()),
+    return Scaffold(
+      backgroundColor: AppColors.background,
+      body: Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            ClipRRect(
+              borderRadius: BorderRadius.circular(20),
+              child: Image.asset('assets/logos/logo.webp', width: 96, height: 96, fit: BoxFit.cover),
+            ),
+            const SizedBox(height: 20),
+            Text('SHREEJI BAZAAR', style: AppTextStyles.appName.copyWith(color: AppColors.gold)),
+            const SizedBox(height: 16),
+            SizedBox(
+              width: 22,
+              height: 22,
+              child: CircularProgressIndicator(strokeWidth: 2.5, color: AppColors.gold),
+            ),
+          ],
+        ),
+      ),
     );
   }
 }

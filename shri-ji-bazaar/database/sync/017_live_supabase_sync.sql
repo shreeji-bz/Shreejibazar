@@ -305,7 +305,7 @@ BEGIN
     END LOOP;
     ALTER TABLE public.payments
       ADD CONSTRAINT payments_method_check
-      CHECK (method IN ('upi', 'bank_transfer', 'paytm', 'phonepe', 'cash', 'points', 'admin', 'imps', 'qr'));
+      CHECK (method IN ('upi', 'bank_transfer', 'paytm', 'phonepe', 'gpay', 'cash', 'points', 'admin', 'imps', 'qr'));
   END IF;
 END $$;
 

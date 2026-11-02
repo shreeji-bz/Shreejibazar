@@ -5,8 +5,8 @@ import 'package:shri_ji_bazaar/features/games/presentation/controllers/play_game
 
 void main() {
   group('GamePlayConfig', () {
-    test('standard config exposes the three reference tabs in order', () {
-      expect(GamePlayConfig.standard.tabs, ['jodi', 'crossing', 'palti']);
+    test('standard config exposes only the Jodi tab (Crossing + Palti removed per client)', () {
+      expect(GamePlayConfig.standard.tabs, ['jodi']);
     });
 
     test('tab labels match the reference UI', () {
@@ -72,11 +72,12 @@ void main() {
       expect(c.currentEntries.single.playType, 'single');
     });
 
-    test('entries are isolated per tab', () {
+    test('single standard tab keeps entries; out-of-range tab is a no-op', () {
+      // The standard config now exposes only the Jodi tab, so all entries
+      // live on tab 0 and there is no second tab to leak into.
       c.addEntry(selection: '42', pointsStaked: 50, playType: 'jodi');
-      c.selectTab(1); // crossing
-      expect(c.currentEntries, isEmpty);
-      c.selectTab(0);
+      c.selectTab(1); // out of range (only one tab) -> no-op
+      expect(c.activeTabIndex, 0);
       expect(c.currentEntries, hasLength(1));
     });
 

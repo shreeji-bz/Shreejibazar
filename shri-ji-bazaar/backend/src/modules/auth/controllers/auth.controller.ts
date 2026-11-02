@@ -7,6 +7,8 @@ export class AuthController {
   initializeRoutes() {
     this.router.post('/register', this.register.bind(this));
     this.router.post('/login', this.login.bind(this));
+    this.router.post('/otp/request', this.requestOtp.bind(this));
+    this.router.post('/otp/verify', this.verifyOtp.bind(this));
     this.router.post('/refresh', this.refreshToken.bind(this));
     this.router.post('/logout', this.logout.bind(this));
     this.router.post('/forgot-password', this.forgotPassword.bind(this));
@@ -31,11 +33,42 @@ export class AuthController {
 
   async login(req: Request, res: Response) {
     try {
-      const result = await this.authService.login(req.body.mobile, req.body.password);
+      // Unified identifier: mobile number OR email address.
+      const identifier = req.body.mobile || req.body.identifier || req.body.email;
+      const result = await this.authService.login(identifier, req.body.password);
       res.json({ success: true, data: result });
     } catch (error: any) {
       const status = error.statusCode || 500;
       res.status(status).json({ success: false, message: error.message || 'Login failed', code: error.code });
+    }
+  }
+
+  /**
+   * OTP login (dev-mode delivery): generates a 6-digit code for the user and
+   * returns it in the response (NO delay, NO external provider) so the app
+   * can show it on screen and verify it instantly. Swappable with a real
+   * SMS/email provider later.
+   */
+  async requestOtp(req: Request, res: Response) {
+    try {
+      const identifier = req.body.mobile || req.body.identifier || req.body.email;
+      const result = await this.authService.requestOtp(identifier);
+      res.json({ success: true, data: result });
+    } catch (error: any) {
+      const status = error.statusCode || 500;
+      res.status(status).json({ success: false, message: error.message || 'Failed to generate OTP', code: error.code });
+    }
+  }
+
+  /** Verify the OTP and get session tokens. */
+  async verifyOtp(req: Request, res: Response) {
+    try {
+      const identifier = req.body.mobile || req.body.identifier || req.body.email;
+      const result = await this.authService.verifyOtp(identifier, req.body.otp);
+      res.json({ success: true, data: result });
+    } catch (error: any) {
+      const status = error.statusCode || 500;
+      res.status(status).json({ success: false, message: error.message || 'OTP verification failed', code: error.code });
     }
   }
 

@@ -590,16 +590,6 @@ class _HomePageState extends State<HomePage> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(name, style: AppTextStyles.marketTitle.copyWith(fontSize: 18)),
-                    const SizedBox(height: 4),
-                    Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 3),
-                      decoration: BoxDecoration(
-                        color: AppColors.success.withValues(alpha: 0.15),
-                        borderRadius: BorderRadius.circular(12),
-                        border: Border.all(color: AppColors.success.withValues(alpha: 0.4)),
-                      ),
-                      child: Text('RUNNING', style: TextStyle(color: AppColors.success, fontSize: 11, fontWeight: FontWeight.w700, letterSpacing: 1.5)),
-                    ),
                   ],
                 ),
               ),

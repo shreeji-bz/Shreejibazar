@@ -19,9 +19,11 @@ class GamePlayConfig {
     this.maxStake = 1000,
   });
 
-  /// Default config: all three tabs, in the reference order.
+  /// Default config: Jodi tab only (Jodi 00-99 grid + Andar Haruf 0-9
+  /// single-digit row). Crossing (multi-number) and Palti (copy-paste) were
+  /// removed per client spec.
   static const GamePlayConfig standard = GamePlayConfig(
-    tabs: ['jodi', 'crossing', 'palti'],
+    tabs: ['jodi'],
   );
 
   /// The set of UI tabs a game exposes.

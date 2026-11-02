@@ -74,8 +74,16 @@ export class AuthService {
     };
   }
 
-  async login(mobile: string, password: string): Promise<AuthResponse> {
-    const user = await this.authRepository.findByMobile(mobile);
+  /**
+   * Unified login: accept a MOBILE number OR an EMAIL as the identifier.
+   * Keeps the legacy `login(mobile, password)` shape but resolves either.
+   */
+  async login(identifier: string, password: string): Promise<AuthResponse> {
+    const trimmed = identifier.trim();
+    const isEmail = trimmed.includes('@');
+    const user = isEmail
+      ? await this.authRepository.findByEmail(trimmed)
+      : await this.authRepository.findByMobile(trimmed);
     if (!user) {
       throw new AppError(401, 'INVALID_CREDENTIALS', 'Invalid mobile number or password');
     }
@@ -88,6 +96,71 @@ export class AuthService {
     if (user.status !== 'active') {
       throw new AppError(403, 'ACCOUNT_SUSPENDED', 'Your account has been suspended');
     }
+
+    await this.authRepository.updateLastLogin(user.id);
+    await this.authRepository.revokeAllRefreshTokens(user.id);
+
+    const tokens = this.generateTokens(user.id, user.referralCode);
+    await this.authRepository.createRefreshToken(
+      user.id,
+      tokens.refreshToken,
+      new Date(Date.now() + 7 * 24 * 60 * 60 * 1000)
+    );
+
+    return {
+      accessToken: tokens.accessToken,
+      refreshToken: tokens.refreshToken,
+      user: {
+        id: user.id,
+        name: user.name,
+        mobile: user.mobile,
+        email: user.email || '',
+        referralCode: user.referralCode,
+      },
+    };
+  }
+
+  /**
+   * Dev-mode OTP store: identifier (mobile OR email) -> { code, expiresAt }.
+   * Kept in memory (no DB, no provider, no delay) so login is instant. In
+   * production this is replaced by a real SMS/email provider; the request/
+   * verify API shape stays the same.
+   */
+  private static otpStore = new Map<string, { code: string; expiresAt: number }>();
+
+  /** Generate + "send" an OTP. Dev-mode: the code is returned to the caller. */
+  async requestOtp(identifier: string): Promise<{ devCode?: string }> {
+    const trimmed = identifier.trim();
+    const isEmail = trimmed.includes('@');
+    const user = isEmail
+      ? await this.authRepository.findByEmail(trimmed)
+      : await this.authRepository.findByMobile(trimmed);
+    if (!user) throw new AppError(404, 'USER_NOT_FOUND', 'No account for that mobile/email. Please register first.');
+    if (user.status !== 'active') throw new AppError(403, 'ACCOUNT_SUSPENDED', 'Your account has been suspended');
+
+    // 6-digit code, valid 5 minutes. Instant, no provider round-trip.
+    const code = String(Math.floor(100000 + Math.random() * 900000));
+    AuthService.otpStore.set(user.id, { code, expiresAt: Date.now() + 5 * 60 * 1000 });
+    // Dev-mode: hand the code to the client so it can be shown on screen.
+    return { devCode: code };
+  }
+
+  /** Verify an OTP and return a fresh session for that user. */
+  async verifyOtp(identifier: string, otp: string): Promise<AuthResponse> {
+    const trimmed = identifier.trim();
+    const isEmail = trimmed.includes('@');
+    const user = isEmail
+      ? await this.authRepository.findByEmail(trimmed)
+      : await this.authRepository.findByMobile(trimmed);
+    if (!user) throw new AppError(404, 'USER_NOT_FOUND', 'No account for that mobile/email');
+
+    const record = AuthService.otpStore.get(user.id);
+    if (!record || record.code !== otp) throw new AppError(401, 'INVALID_OTP', 'Incorrect OTP. Please try again.');
+    if (Date.now() > record.expiresAt) {
+      AuthService.otpStore.delete(user.id);
+      throw new AppError(401, 'OTP_EXPIRED', 'OTP expired. Request a new one.');
+    }
+    AuthService.otpStore.delete(user.id);
 
     await this.authRepository.updateLastLogin(user.id);
     await this.authRepository.revokeAllRefreshTokens(user.id);

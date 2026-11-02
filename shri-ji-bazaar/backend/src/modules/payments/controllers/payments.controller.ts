@@ -26,12 +26,16 @@ export class PaymentsController {
         res.status(401).json({ success: false, message: 'Unauthorized' });
         return;
       }
-      const { amount, method, referenceId, notes } = req.body;
+      const { amount, method, referenceId, notes, utrNumber, screenshotUrl, txnId, provider } = req.body;
       const methodMap: Record<string, string> = {
         'upi': 'upi',
         'bank transfer': 'bank_transfer',
+        'bank': 'bank_transfer',
         'paytm': 'paytm',
         'phonepe': 'phonepe',
+        'phone pe': 'phonepe',
+        'google pay': 'gpay',
+        'gpay': 'gpay',
         'cash': 'cash',
         'points': 'points',
         'admin': 'admin',
@@ -40,7 +44,13 @@ export class PaymentsController {
       };
       const methodKey = typeof method === 'string' ? method.toLowerCase().trim() : method;
       const normalizedMethod = methodMap[methodKey] || methodKey;
-      const data = await this.paymentsService.createDeposit(userId, amount, normalizedMethod, referenceId, notes);
+      const extra = {
+        txnId: txnId ?? (utrNumber ? undefined : undefined),
+        utrNumber: utrNumber,
+        screenshotUrl: screenshotUrl,
+        provider: provider,
+      };
+      const data = await this.paymentsService.createDeposit(userId, amount, normalizedMethod, referenceId, notes, extra);
       res.status(201).json({ success: true, data });
     } catch (error: any) {
       res.status(400).json({ success: false, message: error.message });
@@ -58,8 +68,12 @@ export class PaymentsController {
       const methodMap: Record<string, string> = {
         'upi': 'upi',
         'bank transfer': 'bank_transfer',
+        'bank': 'bank_transfer',
         'paytm': 'paytm',
         'phonepe': 'phonepe',
+        'phone pe': 'phonepe',
+        'google pay': 'gpay',
+        'gpay': 'gpay',
         'cash': 'cash',
         'points': 'points',
         'admin': 'admin',

@@ -221,6 +221,67 @@ class AuthController extends ChangeNotifier {
     await _applyUserFromApi(data);
   }
 
+  /// Dev-mode OTP (fast path): request generates the 6-digit code instantly
+  /// and returns it — the app shows it on screen (no SMS delay, no provider).
+  /// [identifier] is a mobile number OR email.
+  Future<String> requestOtp({required String identifier}) async {
+    final response = await ApiClient().dio.post('/auth/otp/request',
+        data: {'mobile': identifier});
+    final data = response.data['data'];
+    final code = data['devCode']?.toString() ?? '';
+    if (code.isEmpty) throw Exception('OTP service unavailable');
+    return code;
+  }
+
+  /// Verify the OTP and log in instantly on success.
+  Future<void> verifyOtp({required String identifier, required String otp}) async {
+    _status = AuthStatus.loading;
+    _errorMessage = null;
+    notifyListeners();
+    try {
+      final response = await ApiClient().dio
+          .post('/auth/otp/verify', data: {'mobile': identifier, 'otp': otp});
+      final data = response.data['data'];
+      await _completeAuth(data);
+    } catch (e) {
+      _errorMessage = _cleanError(e);
+      _status = AuthStatus.error;
+      notifyListeners();
+    }
+  }
+
+  /// Shared token + user cache for login / register / OTP-verify.
+  Future<void> _completeAuth(Map<String, dynamic> data) async {
+    await SecureStorage.writeToken(data['accessToken']);
+    await SecureStorage.writeRefreshToken(data['refreshToken']);
+    _user = UserEntity(
+      id: data['user']['id'],
+      name: data['user']['name'],
+      mobile: data['user']['mobile'],
+      email: data['user']['email']?.toString() ?? '',
+      referralCode: data['user']['referralCode']?.toString() ?? '',
+      status: data['user']['status'] ?? 'active',
+      createdAt: DateTime.now(),
+      updatedAt: DateTime.now(),
+    );
+    await _cacheUser(_user!);
+    _status = AuthStatus.authenticated;
+    _errorMessage = null;
+    notifyListeners();
+  }
+
+  String _cleanError(dynamic e) {
+    final raw = e.toString();
+    try {
+      // Surface the backend's human-readable message when present.
+      if (raw.contains('response')) {
+        final msg = e.response?.data?['message'];
+        if (msg != null && msg.isNotEmpty) return msg.toString();
+      }
+    } catch (_) {}
+    return raw.replaceFirst('Exception: ', '');
+  }
+
   Future<void> forgotPassword(String mobile) async {
     _status = AuthStatus.loading;
     _errorMessage = null;

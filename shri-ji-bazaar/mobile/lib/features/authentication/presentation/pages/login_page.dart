@@ -109,13 +109,15 @@ class _LoginForm extends StatefulWidget {
 
 class _LoginFormState extends State<_LoginForm> {
   final _formKey = GlobalKey<FormState>();
-  final _mobileController = TextEditingController();
+  final _identifierController = TextEditingController();
   final _passwordController = TextEditingController();
   bool _obscurePassword = true;
+  String? _devOtp;
+  bool _otpBusy = false;
 
   @override
   void dispose() {
-    _mobileController.dispose();
+    _identifierController.dispose();
     _passwordController.dispose();
     super.dispose();
   }
@@ -123,11 +125,52 @@ class _LoginFormState extends State<_LoginForm> {
   void _submit(BuildContext context) {
     if (_formKey.currentState!.validate()) {
       final auth = Provider.of<AuthController>(context, listen: false);
+      // Unified identifier: 10-digit mobile OR email address.
       auth.login(
-        mobile: _mobileController.text.trim(),
+        mobile: _identifierController.text.trim(),
         password: _passwordController.text,
       );
     }
+  }
+
+  /// Fast dev-mode OTP: the code is generated instantly and shown right
+  /// on screen (no SMS round-trip, no delay). Swappable with a real
+  /// provider later without touching the UI.
+  Future<void> _loginWithOtp(BuildContext context) async {
+    final auth = Provider.of<AuthController>(context, listen: false);
+    final identifier = _identifierController.text.trim();
+    if (identifier.isEmpty) {
+      _formKey.currentState?.validate();
+      return;
+    }
+    setState(() {
+      _otpBusy = true;
+      _devOtp = null;
+    });
+    try {
+      final code = await auth.requestOtp(identifier: identifier);
+      if (!mounted) return;
+      setState(() {
+        _devOtp = code;
+        _otpBusy = false;
+      });
+    } catch (e) {
+      if (!mounted) return;
+      setState(() {
+        _otpBusy = false;
+        _devOtp = null;
+      });
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(e.toString().replaceFirst('Exception: ', ''))),
+      );
+    }
+  }
+
+  Future<void> _verifyOtp(BuildContext context) async {
+    final otp = _devOtp;
+    if (otp == null) return;
+    final auth = Provider.of<AuthController>(context, listen: false);
+    await auth.verifyOtp(identifier: _identifierController.text.trim(), otp: otp);
   }
 
   @override
@@ -136,25 +179,22 @@ class _LoginFormState extends State<_LoginForm> {
       key: _formKey,
       child: Column(
         children: [
-          // Mobile Number
+          // Mobile / Email
           TextFormField(
-            controller: _mobileController,
-            keyboardType: TextInputType.phone,
-            inputFormatters: [
-              FilteringTextInputFormatter.digitsOnly,
-              LengthLimitingTextInputFormatter(10),
-            ],
+            controller: _identifierController,
+            keyboardType: TextInputType.text,
             decoration: const InputDecoration(
-              labelText: 'Mobile Number',
-              hintText: 'Enter 10-digit mobile number',
-              prefixIcon: Icon(Icons.phone_android_rounded),
+              labelText: 'Mobile Number / Email',
+              hintText: '10-digit mobile or email address',
+              prefixIcon: Icon(Icons.person_outline_rounded),
             ),
             validator: (value) {
-              if (value == null || value.isEmpty) {
-                return 'Please enter mobile number';
-              }
-              if (value.length != 10) {
-                return 'Enter a valid 10-digit number';
+              if (value == null || value.isEmpty) return 'Please enter mobile or email';
+              final v = value.trim();
+              final isEmail = v.contains('@') && v.contains('.');
+              final isMobile = RegExp(r'^[6-9]\d{9}$').hasMatch(v);
+              if (!isEmail && !isMobile) {
+                return 'Enter a valid mobile number or email';
               }
               return null;
             },
@@ -214,6 +254,58 @@ class _LoginFormState extends State<_LoginForm> {
               );
             },
           ),
+          const SizedBox(height: 12),
+          // Fast OTP login (code shown on screen, no delay)
+          Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Text('Or login with ', style: Theme.of(context).textTheme.bodyMedium?.copyWith(color: Colors.grey[600])),
+              TextButton(
+                onPressed: _otpBusy ? null : () => _loginWithOtp(context),
+                child: _otpBusy
+                    ? const SizedBox(
+                        width: 16,
+                        height: 16,
+                        child: CircularProgressIndicator(strokeWidth: 2),
+                      )
+                    : const Text('OTP', style: TextStyle(fontWeight: FontWeight.bold)),
+              ),
+            ],
+          ),
+          if (_devOtp != null) ...[
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: Colors.green[50],
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(color: Colors.green[300]!),
+              ),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  const Text('Your OTP: ', style: TextStyle(color: Colors.green)),
+                  Text(
+                    _devOtp!,
+                    style: const TextStyle(
+                        fontSize: 22,
+                        fontWeight: FontWeight.bold,
+                        letterSpacing: 6,
+                        color: Colors.green),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 12),
+            SizedBox(
+              width: double.infinity,
+              height: 46,
+              child: ElevatedButton.icon(
+                icon: const Icon(Icons.verified_rounded),
+                label: const Text('Verify OTP'),
+                onPressed: () => _verifyOtp(context),
+              ),
+            ),
+          ],
         ],
       ),
     );
