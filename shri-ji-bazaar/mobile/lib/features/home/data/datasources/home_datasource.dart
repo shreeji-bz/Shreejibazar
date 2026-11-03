@@ -41,8 +41,10 @@ class HomeDatasource {
       status: m['status'] as String? ?? 'active',
       isPopular: m['is_popular'] as bool? ?? false,
       sortOrder: m['sort_order'] as int? ?? 0,
-      createdAt: DateTime.parse(m['created_at'] as String),
-      updatedAt: DateTime.parse(m['updated_at'] as String),
+      // Live DB rows may not carry timestamps — never throw on a missing
+      // field here, or the whole home bundle (incl. banners) fails.
+      createdAt: m['created_at'] != null ? (DateTime.tryParse(m['created_at'].toString()) ?? DateTime.now()) : DateTime.now(),
+      updatedAt: m['updated_at'] != null ? (DateTime.tryParse(m['updated_at'].toString()) ?? DateTime.now()) : DateTime.now(),
       lastResult: lastResult == null ? null : lastResult.toString(),
       lastResultAt: lastResultAt == null ? null : lastResultAt.toString(),
       playConfig: playConfig is Map ? Map<String, dynamic>.from(playConfig) : null,

@@ -301,6 +301,39 @@ export class PaymentsService {
   }
 
   /**
+   * Create a PENDING gateway (IMB) deposit: records the intent to pay
+   * WITHOUT touching the wallet. The wallet is only credited when the
+   * gateway's webhook confirms the payment (approveDeposit) — crediting at
+   * order-creation time would hand out points for money not yet paid.
+   */
+  async createPendingGatewayDeposit(
+    userId: string,
+    amount: number,
+    method: string,
+    orderRef: string,
+    description: string
+  ): Promise<PaymentEntity> {
+    if (amount <= 0) throw new Error('Deposit amount must be greater than 0');
+
+    const balanceBefore = await this.paymentsRepo.getWalletBalance(userId);
+
+    return this.paymentsRepo.create({
+      userId,
+      type: 'deposit',
+      amount,
+      currency: 'INR',
+      method: method as PaymentEntity['method'],
+      status: 'pending',
+      referenceId: orderRef,
+      referenceType: 'gateway_order',
+      notes: description,
+      balanceBefore,
+      balanceAfter: balanceBefore, // unchanged until the webhook confirms
+      provider: 'imb',
+    });
+  }
+
+  /**
    * Remove/revert an ALREADY-COMPLETED deposit: cut the credited amount back
    * out of the user's wallet (debitWallet) and mark the payment rejected.
    * This is the "add money -> credit, remove money -> auto-cut" requirement.

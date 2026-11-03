@@ -186,12 +186,14 @@ export class PaymentsController {
         description: description || `Deposit via IMPS`,
       });
 
-      // Create a pending deposit record in our system
-      const deposit = await this.paymentsService.createDeposit(
+      // Record a PENDING gateway deposit (NO wallet change). The wallet is
+      // only credited when the IMB webhook confirms the payment — crediting
+      // at order-creation time would hand out points for money not yet paid.
+      const deposit = await this.paymentsService.createPendingGatewayDeposit(
         user.id,
         amount,
         'imps',
-        undefined,
+        result.orderId,
         `IMPS payment via IMB gateway - Order: ${result.orderId}`
       );
 

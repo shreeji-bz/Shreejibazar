@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
+import 'package:shri_ji_bazaar/core/routes/route_names.dart';
 import 'package:shri_ji_bazaar/core/theme/app_text_styles.dart';
 import 'package:shri_ji_bazaar/core/widgets/sidebar_toggle.dart';
 import '../controllers/payment_controller.dart';
@@ -246,6 +248,36 @@ class _RechargeFormState extends State<_RechargeForm> {
                       ),
                       child: Text(errorMessage, style: AppTextStyles.body.copyWith(color: const Color(0xFFE53935))),
                     ),
+                  // Live Payment (IMB gateway -> in-app WebView). This is the
+                  // real charge path; "Proceed To Pay" below is the manual UPI
+                  // + UTR confirmation fallback.
+                  SizedBox(
+                    width: double.infinity,
+                    height: 50,
+                    child: ElevatedButton.icon(
+                      onPressed: (amount == null || amount <= 0 || isLoading)
+                          ? null
+                          : () async {
+                        if (!_formKey.currentState!.validate()) return;
+                        final res = await paymentController.initiateImbPayment(amount);
+                        if (res == null) return; // error already surfaced
+                        if (!context.mounted) return;
+                        context.push(RouteNames.imbPayment,
+                            extra: {
+                              'paymentUrl': res['paymentUrl'],
+                              'orderId': res['orderId'],
+                              'amount': amount,
+                            });
+                      },
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: const Color(0xFF25C85A),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                      ),
+                      icon: const Icon(Icons.bolt_rounded),
+                      label: const Text('Live Payment', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700)),
+                    ),
+                  ),
+                  const SizedBox(height: 10),
                   SizedBox(
                     width: double.infinity,
                     height: 50,
@@ -275,7 +307,7 @@ class _RechargeFormState extends State<_RechargeForm> {
                         }
                       },
                       style: ElevatedButton.styleFrom(
-                        backgroundColor: const Color(0xFF25C85A),
+                        backgroundColor: const Color(0xFFE5A000),
                         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
                       ),
                       child: isLoading
@@ -283,7 +315,7 @@ class _RechargeFormState extends State<_RechargeForm> {
                               width: 20,
                               height: 20,
                               child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
-                          : const Text('Proceed To Pay', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700)),
+                          : const Text('Add New Amount (UPI)', style: TextStyle(fontSize: 15, fontWeight: FontWeight.w700)),
                     ),
                   ),
                   const SizedBox(height: 12),

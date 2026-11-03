@@ -30,6 +30,7 @@ class _HomePageState extends State<HomePage> {
   List<dynamic> _upcomingToday = []; // today's not-yet-open markets (short list)
   List<dynamic> _recentResults = [];
   List<GameEntity> _allGames = [];
+  List<dynamic> _bannerRaw = []; // direct /banners fetch (hero fallback)
   bool _loading = true;
   bool _loadFailed = false;
   String? _selectedGameId;
@@ -74,6 +75,7 @@ class _HomePageState extends State<HomePage> {
         _api.get('/rounds/upcoming', queryParameters: {'date': today}),
         _api.get('/results/latest', queryParameters: {'limit': 10}),
         _api.get('/games'),
+        _api.get('/banners').catchError((_) => <dynamic>[]),
       ]);
 
       final liveData = results[0] as List<dynamic>? ?? [];
@@ -124,6 +126,7 @@ class _HomePageState extends State<HomePage> {
         setState(() {
           _liveRounds = liveData;
           _upcomingToday = upcomingData;
+          _bannerRaw = results[4] as List<dynamic> ?? const [];
           _recentResults = resultsData;
           _allGames = games;
           _loading = false;
@@ -189,8 +192,8 @@ class _HomePageState extends State<HomePage> {
             status: data['status'] as String? ?? 'active',
             isPopular: data['is_popular'] as bool? ?? false,
             sortOrder: data['sort_order'] as int? ?? 0,
-            createdAt: DateTime.parse(data['created_at'] as String),
-            updatedAt: DateTime.parse(data['updated_at'] as String),
+            createdAt: data['created_at'] != null ? (DateTime.tryParse(data['created_at'].toString()) ?? DateTime.now()) : DateTime.now(),
+            updatedAt: data['updated_at'] != null ? (DateTime.tryParse(data['updated_at'].toString()) ?? DateTime.now()) : DateTime.now(),
             rounds: rounds,
             lastResult: lastResult == null ? null : lastResult.toString(),
             lastResultAt: lastResultAt == null ? null : lastResultAt.toString(),
@@ -312,7 +315,7 @@ class _HomePageState extends State<HomePage> {
                   const SizedBox(height: 12),
                   if (_loadFailed)
                     _UnreachableBanner(onRetry: _loadData),
-                  _buildBannerCarousel(homeController.banners),
+                  _buildBannerCarousel(_bannerEntities(homeController.banners)),
                   const SizedBox(height: 16),
                   _buildActionButtons(),
                   const SizedBox(height: 16),
@@ -404,6 +407,27 @@ class _HomePageState extends State<HomePage> {
         ],
       ),
     );
+  }
+
+  /// Banners to show: the direct /banners fetch (raw map, snake_case)
+  /// mapped to BannerEntity, falling back to the controller's list. This
+  /// guarantees the hero shows whenever the endpoint works.
+  List<BannerEntity> _bannerEntities(List<BannerEntity> fromController) {
+    final local = <BannerEntity>[
+      for (final raw in _bannerRaw)
+        if (raw is Map)
+          BannerEntity(
+            id: (raw['id'] ?? '').toString(),
+            title: (raw['title'] ?? '').toString(),
+            image: (raw['image'] ?? '').toString(),
+            description: (raw['description'] ?? '').toString(),
+            action: (raw['action'] ?? '').toString(),
+            actionValue: (raw['action_value'] ?? raw['actionValue'] ?? '').toString(),
+            sortOrder: (raw['sort_order'] ?? raw['sortOrder'] ?? 0) as int? ?? 0,
+          ),
+    ]..sort((a, b) => a.sortOrder.compareTo(b.sortOrder));
+    if (local.isNotEmpty) return local;
+    return fromController;
   }
 
   Widget _buildBannerCarousel(List<BannerEntity> banners) {

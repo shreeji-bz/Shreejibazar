@@ -1,6 +1,8 @@
 import { PaymentEntity } from '../entities/payment.entity';
 import { supabase } from '../../../config/database.config';
 
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
 export class PaymentsRepository {
   async create(data: Partial<PaymentEntity>): Promise<PaymentEntity> {
     const { data: record, error } = await supabase
@@ -100,12 +102,14 @@ export class PaymentsRepository {
     const now = new Date().toISOString();
     const updateData: any = {
       status: 'completed',
-      processed_by: adminId,
       admin_notes: adminNotes,
       approved_at: now,
       completed_at: now,
       updated_at: now,
     };
+    // processed_by is a UUID column; gateway/system callers pass non-UUID
+    // ids ('imb_gateway') — only store it when it is a valid UUID.
+    if (UUID_RE.test(adminId)) updateData.processed_by = adminId;
 
     const { data: record, error } = await supabase
       .from('payments')
