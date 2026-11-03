@@ -174,7 +174,7 @@ class AuthController extends ChangeNotifier {
       _status = AuthStatus.authenticated;
       notifyListeners();
     } catch (e) {
-      _errorMessage = e.toString().replaceFirst('Exception: ', '');
+      _errorMessage = _cleanError(e);
       _status = AuthStatus.error;
       notifyListeners();
     }
@@ -209,7 +209,7 @@ class AuthController extends ChangeNotifier {
       _status = AuthStatus.authenticated;
       notifyListeners();
     } catch (e) {
-      _errorMessage = e.toString().replaceFirst('Exception: ', '');
+      _errorMessage = _cleanError(e);
       _status = AuthStatus.error;
       notifyListeners();
     }
@@ -271,15 +271,27 @@ class AuthController extends ChangeNotifier {
   }
 
   String _cleanError(dynamic e) {
-    final raw = e.toString();
+    // Connection-level failures: show a clear, actionable message instead
+    // of the raw socket/Dio exception.
     try {
-      // Surface the backend's human-readable message when present.
-      if (raw.contains('response')) {
-        final msg = e.response?.data?['message'];
-        if (msg != null && msg.isNotEmpty) return msg.toString();
+      if (e.toString().contains('SocketException') ||
+          e.toString().contains('Connection refused')) {
+        return "Can't reach the server. Check your internet/Wi-Fi connection and make sure the Shri Ji Bazaar server is running.";
+      }
+      final t = e.type?.toString() ?? '';
+      if (t.contains('connectionError')) {
+        return "Can't reach the server. Check your internet/Wi-Fi connection and make sure the Shri Ji Bazaar server is running.";
+      }
+      if (t.contains('timeout')) {
+        return 'Server is taking too long to respond. Please try again.';
       }
     } catch (_) {}
-    return raw.replaceFirst('Exception: ', '');
+    try {
+      // Surface the backend's human-readable message when present.
+      final msg = e.response?.data?['message'];
+      if (msg != null && msg.isNotEmpty) return msg.toString();
+    } catch (_) {}
+    return e.toString().replaceFirst('Exception: ', '');
   }
 
   Future<void> forgotPassword(String mobile) async {
@@ -292,7 +304,7 @@ class AuthController extends ChangeNotifier {
       _status = AuthStatus.unauthenticated;
       notifyListeners();
     } catch (e) {
-      _errorMessage = e.toString().replaceFirst('Exception: ', '');
+      _errorMessage = _cleanError(e);
       _status = AuthStatus.error;
       notifyListeners();
     }
@@ -316,7 +328,7 @@ class AuthController extends ChangeNotifier {
       _status = AuthStatus.unauthenticated;
       notifyListeners();
     } catch (e) {
-      _errorMessage = e.toString().replaceFirst('Exception: ', '');
+      _errorMessage = _cleanError(e);
       _status = AuthStatus.error;
       notifyListeners();
     }
