@@ -11,6 +11,7 @@ class SecureStorage {
   static const String _keyToken = 'auth_token';
   static const String _keyRefreshToken = 'refresh_token';
   static const String _keyUser = 'cached_user';
+  static const String _keyCredentials = 'login_credentials';
 
   static Future<void> writeToken(String token) async {
     await _storage.write(key: _keyToken, value: token);
@@ -48,6 +49,16 @@ class SecureStorage {
 
   static Future<void> deleteRefreshToken() async {
     await _storage.delete(key: _keyRefreshToken);
+  }
+
+  /// Save the last-used login identifier so an old user's next open
+  /// pre-fills the login form (they keep access without re-typing).
+  static Future<void> saveCredential(String identifier) async {
+    await _storage.write(key: _keyCredentials, value: identifier);
+  }
+
+  static Future<String?> readCredential() async {
+    return await _storage.read(key: _keyCredentials);
   }
 
   static Future<void> deleteAll() async {

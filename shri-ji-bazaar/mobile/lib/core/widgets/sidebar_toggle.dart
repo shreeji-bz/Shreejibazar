@@ -7,7 +7,7 @@ class SidebarToggle extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return InkWell(
-      onTap: () => MainShell.openDrawer(context),
+      onTap: () => MainShell.toggleDrawer(context),
       borderRadius: BorderRadius.circular(12),
       child: Container(
         padding: const EdgeInsets.all(8),

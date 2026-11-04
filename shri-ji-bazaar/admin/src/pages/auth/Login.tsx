@@ -64,13 +64,6 @@ export const Login = () => {
             </div>
           </div>
           <Button type="submit" className="w-full" disabled={loading}>{loading ? 'Signing in...' : 'Sign In'}</Button>
-          <button
-            type="button"
-            onClick={() => { setEmail('admin@shrijibazaar.com'); setPassword('admin123'); }}
-            className="w-full text-sm text-gold hover:text-gold-bright underline mt-2"
-          >
-            Quick Login (Demo)
-          </button>
         </form>
       </div>
     </div>

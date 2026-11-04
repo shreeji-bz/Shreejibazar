@@ -21,8 +21,16 @@ class MainShell extends StatelessWidget {
     return 0;
   }
 
-  static void openDrawer(BuildContext context) {
-    mainShellKey.currentState?.openDrawer();
+  /// Toggles the sidebar open/closed. Calling it while the drawer is open
+  /// closes it, so the hamburger icon behaves like a proper switch.
+  static void toggleDrawer(BuildContext context) {
+    final state = mainShellKey.currentState;
+    if (state == null) return;
+    if (state.isDrawerOpen) {
+      state.closeDrawer();
+    } else {
+      state.openDrawer();
+    }
   }
 
   @override

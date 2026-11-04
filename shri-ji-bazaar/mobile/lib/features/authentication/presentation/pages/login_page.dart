@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 import '../../../../core/routes/route_names.dart';
+import '../../../../core/storage/secure_storage.dart';
 import '../controllers/auth_controller.dart';
 
 class LoginPage extends StatelessWidget {
@@ -114,6 +114,18 @@ class _LoginFormState extends State<_LoginForm> {
   bool _obscurePassword = true;
   String? _devOtp;
   bool _otpBusy = false;
+
+  @override
+  void initState() {
+    super.initState();
+    // Old users keep access: pre-fill the identifier they last used so they
+    // don't have to re-type it. (New users register instead.)
+    SecureStorage.readCredential().then((saved) {
+      if (saved != null && saved.isNotEmpty && _identifierController.text.isEmpty) {
+        _identifierController.text = saved;
+      }
+    });
+  }
 
   @override
   void dispose() {

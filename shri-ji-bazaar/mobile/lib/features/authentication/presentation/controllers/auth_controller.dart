@@ -171,6 +171,8 @@ class AuthController extends ChangeNotifier {
         updatedAt: data['user']['updatedAt'] != null ? DateTime.tryParse(data['user']['updatedAt'].toString()) ?? DateTime.now() : DateTime.now(),
       );
       await _cacheUser(_user!);
+      // Remember this login so an old user's next open pre-fills the form.
+      await SecureStorage.saveCredential(mobile);
       _status = AuthStatus.authenticated;
       notifyListeners();
     } catch (e) {
@@ -206,6 +208,8 @@ class AuthController extends ChangeNotifier {
         updatedAt: data['user']['updatedAt'] != null ? DateTime.tryParse(data['user']['updatedAt'].toString()) ?? DateTime.now() : DateTime.now(),
       );
       await _cacheUser(_user!);
+      // Remember this login so an old user's next open pre-fills the form.
+      await SecureStorage.saveCredential(mobile);
       _status = AuthStatus.authenticated;
       notifyListeners();
     } catch (e) {
