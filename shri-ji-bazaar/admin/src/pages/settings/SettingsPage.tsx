@@ -74,12 +74,22 @@ export default function SettingsPage() {
     setLoading(true);
     setError(null);
     try {
-      const response = await import('../../services/api').then((m) => m.get<any>('/v1/settings'));
-      const data: SettingsData = response.data?.data ?? {};
+      // Admin endpoint (authenticateAdmin). Response data is a [{key,value}]
+      // array in this backend — normalize to a key->value object for the form.
+      const response = await import('../../services/api').then((m) => m.get<any>('/v1/admin/settings'));
+      // get() resolves the raw JSON body: { success, data }. `data` is a
+      // [{key,value}] array in this backend — normalize it for the form.
+      const raw = response?.data;
+      let data: SettingsData = {};
+      if (Array.isArray(raw)) {
+        raw.forEach((row: any) => { if (row && row.key !== undefined) data[row.key] = row.value; });
+      } else if (raw && typeof raw === 'object') {
+        data = raw;
+      }
       setSettings(data);
       setFormData({ ...data });
     } catch (err: any) {
-      setError(err?.response?.data?.message ?? 'Failed to load settings. Please try again.');
+      setError(err?.message ?? 'Failed to load settings. Please try again.');
     } finally {
       setLoading(false);
     }
@@ -93,13 +103,15 @@ export default function SettingsPage() {
     setSaving(true);
     setSaveMessage(null);
     try {
-      const response = await import('../../services/api').then((m) => m.post<any>('/v1/admin/settings', formData));
+      // Backend batch endpoint is PUT /admin/settings (updateMultiple);
+      // there is no POST /admin/settings route (it 404s "Route not found").
+      await import('../../services/api').then((m) => m.put<any>('/v1/admin/settings', formData));
       setSettings({ ...formData });
-      setSaveMessage({ type: 'success', text: response.data?.message ?? 'Settings saved successfully.' });
+      setSaveMessage({ type: 'success', text: 'Settings saved successfully.' });
     } catch (err: any) {
       setSaveMessage({
         type: 'error',
-        text: err?.response?.data?.message ?? 'Failed to save settings. Please try again.',
+        text: err?.message ?? 'Failed to save settings. Please try again.',
       });
     } finally {
       setSaving(false);

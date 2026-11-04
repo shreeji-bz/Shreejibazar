@@ -8,7 +8,9 @@ export class GameRepository {
   }
 
   async findBySlug(slug: string): Promise<GameEntity | null> {
-    const { data } = await supabase.from('games').select('*').eq('slug', slug).single();
+    // maybeSingle (not single): a not-yet-existing slug returns null instead
+    // of a PostgREST error — that error was what made every "Add Game" fail.
+    const { data } = await supabase.from('games').select('*').eq('slug', slug).maybeSingle();
     return data ? this.mapRow(data) : null;
   }
 

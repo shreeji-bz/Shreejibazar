@@ -42,12 +42,35 @@ function buildUrl(path: string, params?: Record<string, any>): string {
   return query ? `${base}?${query}` : base;
 }
 
+/// Admin JWTs expire after 8h. If a stored token dies mid-session, the API
+/// answers 401 with code INVALID_TOKEN/NO_TOKEN — previously the panel just
+/// rendered "Invalid or expired token" behind every menu. Now any 401 clears
+/// the stale session and bounces to the login screen so the admin re-signs
+/// in instead of staring at broken menus.
+function onUnauthorized(status: number): void {
+  if (status !== 401) return;
+  try {
+    localStorage.removeItem('admin-auth');
+    localStorage.removeItem('admin_token');
+  } catch { /* ignore */ }
+  if (!(window as any).__adminAuthExpired) {
+    (window as any).__adminAuthExpired = true;
+    window.location.href = '/login';
+  }
+}
+
+function onAuthenticated(): void {
+  (window as any).__adminAuthExpired = false;
+}
+
 export async function get<T>(path: string, params?: Record<string, any>): Promise<T> {
   const res = await fetch(buildUrl(path, params), { headers: getAuthHeaders() });
   if (!res.ok) {
     const body = await res.json().catch(() => ({}));
+    onUnauthorized(res.status);
     throw new Error(body?.message || `Request failed: ${res.status}`);
   }
+  onAuthenticated();
   return (await res.json()) as T;
 }
 
@@ -55,8 +78,10 @@ export async function post<T>(path: string, body: any): Promise<T> {
   const res = await fetch(`${API_BASE}${path}`, { method: 'POST', headers: { 'Content-Type': 'application/json', ...getAuthHeaders() }, body: JSON.stringify(body) });
   if (!res.ok) {
     const body = await res.json().catch(() => ({}));
+    onUnauthorized(res.status);
     throw new Error(body?.message || `Request failed: ${res.status}`);
   }
+  onAuthenticated();
   return (await res.json()) as T;
 }
 
@@ -64,8 +89,10 @@ export async function put<T>(path: string, body: any): Promise<T> {
   const res = await fetch(`${API_BASE}${path}`, { method: 'PUT', headers: { 'Content-Type': 'application/json', ...getAuthHeaders() }, body: JSON.stringify(body) });
   if (!res.ok) {
     const body = await res.json().catch(() => ({}));
+    onUnauthorized(res.status);
     throw new Error(body?.message || `Request failed: ${res.status}`);
   }
+  onAuthenticated();
   return (await res.json()) as T;
 }
 
@@ -73,8 +100,10 @@ export async function del<T>(path: string): Promise<T> {
   const res = await fetch(`${API_BASE}${path}`, { method: 'DELETE', headers: getAuthHeaders() });
   if (!res.ok) {
     const body = await res.json().catch(() => ({}));
+    onUnauthorized(res.status);
     throw new Error(body?.message || `Request failed: ${res.status}`);
   }
+  onAuthenticated();
   return (await res.json()) as T;
 }
 
@@ -82,7 +111,9 @@ export async function patch<T>(path: string, body: any): Promise<T> {
   const res = await fetch(`${API_BASE}${path}`, { method: 'PATCH', headers: { 'Content-Type': 'application/json', ...getAuthHeaders() }, body: JSON.stringify(body) });
   if (!res.ok) {
     const body = await res.json().catch(() => ({}));
+    onUnauthorized(res.status);
     throw new Error(body?.message || `Request failed: ${res.status}`);
   }
+  onAuthenticated();
   return (await res.json()) as T;
 }
