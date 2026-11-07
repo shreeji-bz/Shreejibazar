@@ -329,6 +329,155 @@ export class PaymentsRepository {
     return data?.balance || 0;
   }
 
+  /**
+   * Full wallet snapshot including the withdrawal reservation.
+   * `pending_withdrawal` only exists after sync 018 is run on the live DB,
+   * so read it defensively (select('*')) — missing column => 0 reserved.
+   */
+  async getWallet(userId: string): Promise<{ balance: number; pendingWithdrawal: number; available: number }> {
+    const { data } = await supabase
+      .from('point_wallets')
+      .select('*')
+      .eq('user_id', userId)
+      .maybeSingle();
+
+    const balance = data?.balance ?? 0;
+    const pendingWithdrawal = Number(data?.pending_withdrawal ?? 0);
+    return { balance, pendingWithdrawal, available: balance - pendingWithdrawal };
+  }
+
+  /** The user's single open withdrawal request (one pending per user rule). */
+  async findUserPendingWithdrawal(userId: string): Promise<PaymentEntity | null> {
+    const { data } = await supabase
+      .from('payments')
+      .select('*')
+      .eq('user_id', userId)
+      .eq('type', 'withdrawal')
+      .eq('status', 'pending')
+      .order('created_at', { ascending: false })
+      .limit(1)
+      .maybeSingle();
+    return data ? this.mapRow(data) : null;
+  }
+
+  /** Pending withdrawals whose clock has run out (server-side expiry job). */
+  async findPendingWithdrawalsOverdue(cutoffIso: string, limit = 200): Promise<PaymentEntity[]> {
+    const { data } = await supabase
+      .from('payments')
+      .select('*')
+      .eq('type', 'withdrawal')
+      .eq('status', 'pending')
+      .lt('created_at', cutoffIso)
+      .order('created_at', { ascending: true })
+      .limit(limit);
+    return (data || []).map(this.mapRow);
+  }
+
+  /**
+   * Guarded status claim: moves a payment INTO `nextStatus` ONLY while it is
+   * still 'pending' (single WHERE clause => single writer wins the race).
+   * Returns the updated row, or null when someone else already acted — the
+   * backstop that a terminal request can never be processed twice.
+   */
+  async claimDecision(id: string, nextStatus: string, extra: Record<string, any> = {}): Promise<PaymentEntity | null> {
+    const update: any = { status: nextStatus, updated_at: new Date().toISOString(), ...extra };
+    const { data, error } = await supabase
+      .from('payments')
+      .update(update)
+      .eq('id', id)
+      .eq('status', 'pending')
+      .select()
+      .maybeSingle();
+    if (error) throw new Error(`Failed to update payment status: ${error.message}`);
+    return data ? this.mapRow(data) : null;
+  }
+
+  /**
+   * Wallet reservation moves via Postgres RPCs (sync 018). Each returns
+   * `{ ok, missing }`:
+   *   missing=true  -> the RPC/column doesn't exist on the live DB yet;
+   *                    the caller falls back to the plain ledger path.
+   *   ok=false      -> real business rejection (insufficient, not reserved).
+   */
+  /**
+   * True when the RPC isn't deployed to the live DB yet (sync 018 pending).
+   * PostgREST reports it two ways: Postgres error 42883, or its own
+   * "Could not find the function ... in the schema cache" wrapper.
+   */
+  private rpcNotDeployed(message: string): boolean {
+    return /42883|undefined_function|does not exist|could not find the function|schema cache|PGRST200/i.test(message);
+  }
+
+  async reserveWithdrawal(userId: string, amount: number, paymentId: string, description: string): Promise<{ ok: boolean; missing: boolean; error?: string }> {
+    const { error } = await supabase.rpc('reserve_withdrawal_points', {
+      p_user_id: userId,
+      p_amount: Math.round(amount),
+      p_payment_id: paymentId,
+      p_description: description,
+    });
+    if (!error) return { ok: true, missing: false };
+    const msg = String(error.message || error);
+    const missing = this.rpcNotDeployed(msg);
+    return { ok: false, missing, error: msg };
+  }
+
+  // (settle/release use rpcNotDeployed below)
+  async settleWithdrawal(userId: string, amount: number, paymentId: string, description: string): Promise<{ ok: boolean; missing: boolean; error?: string }> {
+    const { error } = await supabase.rpc('settle_withdrawal_points', {
+      p_user_id: userId,
+      p_amount: Math.round(amount),
+      p_payment_id: paymentId,
+      p_description: description,
+    });
+    if (!error) return { ok: true, missing: false };
+    const msg = String(error.message || error);
+    const missing = this.rpcNotDeployed(msg);
+    return { ok: false, missing, error: msg };
+  }
+
+  async releaseWithdrawal(userId: string, amount: number, paymentId: string, description: string): Promise<{ ok: boolean; missing: boolean; error?: string }> {
+    const { error } = await supabase.rpc('release_withdrawal_points', {
+      p_user_id: userId,
+      p_amount: Math.round(amount),
+      p_payment_id: paymentId,
+      p_description: description,
+    });
+    if (!error) return { ok: true, missing: false };
+    const msg = String(error.message || error);
+    const missing = this.rpcNotDeployed(msg);
+    return { ok: false, missing, error: msg };
+  }
+
+  /** One settings value (fallback when the row is absent). */
+  async getSetting(key: string, fallback: string): Promise<string> {
+    const { data } = await supabase.from('settings').select('value').eq('key', key).maybeSingle();
+    return data?.value != null && String(data.value).trim() !== '' ? String(data.value) : fallback;
+  }
+
+  /** User-facing notification (in-app feed, type 'system'). Best-effort safe. */
+  async notifyUser(userId: string, title: string, message: string): Promise<void> {
+    await supabase.from('notifications').insert({
+      user_id: userId,
+      title,
+      message,
+      type: 'system',
+      status: 'sent',
+      is_read: false,
+    });
+  }
+
+  /** Audit trail: who acted, when, on which request, and the outcome. */
+  async logAudit(data: { adminId: string | null; action: string; entityId: string; metadata: Record<string, any> }): Promise<void> {
+    await supabase.from('audit_logs').insert({
+      admin_id: data.adminId,
+      action: data.action,
+      entity: 'payments',
+      entity_id: data.entityId,
+      metadata: data.metadata,
+      user_agent: data.metadata?.source || '',
+    });
+  }
+
   private toIso(value: any): string | null {
     if (!value) return null;
     if (value instanceof Date) return value.toISOString();

@@ -15,6 +15,7 @@ import '../../features/payments/presentation/pages/wallet_page.dart';
 import '../../features/payments/presentation/pages/deposit_page.dart';
 import '../../features/payments/presentation/pages/withdraw_page.dart';
 import '../../features/payments/presentation/pages/payment_history_page.dart';
+import '../../features/payments/presentation/pages/withdrawal_history_page.dart';
 import '../../features/payments/presentation/pages/imb_payment_page.dart';
 import '../../features/bonuses/presentation/pages/bonuses_page.dart';
 import '../../features/games/presentation/pages/play_game_page.dart';
@@ -78,6 +79,7 @@ GoRouter createRouter(BuildContext context) {
           GoRoute(path: RouteNames.deposit, builder: (_, __) => const DepositPage()),
           GoRoute(path: RouteNames.withdraw, builder: (_, __) => const WithdrawPage()),
           GoRoute(path: RouteNames.paymentHistory, builder: (_, __) => const PaymentHistoryPage()),
+          GoRoute(path: RouteNames.withdrawalHistory, builder: (_, __) => const WithdrawalHistoryPage()),
           GoRoute(path: RouteNames.bonuses, builder: (_, __) => const BonusesPage()),
           GoRoute(path: RouteNames.referrals, builder: (_, __) => const ReferralsPage()),
           GoRoute(path: RouteNames.notifications, builder: (_, __) => const NotificationsPage()),

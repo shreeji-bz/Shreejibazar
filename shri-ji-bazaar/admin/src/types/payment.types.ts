@@ -1,5 +1,6 @@
 export type PaymentType = 'deposit' | 'withdrawal';
-export type PaymentStatus = 'pending' | 'approved' | 'rejected' | 'completed';
+// A withdrawal's lifecycle: pending -> approved | rejected | expired.
+export type PaymentStatus = 'pending' | 'approved' | 'rejected' | 'completed' | 'expired';
 
 export interface Payment {
   id: string;
@@ -16,9 +17,22 @@ export interface Payment {
   pointsDeducted: number;
   notes?: string;
   adminNote?: string;
+  /** The queue endpoint returns the mapped entity, which keys this as adminNotes. */
+  adminNotes?: string;
   processedBy?: string;
   processedAt?: string;
   createdAt: string;
+  updatedAt?: string;
+  // --- Withdrawal details (admin requests module) ---
+  rejectionReason?: string | null;
+  bankName?: string | null;
+  accountNumber?: string | null;
+  ifscCode?: string | null;
+  accountHolderName?: string | null;
+  /** User's CURRENT wallet (GET /admin/payments/withdrawals only). */
+  walletBalance?: number;
+  pendingWithdrawal?: number;
+  availableBalance?: number;
 }
 
 export interface PaymentFilters {

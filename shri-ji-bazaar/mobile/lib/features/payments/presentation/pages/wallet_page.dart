@@ -47,7 +47,9 @@ class _WalletPageState extends State<WalletPage> {
       backgroundColor: AppColors.background,
       body: Consumer<PaymentController>(
         builder: (context, paymentController, _) {
-          final balance = paymentController.availableBalance;
+          final available = paymentController.availableBalance;
+          final pending = paymentController.pendingWithdrawal;
+          final total = paymentController.totalBalance;
           final history = paymentController.history;
 
           return SafeArea(
@@ -74,7 +76,7 @@ class _WalletPageState extends State<WalletPage> {
                       ),
                       const Spacer(),
                       Text(
-                        '₹ ${balance.toStringAsFixed(0)}',
+                        '₹ ${total.toStringAsFixed(0)}',
                         style: TextStyle(
                           fontSize: 16,
                           fontWeight: FontWeight.w700,
@@ -92,14 +94,16 @@ class _WalletPageState extends State<WalletPage> {
                       children: [
                         Text('Total Balance', style: AppTextStyles.body.copyWith(color: AppColors.textSecondary)),
                         const SizedBox(height: 8),
-                        Text('₹ ${balance.toStringAsFixed(0)}', style: AppTextStyles.heading.copyWith(fontSize: 32, color: AppColors.textPrimary)),
+                        Text('₹ ${total.toStringAsFixed(0)}', style: AppTextStyles.heading.copyWith(fontSize: 32, color: AppColors.textPrimary)),
                       ],
                     ),
                   ),
 
                   const SizedBox(height: 24),
 
-                  // Deposit / Winning cards
+                  // Available / Pending-Withdrawal cards.
+                  //  Available  = spendable/withdrawable now.
+                  //  Pending    = reserved for open withdrawal requests.
                   Row(
                     children: [
                       Expanded(
@@ -113,9 +117,9 @@ class _WalletPageState extends State<WalletPage> {
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              Text('Deposit', style: AppTextStyles.bodySmall.copyWith(color: AppColors.success, fontWeight: FontWeight.w600)),
+                              Text('Available', style: AppTextStyles.bodySmall.copyWith(color: AppColors.success, fontWeight: FontWeight.w600)),
                               const SizedBox(height: 8),
-                              Text('₹ ${balance.toStringAsFixed(0)}', style: AppTextStyles.cardTitle.copyWith(color: AppColors.success)),
+                              Text('₹ ${available.toStringAsFixed(0)}', style: AppTextStyles.cardTitle.copyWith(color: AppColors.success)),
                             ],
                           ),
                         ),
@@ -125,16 +129,16 @@ class _WalletPageState extends State<WalletPage> {
                         child: Container(
                           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 20),
                           decoration: BoxDecoration(
-                            color: AppColors.error.withValues(alpha: 0.12),
+                            color: (pending > 0 ? const Color(0xFFFFA726) : AppColors.error).withValues(alpha: 0.12),
                             borderRadius: BorderRadius.circular(16),
-                            border: Border.all(color: AppColors.error.withValues(alpha: 0.25)),
+                            border: Border.all(color: (pending > 0 ? const Color(0xFFFFA726) : AppColors.error).withValues(alpha: 0.25)),
                           ),
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              Text('Winning', style: AppTextStyles.bodySmall.copyWith(color: AppColors.error, fontWeight: FontWeight.w600)),
+                              Text('Pending Withdrawal', style: AppTextStyles.bodySmall.copyWith(color: pending > 0 ? const Color(0xFFFFA726) : AppColors.error, fontWeight: FontWeight.w600)),
                               const SizedBox(height: 8),
-                              Text('₹ 0', style: AppTextStyles.cardTitle.copyWith(color: AppColors.error)),
+                              Text('₹ ${pending.toStringAsFixed(0)}', style: AppTextStyles.cardTitle.copyWith(color: pending > 0 ? const Color(0xFFFFA726) : AppColors.error)),
                             ],
                           ),
                         ),
@@ -187,6 +191,28 @@ class _WalletPageState extends State<WalletPage> {
                                 Icon(Icons.payments_rounded, size: 36, color: AppColors.error),
                                 const SizedBox(height: 10),
                                 Text('Withdraw', style: AppTextStyles.body.copyWith(fontWeight: FontWeight.w600, color: AppColors.textPrimary)),
+                              ],
+                            ),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: InkWell(
+                          onTap: () => context.push(RouteNames.withdrawalHistory),
+                          borderRadius: BorderRadius.circular(16),
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(vertical: 24),
+                            decoration: BoxDecoration(
+                              color: AppColors.cardSecondary,
+                              borderRadius: BorderRadius.circular(16),
+                              border: Border.all(color: AppColors.border),
+                            ),
+                            child: Column(
+                              children: [
+                                Icon(Icons.history_rounded, size: 36, color: AppColors.gold),
+                                const SizedBox(height: 10),
+                                Text('Withdrawals', style: AppTextStyles.body.copyWith(fontWeight: FontWeight.w600, color: AppColors.textPrimary)),
                               ],
                             ),
                           ),

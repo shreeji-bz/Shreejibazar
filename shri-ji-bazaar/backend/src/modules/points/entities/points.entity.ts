@@ -4,6 +4,8 @@ export interface PointsWallet {
   balance: number;
   totalEarned: number;
   totalSpent: number;
+  /** Amount reserved for open withdrawal requests (0 before sync 018). */
+  pendingWithdrawal?: number;
   createdAt: string;
   updatedAt: string;
 }

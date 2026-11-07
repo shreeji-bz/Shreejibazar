@@ -6,6 +6,7 @@ class PointsModel extends PointsEntity {
     required super.balance,
     required super.totalEarned,
     required super.totalSpent,
+    super.pendingWithdrawal = 0,
     super.transactions = const [],
   });
 
@@ -13,8 +14,11 @@ class PointsModel extends PointsEntity {
     return PointsModel(
       id: json['id'] as String,
       balance: json['balance'] as int,
-      totalEarned: json['total_earned'] as int? ?? 0,
-      totalSpent: json['total_spent'] as int? ?? 0,
+      totalEarned: (json['total_earned'] ?? json['totalEarned']) as int? ?? 0,
+      totalSpent: (json['total_spent'] ?? json['totalSpent']) as int? ?? 0,
+      // Backend serializes this endpoint camelCase; accept both shapes.
+      pendingWithdrawal:
+          (json['pending_withdrawal'] ?? json['pendingWithdrawal']) as int? ?? 0,
     );
   }
 }

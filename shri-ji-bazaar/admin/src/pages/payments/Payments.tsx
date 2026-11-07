@@ -21,6 +21,7 @@ const PAYMENT_STATUS_COLORS: Record<string, { bg: string; text: string }> = {
   approved: { bg: 'bg-success/15', text: 'text-success' },
   rejected: { bg: 'bg-error/15', text: 'text-error' },
   completed: { bg: 'bg-info/15', text: 'text-info' },
+  expired: { bg: 'bg-text-muted/15', text: 'text-text-muted' },
 };
 
 export const Payments = () => {

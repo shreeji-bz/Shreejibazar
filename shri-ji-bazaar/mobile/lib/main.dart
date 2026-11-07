@@ -59,6 +59,7 @@ import 'features/payments/domain/usecases/create_deposit.dart';
 import 'features/payments/domain/usecases/create_withdrawal.dart';
 import 'features/payments/domain/usecases/get_payment_history.dart';
 import 'features/payments/domain/usecases/create_imb_order.dart';
+import 'features/payments/domain/usecases/get_withdrawal_config.dart';
 import 'features/payments/data/repositories/payment_repository.dart';
 import 'features/payments/data/datasources/payment_datasource.dart';
 import 'features/payments/data/repositories/imb_payment_repository.dart';
@@ -151,6 +152,7 @@ class ShriJiBazaarApp extends StatelessWidget {
             getPaymentHistory: GetPaymentHistory(PaymentRepository(PaymentDatasource())),
             createImbOrder: CreateImbOrder(ImbPaymentRepository(ImbPaymentDatasource())),
             getWallet: GetWallet(PointsRepository(PointsDatasource())),
+            getWithdrawalConfig: GetWithdrawalConfig(PaymentRepository(PaymentDatasource())),
           ),
         ),
         ChangeNotifierProvider(

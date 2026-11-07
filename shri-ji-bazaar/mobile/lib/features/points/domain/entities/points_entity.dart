@@ -3,6 +3,9 @@ class PointsEntity {
   final int balance;
   final int totalEarned;
   final int totalSpent;
+  /// Amount reserved for open (pending) withdrawal requests. Money is held,
+  /// not spent — available balance = balance - pendingWithdrawal.
+  final int pendingWithdrawal;
   final List<PointTransactionEntity> transactions;
 
   PointsEntity({
@@ -10,8 +13,12 @@ class PointsEntity {
     required this.balance,
     this.totalEarned = 0,
     this.totalSpent = 0,
+    this.pendingWithdrawal = 0,
     this.transactions = const [],
   });
+
+  /// What the user can actually spend (balance minus reserved withdrawals).
+  int get available => balance - pendingWithdrawal;
 }
 
 class PointTransactionEntity {

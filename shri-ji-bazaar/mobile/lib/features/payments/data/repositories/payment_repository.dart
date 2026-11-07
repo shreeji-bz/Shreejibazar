@@ -36,4 +36,14 @@ class PaymentRepository implements IPaymentRepository {
   Future<Map<String, dynamic>> createImbOrder(double amount, {String? description}) {
     throw UnsupportedError('Use ImbPaymentRepository for IMB payments');
   }
+
+  @override
+  Future<List<PaymentEntity>> getWithdrawalHistory({int limit = 50}) async {
+    return await _datasource.getWithdrawalHistory(limit: limit);
+  }
+
+  @override
+  Future<Map<String, dynamic>> getWithdrawalConfig() async {
+    return await _datasource.getWithdrawalConfig();
+  }
 }

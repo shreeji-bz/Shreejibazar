@@ -32,6 +32,16 @@ class ImbPaymentRepository implements IPaymentRepository {
     throw UnsupportedError('Use payment datasource for pending withdrawals');
   }
 
+  @override
+  Future<List<PaymentEntity>> getWithdrawalHistory({int limit = 50}) {
+    throw UnsupportedError('Use payment datasource for withdrawal history');
+  }
+
+  @override
+  Future<Map<String, dynamic>> getWithdrawalConfig() {
+    throw UnsupportedError('Use payment datasource for withdrawal config');
+  }
+
   Future<Map<String, dynamic>> createImbOrder(double amount, {String? description}) async {
     return await _datasource.createImbOrder(amount, description: description);
   }
