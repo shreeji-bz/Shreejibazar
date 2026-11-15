@@ -260,4 +260,14 @@ export class RoundsRepository {
     if (row.game_id != null) base.game_id = row.game_id;
     return base;
   }
+
+  async findAutoDeclarable(): Promise<RoundEntity[]> {
+    const { data } = await supabase
+      .from('rounds')
+      .select('*')
+      .eq('status', 'closed')
+      .not('result', 'is', null)
+      .neq('status', 'result_declared');
+    return (data || []).map((row: any) => this.mapRow(row));
+  }
 }

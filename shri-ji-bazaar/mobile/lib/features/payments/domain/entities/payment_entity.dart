@@ -26,6 +26,8 @@ class PaymentEntity {
   final String? accountNumber;
   final String? ifscCode;
   final String? accountHolderName;
+  final String? upiId;
+  final String? qrImageUrl;
 
   PaymentEntity({
     required this.id,
@@ -55,5 +57,7 @@ class PaymentEntity {
     this.accountNumber,
     this.ifscCode,
     this.accountHolderName,
+    this.upiId,
+    this.qrImageUrl,
   });
 }

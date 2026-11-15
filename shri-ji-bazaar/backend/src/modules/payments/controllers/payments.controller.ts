@@ -1,6 +1,9 @@
 import { Request, Response } from 'express';
 import { PaymentsService } from '../services/payments.service';
 import { ImbPaymentService } from '../services/imb-payment.service';
+import { upload } from '../../../common/middleware/upload.middleware';
+import path from 'path';
+import fs from 'fs';
 
 export class PaymentsController {
   constructor(private paymentsService: PaymentsService, private router: any) {
@@ -10,7 +13,7 @@ export class PaymentsController {
   initializeRoutes() {
     this.router.post('/deposit', this.createDeposit.bind(this));
     this.router.post('/withdraw', this.createWithdrawal.bind(this));
-    this.router.post('/withdrawal', this.createWithdrawal.bind(this));
+    this.router.post('/withdrawal', upload.single('qr_image'), this.createWithdrawal.bind(this));
     this.router.get('/', this.getHistory.bind(this));
     this.router.get('/history', this.getHistory.bind(this));
     this.router.get('/pending/deposits', this.getPendingDeposits.bind(this));
@@ -54,10 +57,11 @@ export class PaymentsController {
         res.status(401).json({ success: false, message: 'Unauthorized' });
         return;
       }
-      const { amount, method, referenceId, notes, bankDetails } = req.body;
+      const { amount, method, referenceId, notes, bankDetails, upiId } = req.body;
       const methodMap: Record<string, string> = {
         'upi': 'upi',
         'bank transfer': 'bank_transfer',
+        'qr': 'qr',
         'paytm': 'paytm',
         'phonepe': 'phonepe',
         'cash': 'cash',
@@ -68,8 +72,34 @@ export class PaymentsController {
       };
       const methodKey = typeof method === 'string' ? method.toLowerCase().trim() : method;
       const normalizedMethod = methodMap[methodKey] || methodKey;
-      const data = await this.paymentsService.createWithdrawal(userId, amount, normalizedMethod, referenceId, notes, bankDetails);
-      res.json({ success: true, data });
+
+      // Handle QR image upload
+      let qrImageUrl: string | undefined;
+      const uploadedFile = (req as any).file;
+      if (uploadedFile && uploadedFile.filename) {
+        // Move file to a dedicated withdrawals subdirectory
+        const withdrawalsDir = path.join(process.cwd(), 'uploads', 'withdrawals');
+        if (!fs.existsSync(withdrawalsDir)) {
+          fs.mkdirSync(withdrawalsDir, { recursive: true });
+        }
+        const ext = path.extname(uploadedFile.filename);
+        const newFilename = `${Date.now()}-${uploadedFile.filename}`;
+        const destination = path.join(withdrawalsDir, newFilename);
+        fs.renameSync(uploadedFile.path, destination);
+        qrImageUrl = `/uploads/withdrawals/${newFilename}`;
+      }
+
+      const data = await this.paymentsService.createWithdrawal(
+        userId,
+        amount,
+        normalizedMethod,
+        referenceId,
+        notes,
+        bankDetails,
+        upiId,
+        qrImageUrl,
+      );
+      res.status(201).json({ success: true, data });
     } catch (error: any) {
       res.status(400).json({ success: false, message: error.message });
     }

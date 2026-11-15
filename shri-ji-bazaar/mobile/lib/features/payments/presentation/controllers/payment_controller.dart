@@ -147,6 +147,9 @@ class PaymentController extends ChangeNotifier {
     required String method,
     String? referenceId,
     String? notes,
+    Map<String, String>? bankDetails,
+    String? upiId,
+    File? qrImage,
   }) async {
     final validationError = validateWithdrawalAmount(amount);
     if (validationError != null) {
@@ -161,6 +164,9 @@ class PaymentController extends ChangeNotifier {
         method: method,
         referenceId: referenceId,
         notes: notes,
+        bankDetails: bankDetails,
+        upiId: upiId,
+        qrImageUrl: qrImage != null ? qrImage.path : null,
       );
       _pendingWithdrawals.insert(0, payment);
       _history.insert(0, payment);

@@ -36,6 +36,8 @@ function mapAdminPayment(row: any, user?: any): any {
     accountNumber: row.account_number,
     ifscCode: row.ifsc_code,
     accountHolderName: row.account_holder_name,
+    upiId: row.upi_id,
+    qrImageUrl: row.qr_image_url,
   };
 }
 
@@ -152,7 +154,16 @@ export class PaymentsService {
     return payment;
   }
 
-  async createWithdrawal(userId: string, amount: number, method: string, referenceId?: string, notes?: string, bankDetails?: { bankName?: string; accountNumber?: string; ifscCode?: string; accountHolderName?: string }): Promise<PaymentEntity> {
+  async createWithdrawal(
+    userId: string,
+    amount: number,
+    method: string,
+    referenceId?: string,
+    notes?: string,
+    bankDetails?: { bankName?: string; accountNumber?: string; ifscCode?: string; accountHolderName?: string },
+    upiId?: string,
+    qrImageUrl?: string,
+  ): Promise<PaymentEntity> {
     if (amount <= 0) {
       throw new Error('Withdrawal amount must be greater than 0');
     }
@@ -196,6 +207,8 @@ export class PaymentsService {
           accountNumber: existing.account_number ?? null,
           ifscCode: existing.ifsc_code ?? null,
           accountHolderName: existing.account_holder_name ?? null,
+          upiId: existing.upi_id ?? null,
+          qrImageUrl: existing.qr_image_url ?? null,
         };
       }
     }
@@ -249,6 +262,8 @@ export class PaymentsService {
       accountNumber: bankDetails?.accountNumber,
       ifscCode: bankDetails?.ifscCode,
       accountHolderName: bankDetails?.accountHolderName,
+      upiId: upiId ?? undefined,
+      qrImageUrl: qrImageUrl ?? undefined,
     });
   }
 

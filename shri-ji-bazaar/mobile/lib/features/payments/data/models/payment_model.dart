@@ -29,6 +29,8 @@ class PaymentModel extends PaymentEntity {
     super.accountNumber,
     super.ifscCode,
     super.accountHolderName,
+    super.upiId,
+    super.qrImageUrl,
   });
 
   factory PaymentModel.fromJson(Map<String, dynamic> json) {
@@ -60,6 +62,8 @@ class PaymentModel extends PaymentEntity {
       accountNumber: json['account_number'] as String?,
       ifscCode: json['ifsc_code'] as String?,
       accountHolderName: json['account_holder_name'] as String?,
+      upiId: json['upi_id'] as String?,
+      qrImageUrl: json['qr_image_url'] as String?,
     );
   }
 
@@ -92,6 +96,8 @@ class PaymentModel extends PaymentEntity {
       if (accountNumber != null) 'account_number': accountNumber,
       if (ifscCode != null) 'ifsc_code': ifscCode,
       if (accountHolderName != null) 'account_holder_name': accountHolderName,
+      if (upiId != null) 'upi_id': upiId,
+      if (qrImageUrl != null) 'qr_image_url': qrImageUrl,
     };
   }
 
@@ -123,6 +129,8 @@ class PaymentModel extends PaymentEntity {
     String? accountNumber,
     String? ifscCode,
     String? accountHolderName,
+    String? upiId,
+    String? qrImageUrl,
   }) {
     return PaymentModel(
       id: id ?? this.id,
@@ -152,6 +160,8 @@ class PaymentModel extends PaymentEntity {
       accountNumber: accountNumber ?? this.accountNumber,
       ifscCode: ifscCode ?? this.ifscCode,
       accountHolderName: accountHolderName ?? this.accountHolderName,
+      upiId: upiId ?? this.upiId,
+      qrImageUrl: qrImageUrl ?? this.qrImageUrl,
     );
   }
 }

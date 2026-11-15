@@ -1,6 +1,7 @@
 import '../../../../../core/network/api_service.dart';
 import '../../domain/entities/payment_entity.dart';
 import '../models/payment_model.dart';
+import 'dart:io';
 
 class PaymentDatasource {
   final ApiService _api = ApiService();
@@ -10,7 +11,14 @@ class PaymentDatasource {
     return PaymentModel.fromJson(result as Map<String, dynamic>);
   }
 
-  Future<PaymentEntity> createWithdrawal(Map<String, dynamic> data) async {
+  Future<PaymentEntity> createWithdrawal(Map<String, dynamic> data, {File? qrImage}) async {
+    if (qrImage != null && qrImage.existsSync()) {
+      final fields = Map<String, dynamic>.from(data);
+      fields['method'] = data['method'] ?? '';
+      if (data['upiId'] != null) fields['upiId'] = data['upiId'] as String;
+      final result = await _api.upload('/payments/withdrawal', qrImage, fieldName: 'qr_image', fields: fields);
+      return PaymentModel.fromJson(result as Map<String, dynamic>);
+    }
     final result = await _api.post('/payments/withdrawal', data: data);
     return PaymentModel.fromJson(result as Map<String, dynamic>);
   }

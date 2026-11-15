@@ -52,6 +52,10 @@ export const closeRound = async (id: string) => {
   return post('/v1/rounds/' + id + '/close', {});
 };
 
+export const saveResult = async (id: string, result: string) => {
+  return put('/v1/rounds/' + id + '/result', { result });
+};
+
 export const declareResult = async (id: string, result: string) => {
   return post('/v1/rounds/' + id + '/result', { result });
 };

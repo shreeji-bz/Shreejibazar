@@ -15,5 +15,15 @@ export class RoundsModule {
     new RoundsController(this.service, this.router);
     this.adminRouter.use(authenticateAdmin);
     new RoundsController(this.service, this.adminRouter);
+
+    // Admin-only cron endpoint: auto-declare all closed rounds that have a pre-saved result
+    this.adminRouter.post('/cron/auto-declare', async (_req: Request, res: Response) => {
+      try {
+        const count = await this.service.autoDeclareClosedRounds();
+        res.json({ success: true, message: `Auto-declared ${count} round(s)`, count });
+      } catch (error: any) {
+        res.status(500).json({ success: false, message: error.message });
+      }
+    });
   }
 }
