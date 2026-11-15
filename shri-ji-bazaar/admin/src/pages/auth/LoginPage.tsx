@@ -2,10 +2,12 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { loginAdmin } from '../../services/authService';
 import { useAuthStore } from '../../store/authStore';
+import { Eye, EyeOff } from 'lucide-react';
 
 export const LoginPage = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
   const navigate = useNavigate();
   const { login: setAuth } = useAuthStore();
 
@@ -25,7 +27,12 @@ export const LoginPage = () => {
       <h1 className="text-2xl font-bold text-text-primary mb-4">Admin Login</h1>
       <form onSubmit={handleSubmit} className="space-y-4">
         <input type="email" value={email} onChange={e => setEmail(e.target.value)} placeholder="Email" className="w-full px-4 py-2.5 bg-card-secondary border border-border rounded-lg text-text-primary text-sm" required />
-        <input type="password" value={password} onChange={e => setPassword(e.target.value)} placeholder="Password" className="w-full px-4 py-2.5 bg-card-secondary border border-border rounded-lg text-text-primary text-sm" required />
+        <div className="relative">
+          <input type={showPassword ? 'text' : 'password'} value={password} onChange={e => setPassword(e.target.value)} placeholder="Password" className="w-full px-4 py-2.5 pr-10 bg-card-secondary border border-border rounded-lg text-text-primary text-sm" required />
+          <button type="button" onClick={() => setShowPassword(v => !v)} className="absolute right-3 top-1/2 -translate-y-1/2 text-text-muted hover:text-text-secondary" tabIndex={-1}>
+            {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+          </button>
+        </div>
         <button type="submit" className="w-full bg-gold text-text-primary py-2.5 rounded-lg font-medium hover:bg-gold-bright transition-colors">Login</button>
       </form>
     </div>

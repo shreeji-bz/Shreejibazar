@@ -1,6 +1,35 @@
 import { NavLink } from 'react-router-dom';
 import { useAppStore } from '../store/appStore';
-import { LayoutDashboard, Users, Gamepad2, Timer, Trophy, Wallet, Gift, Users2, Bell, Ticket, Image, FileText, Settings, LogOut, Receipt, CreditCard, Shield, Coins, Smartphone, QrCode, Landmark, BarChart3, SlidersHorizontal, ImagePlus, Package, Video, MessageCircle, Inbox } from 'lucide-react';
+import {
+  LayoutDashboard,
+  Users,
+  Gamepad2,
+  Timer,
+  Trophy,
+  Wallet,
+  Gift,
+  Users2,
+  Bell,
+  Ticket,
+  Image,
+  FileText,
+  Settings,
+  LogOut,
+  Receipt,
+  CreditCard,
+  Shield,
+  Coins,
+  Smartphone,
+  QrCode,
+  Landmark,
+  BarChart3,
+  SlidersHorizontal,
+  ImagePlus,
+  Package,
+  Video,
+  MessageCircle,
+  Inbox,
+} from 'lucide-react';
 import { useAuthStore } from '../store/authStore';
 
 const menuItems = [
@@ -34,6 +63,18 @@ const menuItems = [
   { to: '/contact-settings', icon: MessageCircle, label: 'Contact Settings' },
 ];
 
+const sections = [
+  { title: 'Main', items: ['/dashboard', '/users', '/games', '/rounds', '/results'] },
+  { title: 'Activity', items: ['/activities', '/points', '/wagers'] },
+  { title: 'Financial', items: ['/payments', '/withdrawal-requests', '/bonuses', '/referrals', '/add-fund-report'] },
+  { title: 'Withdrawals', items: ['/withdrawals/upi', '/withdrawals/qr', '/withdrawals/bank'] },
+  { title: 'Content', items: ['/banners', '/notifications', '/support', '/app-images', '/apk-manager', '/videos', '/contact-settings'] },
+  { title: 'Reports', items: ['/jantri-report'] },
+  { title: 'Settings', items: ['/games/rates', '/settings', '/staff', '/audit-logs'] },
+];
+
+const itemIndex = new Map(menuItems.map((item, i) => [item.to, i]));
+
 export const Sidebar = () => {
   const sidebarOpen = useAppStore((s) => s.sidebarOpen);
   const { logout } = useAuthStore();
@@ -52,11 +93,21 @@ export const Sidebar = () => {
         )}
       </div>
       <nav className="p-2 space-y-1 overflow-y-auto h-[calc(100vh-60px)]">
-        {menuItems.map((item) => (
-          <NavLink key={item.to} to={item.to} className={({ isActive }) => `flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm transition-colors ${isActive ? 'bg-card-tertiary text-gold-bright' : 'text-text-secondary hover:bg-card-secondary hover:text-text-primary'}`}>
-            <item.icon size={18} />
-            {sidebarOpen && <span>{item.label}</span>}
-          </NavLink>
+        {sections.map((section) => (
+          <div key={section.title} className="space-y-1">
+            {sidebarOpen && (
+              <p className="px-3 pt-3 pb-1 text-[10px] font-semibold uppercase tracking-wider text-text-muted">{section.title}</p>
+            )}
+            {section.items.map((to) => {
+              const item = menuItems[itemIndex.get(to)!];
+              return (
+                <NavLink key={to} to={to} className={({ isActive }) => `flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm transition-colors ${isActive ? 'bg-card-tertiary text-gold-bright' : 'text-text-secondary hover:bg-card-secondary hover:text-text-primary'}`}>
+                  <item.icon size={18} />
+                  {sidebarOpen && <span>{item.label}</span>}
+                </NavLink>
+              );
+            })}
+          </div>
         ))}
         <button onClick={logout} className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm text-error hover:bg-card-secondary w-full">
           <LogOut size={18} />
