@@ -8,7 +8,7 @@ import { Input, Select } from '../../components/common';
 export const CreateRoundPage = () => {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
-  const [games, setGames] = useState<{ id: string; name: string }[]>([]);
+  const [games, setGames] = useState<{ id: string; name: string; openingTime: string; closingTime: string }[]>([]);
   const [gameId, setGameId] = useState('');
   const [startTime, setStartTime] = useState('');
   const [endTime, setEndTime] = useState('');
@@ -20,7 +20,15 @@ export const CreateRoundPage = () => {
   useEffect(() => {
     getGames({ page: 1, limit: 100 })
       .then((data: any) => {
-        if (data.success) setGames(data.data);
+        if (data.success) {
+          const list = data.data.map((g: any) => ({
+            id: g.id,
+            name: g.name,
+            openingTime: (g.openingTime || g.opening_time || '').slice(0, 5),
+            closingTime: (g.closingTime || g.closing_time || '').slice(0, 5),
+          }));
+          setGames(list);
+        }
       })
       .catch(() => setError('Failed to load games'));
   }, []);
@@ -30,6 +38,20 @@ export const CreateRoundPage = () => {
     setStartTime(`${urlDate}T11:00`);
     setEndTime(`${urlDate}T12:00`);
   }, [urlDate]);
+
+  const handleGameChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    const selectedId = e.target.value;
+    setGameId(selectedId);
+    if (selectedId && urlDate) {
+      const game = games.find((g) => g.id === selectedId);
+      if (game?.openingTime) {
+        setStartTime(`${urlDate}T${game.openingTime}`);
+      }
+      if (game?.closingTime) {
+        setEndTime(`${urlDate}T${game.closingTime}`);
+      }
+    }
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -64,7 +86,7 @@ export const CreateRoundPage = () => {
           <Select
             label="Game"
             value={gameId}
-            onChange={(e) => setGameId(e.target.value)}
+            onChange={handleGameChange}
           >
             <option value="">Select a game</option>
             {games.map((g) => (
