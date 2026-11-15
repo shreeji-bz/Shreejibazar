@@ -1,21 +1,17 @@
 import { useEffect, useState } from 'react';
-import { useNavigate, useSearchParams } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import { createRound } from '../../services/round.service';
 import { getGames } from '../../services/authService';
 import { Button } from '../../components/common/Button';
-import { Input, Select } from '../../components/common';
+import { Select, Input } from '../../components/common';
 
 export const CreateRoundPage = () => {
   const navigate = useNavigate();
-  const [searchParams] = useSearchParams();
   const [games, setGames] = useState<{ id: string; name: string; openingTime: string; closingTime: string }[]>([]);
   const [gameId, setGameId] = useState('');
-  const [startTime, setStartTime] = useState('');
-  const [endTime, setEndTime] = useState('');
+  const [selectedDate, setSelectedDate] = useState(() => new Date().toISOString().split('T')[0]);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
-
-  const urlDate = searchParams.get('date') || '';
 
   useEffect(() => {
     getGames({ page: 1, limit: 100 })
@@ -33,29 +29,20 @@ export const CreateRoundPage = () => {
       .catch(() => setError('Failed to load games'));
   }, []);
 
-  useEffect(() => {
-    if (!urlDate) return;
-    setStartTime(`${urlDate}T11:00`);
-    setEndTime(`${urlDate}T12:00`);
-  }, [urlDate]);
-
-  const handleGameChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
-    const selectedId = e.target.value;
-    setGameId(selectedId);
-    if (selectedId && urlDate) {
-      const game = games.find((g) => g.id === selectedId);
-      if (game?.openingTime) {
-        setStartTime(`${urlDate}T${game.openingTime}`);
-      }
-      if (game?.closingTime) {
-        setEndTime(`${urlDate}T${game.closingTime}`);
-      }
-    }
-  };
+  const selectedGame = games.find((g) => g.id === gameId);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!gameId || !startTime || !endTime) return;
+    if (!gameId || !selectedDate) return;
+
+    const game = games.find((g) => g.id === gameId);
+    if (!game?.openingTime || !game?.closingTime) {
+      setError('Selected game does not have opening/closing times configured');
+      return;
+    }
+
+    const startTime = `${selectedDate}T${game.openingTime}`;
+    const endTime = `${selectedDate}T${game.closingTime}`;
 
     setSubmitting(true);
     setError(null);
@@ -86,7 +73,7 @@ export const CreateRoundPage = () => {
           <Select
             label="Game"
             value={gameId}
-            onChange={handleGameChange}
+            onChange={(e) => setGameId(e.target.value)}
           >
             <option value="">Select a game</option>
             {games.map((g) => (
@@ -95,21 +82,20 @@ export const CreateRoundPage = () => {
           </Select>
 
           <Input
-            label="Start Time"
-            type="datetime-local"
-            value={startTime}
-            onChange={(e) => setStartTime(e.target.value)}
+            label="Date"
+            type="date"
+            value={selectedDate}
+            onChange={(e) => setSelectedDate(e.target.value)}
           />
 
-          <Input
-            label="End Time"
-            type="datetime-local"
-            value={endTime}
-            onChange={(e) => setEndTime(e.target.value)}
-          />
+          {selectedGame && selectedGame.openingTime && (
+            <div className="bg-card-secondary rounded-lg p-3 text-sm text-text-secondary">
+              <p>Round will be created from <span className="font-medium">{selectedGame.openingTime}</span> to <span className="font-medium">{selectedGame.closingTime}</span></p>
+            </div>
+          )}
 
           <div className="flex gap-3 pt-2">
-            <Button type="submit" disabled={!gameId || !startTime || !endTime || submitting}>
+            <Button type="submit" disabled={!gameId || !selectedDate || submitting}>
               {submitting ? 'Creating...' : 'Create Round'}
             </Button>
             <Button type="button" variant="outline" onClick={() => navigate('/rounds')}>
