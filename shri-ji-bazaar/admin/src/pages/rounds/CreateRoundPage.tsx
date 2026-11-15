@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { createRound } from '../../services/round.service';
 import { getGames } from '../../services/authService';
 import { Button } from '../../components/common/Button';
@@ -7,12 +7,15 @@ import { Input, Select } from '../../components/common';
 
 export const CreateRoundPage = () => {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const [games, setGames] = useState<{ id: string; name: string }[]>([]);
   const [gameId, setGameId] = useState('');
   const [startTime, setStartTime] = useState('');
   const [endTime, setEndTime] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  const urlDate = searchParams.get('date') || '';
 
   useEffect(() => {
     getGames({ page: 1, limit: 100 })
@@ -21,6 +24,12 @@ export const CreateRoundPage = () => {
       })
       .catch(() => setError('Failed to load games'));
   }, []);
+
+  useEffect(() => {
+    if (!urlDate) return;
+    setStartTime(`${urlDate}T11:00`);
+    setEndTime(`${urlDate}T12:00`);
+  }, [urlDate]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();

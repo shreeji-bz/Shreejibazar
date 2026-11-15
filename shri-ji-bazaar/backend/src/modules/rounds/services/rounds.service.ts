@@ -60,6 +60,13 @@ export class RoundsService {
     return this.roundsRepo.findActive(gameId);
   }
 
+  async saveResult(roundId: string, result: string) {
+    const round = await this.roundsRepo.findById(roundId);
+    if (!round) throw new Error('Round not found');
+    const updated = await this.roundsRepo.updateStatus(roundId, round.status, result);
+    return updated;
+  }
+
   async declareResult(roundId: string, result: string, adminId?: string) {
     const round = await this.roundsRepo.findById(roundId);
     if (!round) throw new Error('Round not found');
@@ -117,6 +124,23 @@ export class RoundsService {
     const open = openDate.toISOString();
     const close = new Date(openDate.getTime() + 30 * 60 * 1000).toISOString();
     return this.roundsRepo.ensureRoundForDate(round.gameId, open, close, game.result_time);
+  }
+
+  async autoDeclareClosedRounds(): Promise<number> {
+    // Find all closed rounds that have a pre-saved result but aren't yet declared
+    const closedRounds = await this.roundsRepo.findAutoDeclarable();
+    let count = 0;
+    for (const round of closedRounds) {
+      if (round.result) {
+        try {
+          await this.declareResult(round.id, round.result);
+          count++;
+        } catch {
+          // Skip failed auto-declarations; they'll be retried next run
+        }
+      }
+    }
+    return count;
   }
 
   async listAll(options: any = {}) {

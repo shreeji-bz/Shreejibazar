@@ -5,7 +5,7 @@ export interface PaymentEntity {
   type: 'deposit' | 'withdrawal' | 'bonus' | 'referral' | 'admin_credit' | 'admin_debit' | 'refund' | 'settlement';
   amount: number;
   currency: string;
-  method: 'upi' | 'bank_transfer' | 'paytm' | 'phonepe' | 'gpay' | 'qr' | 'cash' | 'points' | 'admin' | 'imps';
+  method: 'upi' | 'bank_transfer' | 'paytm' | 'phonepe' | 'cash' | 'points' | 'admin' | 'imps' | 'qr';
   status: 'pending' | 'approved' | 'rejected' | 'completed' | 'failed' | 'cancelled';
   referenceId: string | null;
   referenceType: string | null;
@@ -28,4 +28,7 @@ export interface PaymentEntity {
   accountNumber: string | null;
   ifscCode: string | null;
   accountHolderName: string | null;
+  // UPI/QR fields
+  upiId: string | null;
+  qrImageUrl: string | null;
 }

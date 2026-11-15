@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Plus } from 'lucide-react';
-import { getRounds, closeRound, declareResult, getGames } from '../../services/authService';
+import { Link, useSearchParams } from 'react-router-dom';
+import { getRounds, closeRound, saveResult, declareResult, getGames } from '../../services/authService';
 import { Table, TableRow, TableCell } from '../../components/common/Table';
 import { Button } from '../../components/common/Button';
 import { Modal, Input, Select } from '../../components/common';
@@ -23,6 +24,8 @@ export const Rounds = () => {
   const [selectedRound, setSelectedRound] = useState<Round | null>(null);
   const [resultValue, setResultValue] = useState('');
   const [submitting, setSubmitting] = useState(false);
+  const [roundDate, setRoundDate] = useState(() => new Date().toISOString().split('T')[0]);
+  const [searchParams] = useSearchParams();
 
   useEffect(() => {
     getGames({ page: 1, limit: 100 })
@@ -62,6 +65,25 @@ export const Rounds = () => {
     }
   };
 
+  const handleSaveResult = async (round: Round) => {
+    if (!round.id) return;
+    const value = prompt('Enter 2-digit result for Round #' + String(round.roundNumber).padStart(3, '0') + ':');
+    if (!value || !/^\d{2}$/.test(value.trim())) {
+      if (value) setError('Result must be exactly 2 digits (e.g. 12, 45)');
+      return;
+    }
+    try {
+      const data = (await saveResult(round.id, value.trim())) as any;
+      if (data.success) {
+        setRounds((prev) =>
+          prev.map((r) => (r.id === round.id ? { ...r, result: value.trim() } : r))
+        );
+      }
+    } catch {
+      setError('Failed to save result');
+    }
+  };
+
   const openResultModal = (round: Round) => {
     setSelectedRound(round);
     setResultValue('');
@@ -69,7 +91,7 @@ export const Rounds = () => {
   };
 
   const handleDeclareResult = async () => {
-    if (!selectedRound || !resultValue.trim()) return;
+    if (!selectedRound || !resultValue.trim() || !/^\d{2}$/.test(resultValue.trim())) return;
     setSubmitting(true);
     try {
       const data = (await declareResult(selectedRound.id, resultValue.trim())) as any;
@@ -111,10 +133,21 @@ export const Rounds = () => {
             ))}
           </Select>
           {selectedGameId && (
-            <Button variant="primary">
-              <Plus size={16} className="mr-1.5" />
-              Add Round
-            </Button>
+            <div className="flex items-center gap-3 flex-wrap">
+              <input
+                type="date"
+                value={roundDate}
+                onChange={(e) => setRoundDate(e.target.value)}
+                className="border border-border rounded-lg px-3 py-2 bg-card-secondary text-text-primary text-sm"
+              />
+              <Link
+                to={`/rounds/create?date=${roundDate}`}
+                className="inline-flex items-center gap-2 px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors text-sm font-medium"
+              >
+                <Plus size={16} />
+                Add Round
+              </Link>
+            </div>
           )}
         </div>
 
@@ -153,15 +186,24 @@ export const Rounds = () => {
                   )}
                 </TableCell>
                 <TableCell>
-                  <div className="flex gap-2">
+                  <div className="flex gap-2 flex-wrap">
                     {r.status === 'open' && (
-                      <Button
-                        variant="outline"
-                        className="text-xs px-3 py-1.5"
-                        onClick={() => handleCloseRound(r)}
-                      >
-                        Close
-                      </Button>
+                      <>
+                        <Button
+                          variant="outline"
+                          className="text-xs px-3 py-1.5"
+                          onClick={() => handleSaveResult(r)}
+                        >
+                          {r.result ? 'Update Result' : 'Save Result'}
+                        </Button>
+                        <Button
+                          variant="outline"
+                          className="text-xs px-3 py-1.5"
+                          onClick={() => handleCloseRound(r)}
+                        >
+                          Close
+                        </Button>
+                      </>
                     )}
                     {r.status === 'closed' && (
                       <Button
@@ -169,7 +211,7 @@ export const Rounds = () => {
                         className="text-xs px-3 py-1.5"
                         onClick={() => openResultModal(r)}
                       >
-                        Declare Result
+                        {r.result ? 'Declare Saved Result' : 'Declare Result'}
                       </Button>
                     )}
                   </div>
@@ -195,9 +237,11 @@ export const Rounds = () => {
             </div>
             <Input
               label="Result Value"
-              placeholder="Enter result (e.g. 123, A, Red)"
+              placeholder="Enter 2-digit result (e.g. 12, 45)"
               value={resultValue}
-              onChange={(e) => setResultValue(e.target.value)}
+              onChange={(e) => setResultValue(e.target.value.replace(/\D/g, '').slice(0, 2))}
+              maxLength={2}
+              inputMode="numeric"
               autoFocus
             />
             <Button

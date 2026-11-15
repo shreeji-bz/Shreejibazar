@@ -20,6 +20,7 @@ export class RoundsController {
     this.router.put('/:id', this.updateRound.bind(this));
     this.router.post('/:id/close', this.closeRound.bind(this));
     this.router.post('/:id/result', this.declareResult.bind(this));
+    this.router.put('/:id/result', this.saveResult.bind(this));
   }
 
   async getUpcoming(req: Request, res: Response) {
@@ -115,10 +116,34 @@ export class RoundsController {
     }
   }
 
+  async saveResult(req: Request, res: Response) {
+    try {
+      const { result } = req.body;
+      if (!result || !/^\d{2}$/.test(result)) {
+        return res.status(400).json({ success: false, message: 'Result must be exactly 2 digits (e.g. 12, 45, 99)' });
+      }
+      const data = await this.roundsService.saveResult(req.params.id, result);
+      res.json({ success: true, data });
+    } catch (error: any) {
+      res.status(400).json({ success: false, message: error.message });
+    }
+  }
+
+  async autoDeclareClosedRounds(req: Request, res: Response) {
+    try {
+      const count = await this.roundsService.autoDeclareClosedRounds();
+      res.json({ success: true, message: `Auto-declared ${count} round(s)`, count });
+    } catch (error: any) {
+      res.status(500).json({ success: false, message: error.message });
+    }
+  }
+
   async declareResult(req: Request, res: Response) {
     try {
       const { result } = req.body;
-      if (!result) return res.status(400).json({ success: false, message: 'Result is required' });
+      if (!result || !/^\d{2}$/.test(result)) {
+        return res.status(400).json({ success: false, message: 'Result must be exactly 2 digits (e.g. 12, 45, 99)' });
+      }
 
       const actorId = (req as any).admin?.id || (req as any).user?.id || req.body.userId;
       const data = await this.roundsService.declareResult(req.params.id, result, actorId);

@@ -1,38 +1,39 @@
 /// Central app configuration — the ONE place the API host lives.
 ///
-/// Everything else in the app reads from this class, so there are no
-/// scattered host literals to chase down.
+/// Update [API_BASE_URL] here whenever the backend moves (new IP, new domain).
+/// Everything else in the app reads from this class, so there are no scattered
+/// literals to chase down.
 ///
 /// Precedence:
 ///   1. Build flag (highest):  flutter run --dart-define=API_BASE_URL=https://...
-///   2. The defaults below
+///   2. The default set below
 ///
-/// These are the FINAL PRODUCTION values: a public https:// host, so the
-/// built APK works on any device (client tests, store release). For
-/// local dev you can still override with `--dart-define=API_BASE_URL=...`
-/// (e.g. http://127.0.0.1:3000/api/v1 + `adb reverse`), but keep the
-/// checked-in default pointing at the real backend.
+/// Reachability rules:
+///   - Same Wi-Fi as the backend machine -> use that machine's LAN IP
+///     (e.g. http://10.205.236.19:3000/api/v1). This changes when the router
+///     reassigns IPs, which is why you edit this file.
+///   - Outside your network -> use a public https:// URL.
+///
+/// A real filesystem .env is NOT read here: a Dart build cannot access
+/// mobile/.env at runtime on a phone, and shipping credentials in the APK
+/// would be unsafe. This file is the intended place to keep config.
 class AppEnv {
   AppEnv._();
 
   /// >>> HOW THE APP REACHES THE BACKEND <<<
-  /// The public production API. All REST calls in the app use this.
+  /// Public backend — reachable on any network, no USB/LAN tunnel needed.
+  ///
+  /// Local-dev alternative: http://127.0.0.1:3000/api/v1 +
+  /// `adb reverse tcp:3000 tcp:3000` (or the PC's LAN IP on shared Wi-Fi).
   static const String API_BASE_URL = 'https://api.shreejibazar.com/api/v1';
-
-  /// Production WebSocket endpoint (used for live updates when a socket
-  /// feature lands; reserved now so URLs stay central).
-  static const String WS_BASE_URL = 'https://api.shreejibazar.com';
-
-  /// App version shown to users / reported in telemetry. Keep in sync
-  /// with `version:` in pubspec.yaml.
-  static const String APP_VERSION = '1.0.0';
   /// -----------------------------------------
 
-  /// We ship to clients, so the effective URL MUST be https — this throws
-  /// at startup on any accidental cleartext (http:// or IP) default.
+  /// Flips on (throw) when [API_BASE_URL] is cleartext http, to catch
+  /// accidental production builds. Keep false for LAN dev, set true once
+  /// you have a real https:// host.
   static const bool REQUIRE_HTTPS = true;
 
-  /// Build-flag override, e.g. flutter run --dart-define=API_BASE_URL=http://127.0.0.1:3000/api/v1
+  /// Build-flag override, e.g. flutter run --dart-define=API_BASE_URL=https://api.example.com/api/v1
   static const String _buildTime = String.fromEnvironment('API_BASE_URL');
 
   /// Effective API base URL.
@@ -41,8 +42,7 @@ class AppEnv {
     if (REQUIRE_HTTPS && !url.startsWith('https://')) {
       throw StateError(
         'AppEnv.REQUIRE_HTTPS is true but API_BASE_URL is not https: "$url". '
-        'Use the production https host, or build with an explicit '
-        '--dart-define for local dev.',
+        'Use an encrypted host for production, or set REQUIRE_HTTPS=false for LAN dev.',
       );
     }
     return url;

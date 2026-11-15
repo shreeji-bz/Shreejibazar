@@ -1,7 +1,9 @@
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:shri_ji_bazaar/core/theme/app_text_styles.dart';
 import 'package:shri_ji_bazaar/core/widgets/sidebar_toggle.dart';
+import 'package:image_picker/image_picker.dart';
 import '../controllers/payment_controller.dart';
 
 class WithdrawPage extends StatelessWidget {
@@ -19,9 +21,9 @@ class WithdrawPage extends StatelessWidget {
           padding: const EdgeInsets.all(24),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              const SizedBox(height: 16),
-              const _WithdrawForm(),
+            children: const [
+              SizedBox(height: 16),
+              _WithdrawForm(),
             ],
           ),
         ),
@@ -37,49 +39,26 @@ class _WithdrawForm extends StatefulWidget {
   State<_WithdrawForm> createState() => _WithdrawFormState();
 }
 
-/// Payment methods offered at withdraw (UI labels -> API method keys).
-const _METHODS = <Map<String, dynamic>>[
-  {'label': 'QR Code', 'method': 'qr', 'icon': Icons.qr_code_rounded},
-  {'label': 'Bank', 'method': 'bank_transfer', 'icon': Icons.account_balance_rounded},
-  {'label': 'Paytm', 'method': 'paytm', 'icon': Icons.credit_card_rounded},
-  {'label': 'Google Pay', 'method': 'gpay', 'icon': Icons.payments_rounded},
-  {'label': 'PhonePe', 'method': 'phonepe', 'icon': Icons.smartphone_rounded},
-];
-
 class _WithdrawFormState extends State<_WithdrawForm> {
   final _formKey = GlobalKey<FormState>();
   final _amountController = TextEditingController();
+
+  // Bank fields
   final _accountController = TextEditingController();
   final _ifscController = TextEditingController();
   final _holderController = TextEditingController();
-  final _vpaController = TextEditingController();
-  String _selectedMethod = 'qr';
 
-  /// Withdrawals only accepted 6:00 AM -> 1:00 PM local time (backend mirrors).
-  static bool get inWindow {
-    final h = DateTime.now().hour;
-    return h >= 6 && h < 13;
-  }
+  // UPI field
+  final _upiIdController = TextEditingController();
 
-  /// Configurable minimum (server settings), falling back to the app default
-  /// so the form label stays correct before the config has loaded.
-  double _minFrom(BuildContext context) {
-    final min = context.read<PaymentController>().minWithdrawal;
-    return min > 0 ? min.toDouble() : 480;
-  }
+  // QR
+  File? _qrImage;
 
-  @override
-  void initState() {
-    super.initState();
-    // Pull the server-driven withdrawal rules (min amount, messages, ...)
-    // and the current reservation so the form validates correctly.
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (!mounted) return;
-      final controller = context.read<PaymentController>();
-      controller.loadWithdrawalConfig();
-      controller.loadBalance();
-    });
-  }
+  // Selected method: 'upi' | 'qr' | 'bank_transfer'
+  String _selectedMethod = 'bank_transfer';
+
+  // Image picker
+  final _imagePicker = ImagePicker();
 
   @override
   void dispose() {
@@ -87,13 +66,207 @@ class _WithdrawFormState extends State<_WithdrawForm> {
     _accountController.dispose();
     _ifscController.dispose();
     _holderController.dispose();
-    _vpaController.dispose();
+    _upiIdController.dispose();
     super.dispose();
+  }
+
+  Future<void> _pickQrImage() async {
+    final XFile? picked = await _imagePicker.pickImage(source: ImagePickerSource.gallery);
+    if (picked != null) {
+      setState(() {
+        _qrImage = File(picked.path);
+      });
+    }
+  }
+
+  Widget _buildMethodTabs() {
+    return Container(
+      decoration: BoxDecoration(
+        color: const Color(0xFF1A1208),
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: Row(
+        children: [
+          Expanded(
+            child: _MethodTab(
+              label: 'UPI',
+              icon: Icons.account_balance_wallet_rounded,
+              selected: _selectedMethod == 'upi',
+              onTap: () => setState(() => _selectedMethod = 'upi'),
+            ),
+          ),
+          Expanded(
+            child: _MethodTab(
+              label: 'QR',
+              icon: Icons.qr_code_2_rounded,
+              selected: _selectedMethod == 'qr',
+              onTap: () => setState(() => _selectedMethod = 'qr'),
+            ),
+          ),
+          Expanded(
+            child: _MethodTab(
+              label: 'Bank',
+              icon: Icons.account_balance_rounded,
+              selected: _selectedMethod == 'bank_transfer',
+              onTap: () => setState(() => _selectedMethod = 'bank_transfer'),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildUpiFields() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        const SizedBox(height: 16),
+        TextFormField(
+          controller: _upiIdController,
+          keyboardType: TextInputType.emailAddress,
+          decoration: const InputDecoration(
+            labelText: 'UPI ID',
+            hintText: 'e.g. name@upi',
+            prefixIcon: Icon(Icons.account_balance_wallet_rounded),
+          ),
+          validator: (value) {
+            if (_selectedMethod == 'upi') {
+              if (value == null || value.isEmpty) return 'Please enter UPI ID';
+            }
+            return null;
+          },
+        ),
+      ],
+    );
+  }
+
+  Widget _buildQrFields() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        const SizedBox(height: 16),
+        ElevatedButton.icon(
+          onPressed: _pickQrImage,
+          icon: const Icon(Icons.upload_file_rounded),
+          label: Text(_qrImage == null ? 'Upload QR Image' : 'Change QR Image'),
+          style: ElevatedButton(
+            style: ElevatedButton.styleFrom(
+              backgroundColor: const Color(0xFF1A1208),
+              foregroundColor: const Color(0xFFD4A853),
+              side: const BorderSide(color: Color(0xFF3A3020)),
+              padding: const EdgeInsets.symmetric(vertical: 14),
+            ),
+          ).copyWith(elevation: WidgetStateProperty.all(0)),
+        ),
+        if (_qrImage != null) ...[
+          const SizedBox(height: 12),
+          Container(
+            padding: const EdgeInsets.all(8),
+            decoration: BoxDecoration(
+              color: const Color(0xFF1A1208),
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: const Color(0xFF3A3020)),
+            ),
+            child: Row(
+              children: [
+                ClipRRect(
+                  borderRadius: BorderRadius.circular(8),
+                  child: Image.file(
+                    _qrImage!,
+                    width: 60,
+                    height: 60,
+                    fit: BoxFit.cover,
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Text(
+                    'QR image selected',
+                    style: AppTextStyles.bodySmall,
+                  ),
+                ),
+                IconButton(
+                  onPressed: () => setState(() => _qrImage = null),
+                  icon: const Icon(Icons.close_rounded, size: 20, color: Color(0xFFE53935)),
+                  visualDensity: VisualDensity.compact,
+                ),
+              ],
+            ),
+          ),
+        ],
+        const SizedBox(height: 16),
+        TextFormField(
+          controller: _upiIdController,
+          keyboardType: TextInputType.emailAddress,
+          decoration: const InputDecoration(
+            labelText: 'UPI ID (optional)',
+            hintText: 'e.g. name@upi',
+            prefixIcon: Icon(Icons.account_balance_wallet_rounded),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildBankFields() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        const SizedBox(height: 16),
+        TextFormField(
+          controller: _accountController,
+          keyboardType: TextInputType.number,
+          decoration: const InputDecoration(
+            labelText: 'Account Number',
+            hintText: 'Enter bank account number',
+            prefixIcon: Icon(Icons.account_balance_rounded),
+          ),
+          validator: (value) {
+            if (_selectedMethod == 'bank_transfer') {
+              if (value == null || value.isEmpty) return 'Please enter account number';
+              if (value.length < 8) return 'Enter a valid account number';
+            }
+            return null;
+          },
+        ),
+        const SizedBox(height: 16),
+        TextFormField(
+          controller: _ifscController,
+          keyboardType: TextInputType.text,
+          decoration: const InputDecoration(
+            labelText: 'IFSC Code',
+            hintText: 'e.g. SBIN0001234',
+            prefixIcon: Icon(Icons.code_rounded),
+          ),
+          validator: (value) {
+            if (_selectedMethod == 'bank_transfer') {
+              if (value == null || value.isEmpty) return 'Please enter IFSC code';
+            }
+            return null;
+          },
+        ),
+        const SizedBox(height: 16),
+        TextFormField(
+          controller: _holderController,
+          keyboardType: TextInputType.name,
+          decoration: const InputDecoration(
+            labelText: 'Account Holder Name',
+            hintText: 'Enter account holder name',
+            prefixIcon: Icon(Icons.person_rounded),
+          ),
+          validator: (value) {
+            if (_selectedMethod == 'bank_transfer') {
+              if (value == null || value.isEmpty) return 'Please enter account holder name';
+            }
+            return null;
+          },
+        ),
+      ],
+    );
   }
 
   @override
   Widget build(BuildContext context) {
-    final windowOpen = inWindow;
     return Form(
       key: _formKey,
       child: Column(
@@ -102,7 +275,6 @@ class _WithdrawFormState extends State<_WithdrawForm> {
           Consumer<PaymentController>(
             builder: (context, paymentController, _) {
               final balance = paymentController.availableBalance;
-              final pending = paymentController.pendingWithdrawal;
               return Container(
                 padding: const EdgeInsets.all(14),
                 decoration: BoxDecoration(
@@ -113,157 +285,39 @@ class _WithdrawFormState extends State<_WithdrawForm> {
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
                     Text('Available Balance', style: AppTextStyles.bodySmall),
-                    Column(
-                      crossAxisAlignment: CrossAxisAlignment.end,
-                      children: [
-                        Text('\$${balance.toStringAsFixed(2)}', style: AppTextStyles.points.copyWith(fontSize: 16)),
-                        if (pending > 0)
-                          Text('Reserved: \$${pending.toStringAsFixed(2)}',
-                              style: const TextStyle(color: Color(0xFFFFA726), fontSize: 11)),
-                      ],
-                    ),
+                    Text('\$${balance.toStringAsFixed(2)}', style: AppTextStyles.points.copyWith(fontSize: 16)),
                   ],
                 ),
               );
             },
           ),
+          const SizedBox(height: 20),
+          _buildMethodTabs(),
           const SizedBox(height: 16),
           TextFormField(
             controller: _amountController,
             keyboardType: TextInputType.number,
-            enabled: windowOpen,
-            decoration: InputDecoration(
-              labelText: 'Enter Amount (Min \$${_minFrom(context)})',
-              hintText: 'Enter withdrawal amount',
-              prefixIcon: const Icon(Icons.attach_money_rounded),
+            decoration: const InputDecoration(
+              labelText: 'Withdrawal Amount',
+              hintText: 'Enter amount to withdraw',
+              prefixIcon: Icon(Icons.attach_money_rounded),
             ),
             validator: (value) {
               if (value == null || value.isEmpty) return 'Please enter amount';
               final amount = double.tryParse(value);
               if (amount == null || amount <= 0) return 'Enter a valid amount';
-              final min = _minFrom(context);
-              if (amount < min) return 'Minimum withdrawal is \$${min.round()}';
-              return null; // full validation (available balance etc.) runs server-side too
+              if (amount < 100) return 'Minimum withdrawal is \$100';
+              return null;
             },
           ),
-          const SizedBox(height: 16),
-          // ---- Method selector ----
-          Text('Select Method', style: AppTextStyles.bodySmall),
-          const SizedBox(height: 8),
-          ..._METHODS.map((m) {
-            final String mLabel = m['label'] as String;
-            final String mMethod = m['method'] as String;
-            final IconData mIcon = m['icon'] as IconData;
-            final selected = _selectedMethod == mMethod;
-            final needsBank = mMethod == 'bank_transfer';
-            return Padding(
-              padding: const EdgeInsets.only(bottom: 8),
-              child: Container(
-                decoration: BoxDecoration(
-                  color: selected ? const Color(0xFF1A1005) : const Color(0xFF120C05),
-                  borderRadius: BorderRadius.circular(12),
-                  border: Border.all(
-                    color: selected ? const Color(0xFF25C85A) : Colors.transparent,
-                  ),
-                ),
-                child: Column(
-                  children: [
-                    ListTile(
-                      enabled: windowOpen,
-                      contentPadding: const EdgeInsets.symmetric(horizontal: 14),
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                      tileColor: Colors.transparent,
-                      leading: Radio<String>(
-                        value: mMethod,
-                        groupValue: _selectedMethod,
-                        onChanged: windowOpen ? (v) => setState(() => _selectedMethod = v as String) : null,
-                      ),
-                      title: Row(
-                        children: [
-                          Icon(mIcon, size: 20, color: selected ? const Color(0xFF25C85A) : Colors.white70),
-                          const SizedBox(width: 10),
-                          Text(mLabel, style: const TextStyle(color: Colors.white, fontSize: 15, fontWeight: FontWeight.w600)),
-                        ],
-                      ),
-                    ),
-                    // Bank details / VPA inputs inline under their method.
-                    if (selected && needsBank)
-                      Padding(
-                        padding: const EdgeInsets.symmetric(horizontal: 50, vertical: 8),
-                        child: Column(
-                          children: [
-                            TextFormField(
-                              controller: _accountController,
-                              keyboardType: TextInputType.number,
-                              enabled: windowOpen,
-                              decoration: const InputDecoration(hintText: 'Account Number'),
-                              validator: (v) =>
-                                  (v == null || v.isEmpty) ? 'Enter account number' : (v.length < 8 ? 'Enter a valid account number' : null),
-                            ),
-                            const SizedBox(height: 8),
-                            TextFormField(
-                              controller: _ifscController,
-                              enabled: windowOpen,
-                              decoration: const InputDecoration(hintText: 'IFSC Code'),
-                              validator: (v) => (v == null || v.isEmpty) ? 'Enter IFSC code' : null,
-                            ),
-                            const SizedBox(height: 8),
-                            TextFormField(
-                              controller: _holderController,
-                              enabled: windowOpen,
-                              decoration: const InputDecoration(hintText: 'Account Holder Name'),
-                              validator: (v) => (v == null || v.isEmpty) ? 'Enter holder name' : null,
-                            ),
-                          ],
-                        ),
-                      ),
-                    if (selected && (mMethod == 'qr' || mMethod == 'gpay'))
-                      Padding(
-                        padding: const EdgeInsets.symmetric(horizontal: 50, vertical: 8),
-                        child: TextFormField(
-                          controller: _vpaController,
-                          enabled: windowOpen,
-                          decoration: InputDecoration(
-                            hintText: mMethod == 'gpay' ? 'Google Pay UPI ID (e.g. name@paytm)' : 'UPI ID (e.g. name@ybl)',
-                          ),
-                          validator: (v) => (v == null || v.isEmpty) ? 'Enter UPI ID' : null,
-                        ),
-                      ),
-                  ],
-                ),
-              ),
-            );
-          }),
-          // ---- 6AM-1PM window notice ----
-          if (!windowOpen)
-            Container(
-              margin: const EdgeInsets.only(bottom: 16),
-              padding: const EdgeInsets.all(12),
-              decoration: BoxDecoration(
-                color: const Color(0xFFFFA726).withValues(alpha: 0.12),
-                borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: const Color(0xFFFFA726)),
-              ),
-              child: Row(
-                children: const [
-                  Icon(Icons.schedule_rounded, color: Color(0xFFFFA726), size: 18),
-                  SizedBox(width: 8),
-                  Expanded(
-                    child: Text(
-                      'Withdrawals are available 6:00 AM – 1:00 PM. Please try again within that window.',
-                      style: TextStyle(color: Color(0xFFFFA726), fontSize: 12),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          const SizedBox(height: 16),
+          if (_selectedMethod == 'upi') _buildUpiFields(),
+          if (_selectedMethod == 'qr') _buildQrFields(),
+          if (_selectedMethod == 'bank_transfer') _buildBankFields(),
+          const SizedBox(height: 32),
           Consumer<PaymentController>(
             builder: (context, paymentController, _) {
               final isLoading = paymentController.isProcessing;
               final errorMessage = paymentController.error;
-              final pendingRequest = paymentController.pendingRequest;
-              final noticeShown = paymentController.pendingNoticeShown;
               return Column(
                 children: [
                   if (errorMessage != null)
@@ -277,53 +331,45 @@ class _WithdrawFormState extends State<_WithdrawForm> {
                       ),
                       child: Text(errorMessage, style: AppTextStyles.body.copyWith(color: const Color(0xFFE53935))),
                     ),
-                  // Post-submit notice: after the configured delay (3-4s) with
-                  // no admin action yet, tell the user the request is pending
-                  // and their money is safe. Text is server-configured.
-                  if (pendingRequest != null && noticeShown)
-                    Container(
-                      margin: const EdgeInsets.only(bottom: 16),
-                      padding: const EdgeInsets.all(12),
-                      decoration: BoxDecoration(
-                        color: const Color(0xFFFFA726).withValues(alpha: 0.12),
-                        borderRadius: BorderRadius.circular(12),
-                        border: Border.all(color: const Color(0xFFFFA726)),
-                      ),
-                      child: Row(
-                        children: [
-                          const Icon(Icons.hourglass_empty_rounded, color: Color(0xFFFFA726), size: 18),
-                          const SizedBox(width: 10),
-                          Expanded(child: Text(paymentController.msgPending, style: const TextStyle(color: Color(0xFFFFA726), fontSize: 12))),
-                        ],
-                      ),
-                    ),
-                  // One open request at a time — block new ones while pending.
-                  if (pendingRequest != null)
-                    Padding(
-                      padding: const EdgeInsets.only(bottom: 12),
-                      child: Text(
-                        'You have a pending withdrawal of \$${pendingRequest.amount.toStringAsFixed(2)}. '
-                        'It will be processed before a new one can be made.',
-                        style: const TextStyle(color: Colors.white54, fontSize: 12),
-                      ),
-                    ),
                   SizedBox(
                     width: double.infinity,
                     height: 50,
                     child: ElevatedButton(
-                      // Disable while one is already pending (no duplicates).
-                      onPressed: (windowOpen && !isLoading && pendingRequest == null) ? () async {
+                      onPressed: isLoading ? null : () async {
                         if (_formKey.currentState!.validate()) {
-                          // Pass the bank details / UPI id as reference notes.
-                          final referenceId = _selectedMethod == 'bank_transfer'
-                              ? _ifscController.text.trim()
-                              : _vpaController.text.trim();
-                          final created = await paymentController.requestWithdrawal(
-                            amount: double.parse(_amountController.text.trim()),
+                          final amount = double.parse(_amountController.text.trim());
+                          Map<String, String>? bankDetails;
+                          String? upiId;
+                          File? qrImage;
+
+                          switch (_selectedMethod) {
+                            case 'bank_transfer':
+                              bankDetails = {
+                                'bankName': '',
+                                'accountNumber': _accountController.text.trim(),
+                                'ifscCode': _ifscController.text.trim(),
+                                'accountHolderName': _holderController.text.trim(),
+                              };
+                              break;
+                            case 'upi':
+                              upiId = _upiIdController.text.trim();
+                              break;
+                            case 'qr':
+                              qrImage = _qrImage;
+                              if (_upiIdController.text.trim().isNotEmpty) {
+                                upiId = _upiIdController.text.trim();
+                              }
+                              break;
+                          }
+
+                          final success = await paymentController.requestWithdrawal(
+                            amount: amount,
                             method: _selectedMethod,
-                            referenceId: referenceId.isEmpty ? null : referenceId,
+                            bankDetails: bankDetails,
+                            upiId: upiId,
+                            qrImage: qrImage,
                           );
-                          if (created != null && context.mounted) {
+                          if (success && context.mounted) {
                             ScaffoldMessenger.of(context).showSnackBar(
                               const SnackBar(content: Text('Withdrawal request submitted!'), backgroundColor: Color(0xFF25C85A)),
                             );
@@ -331,26 +377,67 @@ class _WithdrawFormState extends State<_WithdrawForm> {
                             _accountController.clear();
                             _ifscController.clear();
                             _holderController.clear();
-                            _vpaController.clear();
+                            _upiIdController.clear();
+                            _qrImage = null;
+                            setState(() {});
                           }
                         }
-                      } : null,
+                      },
                       child: isLoading
                           ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
                           : const Text('Withdraw', style: TextStyle(fontSize: 16)),
                     ),
-                  ),
-                  // Admin response window, from server config (not hardcoded).
-                  Text(
-                    'Admins respond within ${paymentController.adminTimeoutHours}h. Unresolved requests expire and your amount is released automatically.',
-                    textAlign: TextAlign.center,
-                    style: const TextStyle(color: Colors.white38, fontSize: 11),
                   ),
                 ],
               );
             },
           ),
         ],
+      ),
+    );
+  }
+}
+
+class _MethodTab extends StatelessWidget {
+  final String label;
+  final IconData icon;
+  final bool selected;
+  final VoidCallback onTap;
+
+  const _MethodTab({
+    required this.label,
+    required this.icon,
+    required this.selected,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final bg = selected ? const Color(0xFFD4A853).withValues(alpha: 0.15) : Colors.transparent;
+    final fg = selected ? const Color(0xFFD4A853) : const Color(0xFF8A8070);
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 8),
+        decoration: BoxDecoration(
+          color: bg,
+          borderRadius: BorderRadius.circular(12),
+        ),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(icon, size: 18, color: fg),
+            const SizedBox(width: 6),
+            Text(
+              label,
+              style: TextStyle(
+                fontSize: 13,
+                fontWeight: selected ? FontWeight.w600 : FontWeight.normal,
+                color: fg,
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }

@@ -6,7 +6,7 @@ export const CreateDepositDto = joi.object({
     'number.empty': 'Amount is required',
     'any.required': 'Amount is required',
   }),
-  method: joi.string().valid('upi', 'bank_transfer', 'paytm', 'phonepe', 'cash', 'points', 'admin').required(),
+  method: joi.string().valid('upi', 'bank_transfer', 'qr', 'paytm', 'phonepe', 'cash', 'points', 'admin').required(),
   referenceId: joi.string().allow(null, ''),
   notes: joi.string().allow(null, ''),
 });
@@ -17,9 +17,17 @@ export const CreateWithdrawalDto = joi.object({
     'number.empty': 'Amount is required',
     'any.required': 'Amount is required',
   }),
-  method: joi.string().valid('upi', 'bank_transfer', 'paytm', 'phonepe', 'cash', 'points', 'admin').required(),
+  method: joi.string().valid('upi', 'bank_transfer', 'qr', 'paytm', 'phonepe', 'cash', 'points', 'admin').required(),
   referenceId: joi.string().allow(null, ''),
   notes: joi.string().allow(null, ''),
+  bankDetails: joi.object({
+    bankName: joi.string().allow(null, ''),
+    accountNumber: joi.string().allow(null, ''),
+    ifscCode: joi.string().allow(null, ''),
+    accountHolderName: joi.string().allow(null, ''),
+  }).optional(),
+  upiId: joi.string().allow(null, ''),
+  qrImageUrl: joi.string().allow(null, ''),
 });
 
 export const ApprovePaymentDto = joi.object({
@@ -51,6 +59,9 @@ export type CreateWithdrawalInput = {
   method: string;
   referenceId?: string;
   notes?: string;
+  bankDetails?: { bankName?: string; accountNumber?: string; ifscCode?: string; accountHolderName?: string };
+  upiId?: string;
+  qrImageUrl?: string;
 };
 
 export type ApprovePaymentInput = {

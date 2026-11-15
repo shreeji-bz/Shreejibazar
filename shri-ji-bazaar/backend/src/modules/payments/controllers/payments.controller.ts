@@ -1,6 +1,9 @@
 import { Request, Response } from 'express';
 import { PaymentsService } from '../services/payments.service';
 import { ImbPaymentService } from '../services/imb-payment.service';
+import { upload } from '../../../common/middleware/upload.middleware';
+import path from 'path';
+import fs from 'fs';
 
 export class PaymentsController {
   constructor(private paymentsService: PaymentsService, private router: any) {
@@ -10,28 +13,13 @@ export class PaymentsController {
   initializeRoutes() {
     this.router.post('/deposit', this.createDeposit.bind(this));
     this.router.post('/withdraw', this.createWithdrawal.bind(this));
-    this.router.post('/withdrawal', this.createWithdrawal.bind(this));
+    this.router.post('/withdrawal', upload.single('qr_image'), this.createWithdrawal.bind(this));
     this.router.get('/', this.getHistory.bind(this));
     this.router.get('/history', this.getHistory.bind(this));
     this.router.get('/pending/deposits', this.getPendingDeposits.bind(this));
     this.router.get('/pending/withdrawals', this.getPendingWithdrawals.bind(this));
-    this.router.get('/withdrawal-config', this.getWithdrawalConfig.bind(this));
     this.router.get('/:id', this.getById.bind(this));
     this.router.post('/imb/create-order', this.createImbOrder.bind(this));
-  }
-
-  /**
-   * User-facing withdrawal configuration — min amount, admin response
-   * timeout, the pending-notice delay, and the four configurable messages.
-   * All live in the settings store (admin-editable), never hardcoded.
-   */
-  async getWithdrawalConfig(_req: Request, res: Response) {
-    try {
-      const data = await this.paymentsService.getWithdrawalConfig();
-      res.json({ success: true, data });
-    } catch (error: any) {
-      res.status(500).json({ success: false, message: error.message });
-    }
   }
 
   async createDeposit(req: Request, res: Response) {
@@ -41,16 +29,12 @@ export class PaymentsController {
         res.status(401).json({ success: false, message: 'Unauthorized' });
         return;
       }
-      const { amount, method, referenceId, notes, utrNumber, screenshotUrl, txnId, provider } = req.body;
+      const { amount, method, referenceId, notes } = req.body;
       const methodMap: Record<string, string> = {
         'upi': 'upi',
         'bank transfer': 'bank_transfer',
-        'bank': 'bank_transfer',
         'paytm': 'paytm',
         'phonepe': 'phonepe',
-        'phone pe': 'phonepe',
-        'google pay': 'gpay',
-        'gpay': 'gpay',
         'cash': 'cash',
         'points': 'points',
         'admin': 'admin',
@@ -59,13 +43,7 @@ export class PaymentsController {
       };
       const methodKey = typeof method === 'string' ? method.toLowerCase().trim() : method;
       const normalizedMethod = methodMap[methodKey] || methodKey;
-      const extra = {
-        txnId: txnId ?? (utrNumber ? undefined : undefined),
-        utrNumber: utrNumber,
-        screenshotUrl: screenshotUrl,
-        provider: provider,
-      };
-      const data = await this.paymentsService.createDeposit(userId, amount, normalizedMethod, referenceId, notes, extra);
+      const data = await this.paymentsService.createDeposit(userId, amount, normalizedMethod, referenceId, notes);
       res.status(201).json({ success: true, data });
     } catch (error: any) {
       res.status(400).json({ success: false, message: error.message });
@@ -79,16 +57,13 @@ export class PaymentsController {
         res.status(401).json({ success: false, message: 'Unauthorized' });
         return;
       }
-      const { amount, method, referenceId, notes, bankDetails } = req.body;
+      const { amount, method, referenceId, notes, bankDetails, upiId } = req.body;
       const methodMap: Record<string, string> = {
         'upi': 'upi',
         'bank transfer': 'bank_transfer',
-        'bank': 'bank_transfer',
+        'qr': 'qr',
         'paytm': 'paytm',
         'phonepe': 'phonepe',
-        'phone pe': 'phonepe',
-        'google pay': 'gpay',
-        'gpay': 'gpay',
         'cash': 'cash',
         'points': 'points',
         'admin': 'admin',
@@ -97,8 +72,34 @@ export class PaymentsController {
       };
       const methodKey = typeof method === 'string' ? method.toLowerCase().trim() : method;
       const normalizedMethod = methodMap[methodKey] || methodKey;
-      const data = await this.paymentsService.createWithdrawal(userId, amount, normalizedMethod, referenceId, notes, bankDetails);
-      res.json({ success: true, data });
+
+      // Handle QR image upload
+      let qrImageUrl: string | undefined;
+      const uploadedFile = (req as any).file;
+      if (uploadedFile && uploadedFile.filename) {
+        // Move file to a dedicated withdrawals subdirectory
+        const withdrawalsDir = path.join(process.cwd(), 'uploads', 'withdrawals');
+        if (!fs.existsSync(withdrawalsDir)) {
+          fs.mkdirSync(withdrawalsDir, { recursive: true });
+        }
+        const ext = path.extname(uploadedFile.filename);
+        const newFilename = `${Date.now()}-${uploadedFile.filename}`;
+        const destination = path.join(withdrawalsDir, newFilename);
+        fs.renameSync(uploadedFile.path, destination);
+        qrImageUrl = `/uploads/withdrawals/${newFilename}`;
+      }
+
+      const data = await this.paymentsService.createWithdrawal(
+        userId,
+        amount,
+        normalizedMethod,
+        referenceId,
+        notes,
+        bankDetails,
+        upiId,
+        qrImageUrl,
+      );
+      res.status(201).json({ success: true, data });
     } catch (error: any) {
       res.status(400).json({ success: false, message: error.message });
     }
@@ -201,14 +202,12 @@ export class PaymentsController {
         description: description || `Deposit via IMPS`,
       });
 
-      // Record a PENDING gateway deposit (NO wallet change). The wallet is
-      // only credited when the IMB webhook confirms the payment — crediting
-      // at order-creation time would hand out points for money not yet paid.
-      const deposit = await this.paymentsService.createPendingGatewayDeposit(
+      // Create a pending deposit record in our system
+      const deposit = await this.paymentsService.createDeposit(
         user.id,
         amount,
         'imps',
-        result.orderId,
+        undefined,
         `IMPS payment via IMB gateway - Order: ${result.orderId}`
       );
 

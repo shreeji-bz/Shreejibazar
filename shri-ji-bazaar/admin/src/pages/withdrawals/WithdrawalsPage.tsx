@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
-import { Check, Loader2, RefreshCw, X } from 'lucide-react';
+import { Check, Loader2, RefreshCw, X, Eye } from 'lucide-react';
 import { reportsService } from '../../services/reports.service';
 import { paymentService } from '../../services/payment.service';
 import { Button } from '../../components/common/Button';
@@ -26,6 +26,55 @@ const formatCurrency = (amount: number) =>
 
 const formatDate = (dateStr?: string) =>
   dateStr ? new Date(dateStr).toLocaleString('en-IN', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' }) : '-';
+
+function renderWithdrawalDetails(payment: Payment) {
+  if (payment.method === 'upi' || payment.method === 'paytm' || payment.method === 'phonepe') {
+    const upiField = (payment as any).upiId as string | undefined;
+    if (upiField) {
+      return <span className="text-xs text-text-primary">{upiField}</span>;
+    }
+    return <span className="text-xs text-text-muted">-</span>;
+  }
+
+  if (payment.method === 'qr') {
+    const qrUrl = (payment as any).qrImageUrl as string | undefined;
+    if (qrUrl) {
+      return (
+        <div className="flex items-center gap-2">
+          <img
+            src={qrUrl.startsWith('http') ? qrUrl : `${window.location.origin}${qrUrl}`}
+            alt="QR"
+            className="w-10 h-10 rounded border border-border object-cover"
+            onError={(e) => {
+              (e.target as HTMLImageElement).style.display = 'none';
+            }}
+          />
+          <Button
+            variant="secondary"
+            size="sm"
+            onClick={() => window.open(qrUrl.startsWith('http') ? qrUrl : `${window.location.origin}${qrUrl}`, '_blank')}
+          >
+            <Eye size={12} /> View
+          </Button>
+        </div>
+      );
+    }
+    return <span className="text-xs text-text-muted">No QR image</span>;
+  }
+
+  if (payment.method === 'bank_transfer' || payment.method === 'cash') {
+    const parts = [
+      (payment as any).accountNumber as string | undefined,
+      (payment as any).ifscCode as string | undefined,
+    ].filter(Boolean);
+    if (parts.length > 0) {
+      return <span className="text-xs text-text-primary">{parts.join(' / ')}</span>;
+    }
+    return <span className="text-xs text-text-muted">-</span>;
+  }
+
+  return <span className="text-xs text-text-muted">-</span>;
+}
 
 export const WithdrawalsPage = ({ methodFilter }: WithdrawalsPageProps) => {
   const [data, setData] = useState<PaginatedPaymentsResponse | null>(null);
@@ -110,10 +159,10 @@ export const WithdrawalsPage = ({ methodFilter }: WithdrawalsPageProps) => {
           ))}
         </div>
 
-        <Table headers={['User', 'Amount', 'Method', 'Status', 'Reference', 'Requested', 'Actions']}>
+        <Table headers={['User', 'Amount', 'Method', 'Details', 'Status', 'Reference', 'Requested', 'Actions']}>
           {payments.length === 0 && (
             <TableRow>
-              <TableCell colSpan={7} className="text-center text-text-muted py-8">
+              <TableCell colSpan={8} className="text-center text-text-muted py-8">
                 {loading ? 'Loading withdrawals...' : 'No withdrawals found'}
               </TableCell>
             </TableRow>
@@ -126,6 +175,7 @@ export const WithdrawalsPage = ({ methodFilter }: WithdrawalsPageProps) => {
               </TableCell>
               <TableCell className="font-medium text-text-primary">{formatCurrency(payment.amount)}</TableCell>
               <TableCell className="capitalize">{payment.method}</TableCell>
+              <TableCell>{renderWithdrawalDetails(payment)}</TableCell>
               <TableCell>
                 <span className={`px-2 py-0.5 rounded text-xs font-medium capitalize ${STATUS_BADGE[payment.status] ?? 'bg-card-tertiary text-text-secondary'}`}>
                   {payment.status}

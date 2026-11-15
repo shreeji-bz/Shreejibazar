@@ -30,6 +30,8 @@ export class PaymentsRepository {
         account_number: data.accountNumber,
         ifsc_code: data.ifscCode,
         account_holder_name: data.accountHolderName,
+        upi_id: data.upiId,
+        qr_image_url: data.qrImageUrl,
       })
       .select()
       .single();
@@ -513,6 +515,8 @@ export class PaymentsRepository {
       accountNumber: row.account_number ?? null,
       ifscCode: row.ifsc_code ?? null,
       accountHolderName: row.account_holder_name ?? null,
+      upiId: row.upi_id ?? null,
+      qrImageUrl: row.qr_image_url ?? null,
     };
   }
 }
