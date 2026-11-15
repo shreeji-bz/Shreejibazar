@@ -7,6 +7,7 @@ import { authenticateAdmin } from '../../common/middleware/admin.middleware';
 export class SettingsModule {
   public router = Router();
   public adminRouter = Router();
+  public publicRouter = Router();
 
   constructor() {
     const repository = new SettingsRepository();
@@ -14,5 +15,9 @@ export class SettingsModule {
     new SettingsController(service, this.router);
     this.adminRouter.use(authenticateAdmin);
     new SettingsController(service, this.adminRouter);
+    new SettingsController(service, this.publicRouter);
+    // Public contact info endpoint (no auth)
+    const ctrl = new SettingsController(service, Router());
+    this.publicRouter.get('/contact', ctrl.getPublic.bind(ctrl));
   }
 }

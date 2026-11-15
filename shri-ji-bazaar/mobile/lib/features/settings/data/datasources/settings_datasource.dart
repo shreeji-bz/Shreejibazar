@@ -9,4 +9,9 @@ class SettingsDatasource {
     final data = await _api.get('/settings');
     return SettingsModel.fromJson(data);
   }
+
+  Future<Map<String, dynamic>> getPublicContact() async {
+    final data = await _api.get('/settings/public/contact');
+    return Map<String, dynamic>.from(data as Map);
+  }
 }

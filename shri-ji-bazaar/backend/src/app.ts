@@ -176,6 +176,7 @@ apiRouter.use('/notifications', authenticateToken, new NotificationsModule().rou
 apiRouter.use('/support', authenticateToken, new SupportModule().router);
 apiRouter.use('/banners', authenticateToken, new BannersModule().router);
 apiRouter.use('/settings', authenticateToken, new SettingsModule().router);
+apiRouter.use('/settings/public', new SettingsModule().publicRouter);
 apiRouter.use('/wagers', authenticateToken, new WagersModule().router);
 apiRouter.use('/payments', authenticateToken, paymentsModule.router);
 apiRouter.use('/settlements', authenticateToken, new SettlementsModule().router);

@@ -22,6 +22,26 @@ export class SettingsController {
     }
   }
 
+  // Public: contact + app info (no auth required)
+  async getPublic(req: Request, res: Response) {
+    try {
+      const all = await this.settingsService.getAll();
+      const publicKeys = [
+        'contact.whatsapp', 'contact.telegram', 'contact.email', 'contact.support_url',
+        'app.name', 'app.description', 'app.version', 'app.website',
+      ];
+      const out: Record<string, string> = {};
+      const entries = Array.isArray(all) ? all : Object.entries(all).map(([key, val]: [string, any]) => ({ key, value: val }));
+      entries.forEach((row: any) => {
+        if (row?.key !== undefined && publicKeys.includes(row.key)) out[row.key] = String(row.value ?? '');
+      });
+      publicKeys.forEach((k) => { if (!(k in out)) out[k] = ''; });
+      res.json({ success: true, data: out });
+    } catch (error: any) {
+      res.status(500).json({ success: false, message: error.message });
+    }
+  }
+
   async getByKey(req: Request, res: Response) {
     try {
       const data = await this.settingsService.getByKey(req.params.key);

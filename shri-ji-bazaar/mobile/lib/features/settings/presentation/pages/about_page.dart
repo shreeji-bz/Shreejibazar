@@ -1,44 +1,51 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:shri_ji_bazaar/core/theme/app_text_styles.dart';
 import 'package:shri_ji_bazaar/core/widgets/sidebar_toggle.dart';
+import 'package:shri_ji_bazaar/features/settings/presentation/controllers/settings_controller.dart';
 
 class AboutPage extends StatelessWidget {
   const AboutPage({super.key});
 
-  static const _appName = 'Shri Ji Bazaar';
-  static const _version = '1.0.0';
-  static const _buildNumber = '1';
-  static const _description = 'Your ultimate gaming platform for exciting draws and big wins.';
+  @override
+  Widget build(BuildContext context) {
+    return ChangeNotifierProvider(
+      create: (_) => SettingsController()..loadContact(),
+      child: const _AboutContent(),
+    );
+  }
+}
 
-  Future<void> _openLink(BuildContext context, String url) async {
+class _AboutContent extends StatelessWidget {
+  const _AboutContent();
+
+  Future<void> _openLink(BuildContext context, String? url) async {
+    if (url == null || url.isEmpty) return;
     final uri = Uri.parse(url);
     if (await canLaunchUrl(uri)) {
       await launchUrl(uri, mode: LaunchMode.externalApplication);
-    } else {
-      if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Could not open $url'), backgroundColor: const Color(0xFFE53935)),
-        );
-      }
+    } else if (context.mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Could not open $url'), backgroundColor: const Color(0xFFE53935)),
+      );
     }
-  }
-
-  void _showPrivacyDialog(BuildContext context) {
-    showAboutDialog(
-      context: context,
-      applicationName: _appName,
-      applicationVersion: _version,
-      applicationIcon: Icon(Icons.casino_rounded, color: Theme.of(context).colorScheme.primary, size: 48),
-    );
   }
 
   @override
   Widget build(BuildContext context) {
+    final settings = context.watch<SettingsController>();
+    final whatsapp = settings.whatsapp;
+    final telegram = settings.telegram;
+    final email = settings.email;
+    final supportUrl = settings.supportUrl;
+    final appName = settings.appName.isNotEmpty ? settings.appName : 'Shri Ji Bazaar';
+    final description = settings.description.isNotEmpty ? settings.description : 'Your ultimate gaming platform for exciting draws and big wins.';
+
     return Scaffold(
       appBar: AppBar(
         leading: const SidebarToggle(),
-        title: const Text('About'),
+        title: Text(appName),
       ),
       body: SafeArea(
         child: SingleChildScrollView(
@@ -63,45 +70,59 @@ class AboutPage extends StatelessWidget {
                 ),
               ),
               const SizedBox(height: 24),
-              Center(child: Text(_appName, style: Theme.of(context).textTheme.headlineMedium)),
+              Center(child: Text(appName, style: Theme.of(context).textTheme.headlineMedium)),
               const SizedBox(height: 8),
               Center(
-                child: Text('Version $_version (Build $_buildNumber)', style: Theme.of(context).textTheme.bodySmall),
-              ),
-              const SizedBox(height: 12),
-              Center(
-                child: Text(_description, textAlign: TextAlign.center, style: Theme.of(context).textTheme.bodyMedium),
+                child: Text(description, textAlign: TextAlign.center, style: Theme.of(context).textTheme.bodyMedium),
               ),
               const SizedBox(height: 40),
               Card(
                 child: Column(
                   children: [
-                    ListTile(title: Text('Developer', style: AppTextStyles.cardTitle), subtitle: Text('Shri Ji Bazaar Team')),
+                    if (whatsapp != null && whatsapp.isNotEmpty)
+                      ListTile(
+                        title: Text('WhatsApp', style: AppTextStyles.cardTitle),
+                        subtitle: Text(whatsapp, style: AppTextStyles.bodySmall),
+                        trailing: const Icon(Icons.open_in_new_rounded, size: 18),
+                        onTap: () => _openLink(context, 'https://wa.me/${whatsapp.replaceAll(RegExp(r'[^0-9+]'), '')}'),
+                      )
+                    else
+                      const ListTile(title: Text('WhatsApp'), subtitle: Text('Not set')),
                     const Divider(height: 1),
-                    ListTile(
-                      title: Text('Website', style: AppTextStyles.cardTitle),
-                      subtitle: Text('www.shrijibazaar.com', style: AppTextStyles.bodySmall),
-                      trailing: const Icon(Icons.open_in_new_rounded, size: 18),
-                      onTap: () => _openLink(context, 'https://www.shrijibazaar.com'),
-                    ),
+                    if (telegram != null && telegram.isNotEmpty)
+                      ListTile(
+                        title: Text('Telegram', style: AppTextStyles.cardTitle),
+                        subtitle: Text(telegram, style: AppTextStyles.bodySmall),
+                        trailing: const Icon(Icons.open_in_new_rounded, size: 18),
+                        onTap: () => _openLink(context, telegram.startsWith('http') ? telegram : 'https://t.me/${telegram.replaceFirst("@", "")}'),
+                      )
+                    else
+                      const ListTile(title: Text('Telegram'), subtitle: Text('Not set')),
                     const Divider(height: 1),
-                    ListTile(
-                      title: Text('Email', style: AppTextStyles.cardTitle),
-                      subtitle: Text('support@shrijibazaar.com', style: AppTextStyles.bodySmall),
-                      trailing: const Icon(Icons.open_in_new_rounded, size: 18),
-                      onTap: () => _openLink(context, 'mailto:support@shrijibazaar.com'),
-                    ),
+                    if (email != null && email.isNotEmpty)
+                      ListTile(
+                        title: Text('Email', style: AppTextStyles.cardTitle),
+                        subtitle: Text(email, style: AppTextStyles.bodySmall),
+                        trailing: const Icon(Icons.open_in_new_rounded, size: 18),
+                        onTap: () => _openLink(context, 'mailto:$email'),
+                      )
+                    else
+                      const ListTile(title: Text('Email'), subtitle: Text('Not set')),
+                    const Divider(height: 1),
+                    if (supportUrl != null && supportUrl.isNotEmpty)
+                      ListTile(
+                        title: Text('Support', style: AppTextStyles.cardTitle),
+                        subtitle: Text(supportUrl, style: AppTextStyles.bodySmall),
+                        trailing: const Icon(Icons.open_in_new_rounded, size: 18),
+                        onTap: () => _openLink(context, supportUrl),
+                      )
+                    else
+                      const ListTile(title: Text('Support'), subtitle: Text('Not set')),
                   ],
                 ),
               ),
-              const SizedBox(height: 24),
-              TextButton.icon(
-                onPressed: () => _showPrivacyDialog(context),
-                icon: const Icon(Icons.privacy_tip_rounded, size: 18),
-                label: const Text('Privacy Policy'),
-              ),
               const SizedBox(height: 40),
-              Center(child: Text('© 2026 Shri Ji Bazaar. All rights reserved.', style: AppTextStyles.caption)),
+              Center(child: Text('© 2026 $appName. All rights reserved.', style: AppTextStyles.caption)),
             ],
           ),
         ),
