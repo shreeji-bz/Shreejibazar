@@ -24,6 +24,9 @@ export const Rounds = () => {
   const [selectedRound, setSelectedRound] = useState<Round | null>(null);
   const [resultValue, setResultValue] = useState('');
   const [submitting, setSubmitting] = useState(false);
+  const [saveModalOpen, setSaveModalOpen] = useState(false);
+  const [saveModalRound, setSaveModalRound] = useState<Round | null>(null);
+  const [saveModalValue, setSaveModalValue] = useState('');
   const [roundDate, setRoundDate] = useState(() => new Date().toISOString().split('T')[0]);
   const [searchParams] = useSearchParams();
 
@@ -66,17 +69,23 @@ export const Rounds = () => {
   };
 
   const handleSaveResult = async (round: Round) => {
-    if (!round.id) return;
-    const value = prompt('Enter 2-digit result for Round #' + String(round.roundNumber).padStart(3, '0') + ':');
-    if (!value || !/^\d{2}$/.test(value.trim())) {
-      if (value) setError('Result must be exactly 2 digits (e.g. 12, 45)');
+    setSaveModalRound(round);
+    setSaveModalValue('');
+    setSaveModalOpen(true);
+  };
+
+  const handleSaveResultSubmit = async () => {
+    if (!saveModalRound || !/^\d{2}$/.test(saveModalValue.trim())) {
+      setError('Result must be exactly 2 digits (e.g. 12, 45)');
       return;
     }
+    setSaveModalOpen(false);
+    setError(null);
     try {
-      const data = (await saveResult(round.id, value.trim())) as any;
+      const data = (await saveResult(saveModalRound.id, saveModalValue.trim())) as any;
       if (data.success) {
         setRounds((prev) =>
-          prev.map((r) => (r.id === round.id ? { ...r, result: value.trim() } : r))
+          prev.map((r) => (r.id === saveModalRound.id ? { ...r, result: saveModalValue.trim() } : r))
         );
       }
     } catch {
@@ -250,6 +259,35 @@ export const Rounds = () => {
               disabled={!resultValue.trim() || submitting}
             >
               {submitting ? 'Declaring...' : 'Declare Result'}
+            </Button>
+          </div>
+        )}
+      </Modal>
+
+      <Modal isOpen={saveModalOpen} onClose={() => setSaveModalOpen(false)} title="Save Result">
+        {saveModalRound && (
+          <div className="space-y-4">
+            <div className="bg-card-secondary rounded-lg p-3 text-sm">
+              <p className="text-text-secondary">
+                <span className="text-text-muted">Round:</span>{' '}
+                <span className="text-text-primary font-medium">#{String(saveModalRound.roundNumber).padStart(3, '0')}</span>
+              </p>
+              <p className="text-text-secondary mt-1">
+                <span className="text-text-muted">Game:</span>{' '}
+                <span className="text-text-primary font-medium">{saveModalRound.gameName}</span>
+              </p>
+            </div>
+            <Input
+              label="Result Value"
+              placeholder="Enter 2-digit result (e.g. 12, 45)"
+              value={saveModalValue}
+              onChange={(e) => setSaveModalValue(e.target.value.replace(/\D/g, '').slice(0, 2))}
+              maxLength={2}
+              inputMode="numeric"
+              autoFocus
+            />
+            <Button onClick={handleSaveResultSubmit} className="w-full" disabled={!saveModalValue.trim()}>
+              Save Result
             </Button>
           </div>
         )}
