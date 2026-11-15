@@ -31,35 +31,55 @@ class PaymentModel extends PaymentEntity {
     super.accountHolderName,
   });
 
+  /// A JSON value that may arrive in snake_case (DB/legacy) or camelCase
+  /// (the user payment endpoints serialize the mapped entity).
+  static String? _text(Map<String, dynamic> json, String snake, String camel) =>
+      (json[snake] ?? json[camel]) as String?;
+
+  static DateTime? _date(Map<String, dynamic> json, String snake, String camel) {
+    final raw = json[snake] ?? json[camel];
+    if (raw == null) return null;
+    final d = DateTime.tryParse(raw.toString());
+    return d?.toLocal() ?? null;
+  }
+
+  static double? _num(Map<String, dynamic> json, String snake, String camel) {
+    final raw = json[snake] ?? json[camel];
+    return (raw as num?)?.toDouble();
+  }
+
   factory PaymentModel.fromJson(Map<String, dynamic> json) {
     return PaymentModel(
       id: json['id'] as String? ?? '',
-      userId: json['user_id'] as String? ?? '',
-      processedBy: json['processed_by'] as String?,
+      userId: (json['user_id'] ?? json['userId']) as String? ?? '',
+      processedBy: _text(json, 'processed_by', 'processedBy'),
       type: (json['type'] as String? ?? 'deposit'),
       amount: (json['amount'] as num?)?.toDouble() ?? 0.0,
       currency: json['currency'] as String? ?? 'INR',
       method: (json['method'] as String? ?? 'upi'),
       status: (json['status'] as String? ?? 'pending'),
-      referenceId: json['reference_id'] as String?,
-      referenceType: json['reference_type'] as String?,
+      referenceId: _text(json, 'reference_id', 'referenceId'),
+      referenceType: _text(json, 'reference_type', 'referenceType'),
       notes: json['notes'] as String?,
-      adminNotes: json['admin_notes'] as String?,
-      balanceBefore: json['balance_before'] != null ? (json['balance_before'] as num).toDouble() : null,
-      balanceAfter: json['balance_after'] != null ? (json['balance_after'] as num).toDouble() : null,
-      approvedAt: json['approved_at'] != null ? DateTime.parse(json['approved_at'] as String) : null,
-      completedAt: json['completed_at'] != null ? DateTime.parse(json['completed_at'] as String) : null,
-      createdAt: json['created_at'] != null ? DateTime.parse(json['created_at'] as String) : DateTime.now(),
-      updatedAt: json['updated_at'] != null ? DateTime.parse(json['updated_at'] as String) : null,
-      txnId: json['txn_id'] as String?,
-      utrNumber: json['utr_number'] as String?,
-      screenshotUrl: json['screenshot_url'] as String?,
-      provider: json['provider'] as String? ?? 'manual',
-      rejectionReason: json['rejection_reason'] as String?,
-      bankName: json['bank_name'] as String?,
-      accountNumber: json['account_number'] as String?,
-      ifscCode: json['ifsc_code'] as String?,
-      accountHolderName: json['account_holder_name'] as String?,
+      adminNotes: _text(json, 'admin_notes', 'adminNotes'),
+      balanceBefore: _num(json, 'balance_before', 'balanceBefore'),
+      balanceAfter: _num(json, 'balance_after', 'balanceAfter'),
+      approvedAt: _date(json, 'approved_at', 'approvedAt'),
+      completedAt: _date(json, 'completed_at', 'completedAt'),
+      createdAt: _date(json, 'created_at', 'createdAt') ?? DateTime.now(),
+      updatedAt: _date(json, 'updated_at', 'updatedAt'),
+      txnId: _text(json, 'txn_id', 'txnId'),
+      utrNumber: _text(json, 'utr_number', 'utrNumber'),
+      screenshotUrl: _text(json, 'screenshot_url', 'screenshotUrl'),
+      provider: _text(json, 'provider', 'provider') ?? 'manual',
+      // Rejection reasons / bank details matter on the Withdrawal History
+      // screen; the user history API returns camelCase. The page falls back
+      // to adminNotes when rejectionReason is absent.
+      rejectionReason: _text(json, 'rejection_reason', 'rejectionReason'),
+      bankName: _text(json, 'bank_name', 'bankName'),
+      accountNumber: _text(json, 'account_number', 'accountNumber'),
+      ifscCode: _text(json, 'ifsc_code', 'ifscCode'),
+      accountHolderName: _text(json, 'account_holder_name', 'accountHolderName'),
     );
   }
 

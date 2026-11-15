@@ -133,6 +133,14 @@ class AppSidebar extends StatelessWidget {
                     context.push(RouteNames.paymentHistory);
                   },
                 ),
+                _SidebarTile(
+                  label: 'Withdrawal History',
+                  icon: Icons.history_rounded,
+                  onTap: () {
+                    Navigator.pop(context);
+                    context.push(RouteNames.withdrawalHistory);
+                  },
+                ),
                 _SectionLabel('PROFILE'),
                 _SidebarTile(
                   label: 'Profile',

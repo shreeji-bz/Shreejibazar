@@ -80,6 +80,8 @@ export class PointsRepository {
       balance: row.balance,
       totalEarned: row.total_earned,
       totalSpent: row.total_spent,
+      // Reserved for open withdrawal requests (018 column; 0 before it).
+      pendingWithdrawal: Number(row.pending_withdrawal ?? 0),
       createdAt: row.created_at,
       updatedAt: row.updated_at,
     };

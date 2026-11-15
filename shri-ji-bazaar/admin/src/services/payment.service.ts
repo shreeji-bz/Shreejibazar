@@ -38,4 +38,26 @@ export const paymentService = {
     if (!res?.success) throw new Error((res as any)?.message || 'Failed to revert payment');
     return res.data;
   },
+
+  /**
+   * Admin withdrawal-requests queue: withdrawal requests (+ the user's
+   * current wallet balance/reservation). status defaults to 'pending'.
+   */
+  async getWithdrawalRequests(status?: string, limit = 50): Promise<Payment[]> {
+    const params: Record<string, string> = { limit: String(limit) };
+    if (status && status !== 'all') params.status = status;
+    const res = await get<{ success: boolean; data: Payment[] }>(
+      '/v1/admin/payments/withdrawals', params,
+    );
+    return res?.data ?? [];
+  },
+
+  /** Manual trigger for the idle-request expiry pass (also run by the in-process job). */
+  async runWithdrawalExpiry(): Promise<{ expired: number; skipped: number; reason: string | null }> {
+    const res = await post<{ success: boolean; expired?: number; skipped?: number; reason?: string | null }>(
+      '/v1/admin/payments/withdrawals/run-expiry', {},
+    );
+    if (!res?.success) throw new Error('Failed to run withdrawal expiry');
+    return { expired: res.expired ?? 0, skipped: res.skipped ?? 0, reason: res.reason ?? null };
+  },
 };

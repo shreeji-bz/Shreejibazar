@@ -61,6 +61,26 @@ class _WithdrawFormState extends State<_WithdrawForm> {
     return h >= 6 && h < 13;
   }
 
+  /// Configurable minimum (server settings), falling back to the app default
+  /// so the form label stays correct before the config has loaded.
+  double _minFrom(BuildContext context) {
+    final min = context.read<PaymentController>().minWithdrawal;
+    return min > 0 ? min.toDouble() : 480;
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    // Pull the server-driven withdrawal rules (min amount, messages, ...)
+    // and the current reservation so the form validates correctly.
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      final controller = context.read<PaymentController>();
+      controller.loadWithdrawalConfig();
+      controller.loadBalance();
+    });
+  }
+
   @override
   void dispose() {
     _amountController.dispose();
@@ -82,6 +102,7 @@ class _WithdrawFormState extends State<_WithdrawForm> {
           Consumer<PaymentController>(
             builder: (context, paymentController, _) {
               final balance = paymentController.availableBalance;
+              final pending = paymentController.pendingWithdrawal;
               return Container(
                 padding: const EdgeInsets.all(14),
                 decoration: BoxDecoration(
@@ -92,7 +113,15 @@ class _WithdrawFormState extends State<_WithdrawForm> {
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
                     Text('Available Balance', style: AppTextStyles.bodySmall),
-                    Text('\$${balance.toStringAsFixed(2)}', style: AppTextStyles.points.copyWith(fontSize: 16)),
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.end,
+                      children: [
+                        Text('\$${balance.toStringAsFixed(2)}', style: AppTextStyles.points.copyWith(fontSize: 16)),
+                        if (pending > 0)
+                          Text('Reserved: \$${pending.toStringAsFixed(2)}',
+                              style: const TextStyle(color: Color(0xFFFFA726), fontSize: 11)),
+                      ],
+                    ),
                   ],
                 ),
               );
@@ -103,17 +132,18 @@ class _WithdrawFormState extends State<_WithdrawForm> {
             controller: _amountController,
             keyboardType: TextInputType.number,
             enabled: windowOpen,
-            decoration: const InputDecoration(
-              labelText: 'Enter Amount (Min 480)',
+            decoration: InputDecoration(
+              labelText: 'Enter Amount (Min \$${_minFrom(context)})',
               hintText: 'Enter withdrawal amount',
-              prefixIcon: Icon(Icons.attach_money_rounded),
+              prefixIcon: const Icon(Icons.attach_money_rounded),
             ),
             validator: (value) {
               if (value == null || value.isEmpty) return 'Please enter amount';
               final amount = double.tryParse(value);
               if (amount == null || amount <= 0) return 'Enter a valid amount';
-              if (amount < 480) return 'Minimum withdrawal is \$480';
-              return null;
+              final min = _minFrom(context);
+              if (amount < min) return 'Minimum withdrawal is \$${min.round()}';
+              return null; // full validation (available balance etc.) runs server-side too
             },
           ),
           const SizedBox(height: 16),
@@ -232,6 +262,8 @@ class _WithdrawFormState extends State<_WithdrawForm> {
             builder: (context, paymentController, _) {
               final isLoading = paymentController.isProcessing;
               final errorMessage = paymentController.error;
+              final pendingRequest = paymentController.pendingRequest;
+              final noticeShown = paymentController.pendingNoticeShown;
               return Column(
                 children: [
                   if (errorMessage != null)
@@ -245,22 +277,53 @@ class _WithdrawFormState extends State<_WithdrawForm> {
                       ),
                       child: Text(errorMessage, style: AppTextStyles.body.copyWith(color: const Color(0xFFE53935))),
                     ),
+                  // Post-submit notice: after the configured delay (3-4s) with
+                  // no admin action yet, tell the user the request is pending
+                  // and their money is safe. Text is server-configured.
+                  if (pendingRequest != null && noticeShown)
+                    Container(
+                      margin: const EdgeInsets.only(bottom: 16),
+                      padding: const EdgeInsets.all(12),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFFFA726).withValues(alpha: 0.12),
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(color: const Color(0xFFFFA726)),
+                      ),
+                      child: Row(
+                        children: [
+                          const Icon(Icons.hourglass_empty_rounded, color: Color(0xFFFFA726), size: 18),
+                          const SizedBox(width: 10),
+                          Expanded(child: Text(paymentController.msgPending, style: const TextStyle(color: Color(0xFFFFA726), fontSize: 12))),
+                        ],
+                      ),
+                    ),
+                  // One open request at a time — block new ones while pending.
+                  if (pendingRequest != null)
+                    Padding(
+                      padding: const EdgeInsets.only(bottom: 12),
+                      child: Text(
+                        'You have a pending withdrawal of \$${pendingRequest.amount.toStringAsFixed(2)}. '
+                        'It will be processed before a new one can be made.',
+                        style: const TextStyle(color: Colors.white54, fontSize: 12),
+                      ),
+                    ),
                   SizedBox(
                     width: double.infinity,
                     height: 50,
                     child: ElevatedButton(
-                      onPressed: windowOpen && !isLoading ? () async {
+                      // Disable while one is already pending (no duplicates).
+                      onPressed: (windowOpen && !isLoading && pendingRequest == null) ? () async {
                         if (_formKey.currentState!.validate()) {
                           // Pass the bank details / UPI id as reference notes.
                           final referenceId = _selectedMethod == 'bank_transfer'
                               ? _ifscController.text.trim()
                               : _vpaController.text.trim();
-                          final success = await paymentController.requestWithdrawal(
+                          final created = await paymentController.requestWithdrawal(
                             amount: double.parse(_amountController.text.trim()),
                             method: _selectedMethod,
                             referenceId: referenceId.isEmpty ? null : referenceId,
                           );
-                          if (success && context.mounted) {
+                          if (created != null && context.mounted) {
                             ScaffoldMessenger.of(context).showSnackBar(
                               const SnackBar(content: Text('Withdrawal request submitted!'), backgroundColor: Color(0xFF25C85A)),
                             );
@@ -276,6 +339,12 @@ class _WithdrawFormState extends State<_WithdrawForm> {
                           ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
                           : const Text('Withdraw', style: TextStyle(fontSize: 16)),
                     ),
+                  ),
+                  // Admin response window, from server config (not hardcoded).
+                  Text(
+                    'Admins respond within ${paymentController.adminTimeoutHours}h. Unresolved requests expire and your amount is released automatically.',
+                    textAlign: TextAlign.center,
+                    style: const TextStyle(color: Colors.white38, fontSize: 11),
                   ),
                 ],
               );

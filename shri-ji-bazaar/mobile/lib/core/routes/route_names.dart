@@ -14,6 +14,7 @@ class RouteNames {
   static const String deposit = '/deposit';
   static const String withdraw = '/withdraw';
   static const String paymentHistory = '/payment-history';
+  static const String withdrawalHistory = '/withdrawal-history';
   static const String imbPayment = '/imb-payment';
   static const String bonuses = '/bonuses';
   static const String referrals = '/referrals';

@@ -35,4 +35,22 @@ class PaymentDatasource {
     final List<dynamic> list = result is List ? result : (result['items'] ?? result['data'] ?? []);
     return list.map((item) => PaymentModel.fromJson(item as Map<String, dynamic>)).toList();
   }
+
+  /// Admin-approved withdrawal config (min amount, admin timeout, notice
+  /// delay, and the four user-facing message templates). From settings.
+  Future<Map<String, dynamic>> getWithdrawalConfig() async {
+    final result = await _api.get('/payments/withdrawal-config');
+    final data = result['data'] ?? result;
+    return (data is Map<String, dynamic>) ? data : <String, dynamic>{};
+  }
+
+  /// Withdrawal history only (all statuses, most recent first).
+  Future<List<PaymentEntity>> getWithdrawalHistory({int limit = 50}) async {
+    final result = await _api.get(
+      '/payments/history',
+      queryParameters: {'type': 'withdrawal', 'limit': limit},
+    );
+    final List<dynamic> list = result is List ? result : (result['items'] ?? result['data'] ?? []);
+    return list.map((item) => PaymentModel.fromJson(item as Map<String, dynamic>)).toList();
+  }
 }

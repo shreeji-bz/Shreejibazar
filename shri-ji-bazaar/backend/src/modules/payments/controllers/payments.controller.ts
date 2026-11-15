@@ -15,8 +15,23 @@ export class PaymentsController {
     this.router.get('/history', this.getHistory.bind(this));
     this.router.get('/pending/deposits', this.getPendingDeposits.bind(this));
     this.router.get('/pending/withdrawals', this.getPendingWithdrawals.bind(this));
+    this.router.get('/withdrawal-config', this.getWithdrawalConfig.bind(this));
     this.router.get('/:id', this.getById.bind(this));
     this.router.post('/imb/create-order', this.createImbOrder.bind(this));
+  }
+
+  /**
+   * User-facing withdrawal configuration — min amount, admin response
+   * timeout, the pending-notice delay, and the four configurable messages.
+   * All live in the settings store (admin-editable), never hardcoded.
+   */
+  async getWithdrawalConfig(_req: Request, res: Response) {
+    try {
+      const data = await this.paymentsService.getWithdrawalConfig();
+      res.json({ success: true, data });
+    } catch (error: any) {
+      res.status(500).json({ success: false, message: error.message });
+    }
   }
 
   async createDeposit(req: Request, res: Response) {

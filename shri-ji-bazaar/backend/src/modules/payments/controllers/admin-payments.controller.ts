@@ -11,10 +11,47 @@ export class AdminPaymentsController {
     this.router.get('/stats', this.getStats.bind(this));
     this.router.get('/pending/deposits', this.getPendingDeposits.bind(this));
     this.router.get('/pending/withdrawals', this.getPendingWithdrawals.bind(this));
+    this.router.get('/withdrawals', this.getWithdrawalRequests.bind(this));
+    this.router.post('/withdrawals/run-expiry', this.runWithdrawalExpiry.bind(this));
     this.router.get('/:id', this.getPaymentById.bind(this));
     this.router.post('/:id/approve', this.approvePayment.bind(this));
     this.router.post('/:id/reject', this.rejectPayment.bind(this));
     this.router.post('/:id/revert', this.revertPayment.bind(this));
+  }
+
+  /**
+   * Withdrawal-requests queue for the admin panel: every withdrawal request
+   * with user details, payment details, request time, and the user's CURRENT
+   * wallet balance + reservation. `status` filter defaults to 'pending'.
+   */
+  async getWithdrawalRequests(req: Request, res: Response) {
+    try {
+      const status = (req.query.status as string) || 'pending';
+      const limit = Math.min(200, parseInt(req.query.limit as string) || 50);
+      const data = await this.paymentsService.getWithdrawalRequests(status, limit);
+      res.json({ success: true, data, count: data.length });
+    } catch (error: any) {
+      res.status(500).json({ success: false, message: error.message });
+    }
+  }
+
+  /**
+   * Manual/OS-cron trigger for the expiry pass (the in-process job runs this
+   * every minute; this endpoint lets an external scheduler do the same).
+   */
+  async runWithdrawalExpiry(_req: Request, res: Response) {
+    try {
+      const result = await this.paymentsService.runWithdrawalExpiry();
+      res.json({
+        success: true,
+        expired: result.expired,
+        skipped: result.skipped,
+        reason: result.reason ?? null,
+        message: `${result.expired} expired, ${result.skipped} skipped`,
+      });
+    } catch (error: any) {
+      res.status(500).json({ success: false, message: error.message });
+    }
   }
 
   async getPendingDeposits(req: Request, res: Response) {
@@ -85,12 +122,10 @@ export class AdminPaymentsController {
 
   async rejectPayment(req: Request, res: Response) {
     try {
-      const adminNotes = req.body.adminNotes ?? req.body.adminNote;
-      if (!adminNotes) {
-        res.status(400).json({ success: false, message: 'Admin notes are required for rejection' });
-        return;
-      }
-      const payment = await this.paymentsService.rejectPayment(req.params.id, req.admin!.id, adminNotes);
+      // Reason is optional: withdrawals (the admin-approved flow) may be
+      // rejected without one; the user is still notified.
+      const adminNotes = req.body.adminNotes ?? req.body.adminNote ?? '';
+      const payment = await this.paymentsService.rejectPayment(req.params.id, req.admin!.id, adminNotes || undefined);
       res.json({ success: true, data: payment, message: 'Payment rejected' });
     } catch (error: any) {
       const statusCode = error.message === 'Payment not found' ? 404 : 400;

@@ -22,6 +22,7 @@ import { Wagers } from '../pages/wagers/Wagers';
 import { WagerDetailPage } from '../pages/wagers/WagerDetailPage';
 import { Payments } from '../pages/payments/Payments';
 import { PaymentDetailPage } from '../pages/payments/PaymentDetailPage';
+import { WithdrawalRequestsPage } from '../pages/withdrawals/WithdrawalRequestsPage';
 import { Staff } from '../pages/staff/Staff';
 import { AddFundReportPage } from '../pages/deposits/AddFundReportPage';
 import { WithdrawalUpiPage } from '../pages/withdrawals/WithdrawalUpiPage';
@@ -71,6 +72,7 @@ export const routes = [
       { path: 'withdrawals/upi', element: <WithdrawalUpiPage /> },
       { path: 'withdrawals/qr', element: <WithdrawalQrPage /> },
       { path: 'withdrawals/bank', element: <WithdrawalBankPage /> },
+      { path: 'withdrawal-requests', element: <WithdrawalRequestsPage /> },
       { path: 'jantri-report', element: <JantriReportPage /> },
       { path: 'app-images', element: <AppImagesPage /> },
       { path: 'apk-manager', element: <ApkManagerPage /> },
