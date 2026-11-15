@@ -8,6 +8,7 @@ import { Users } from '../pages/users/Users';
 import { Games } from '../pages/games/Games';
 import { GameDetailPage } from '../pages/games/GameDetailPage';
 import { Rounds } from '../pages/rounds/Rounds';
+import { CreateRoundPage } from '../pages/rounds/CreateRoundPage';
 import { Results } from '../pages/results/Results';
 import { Activities } from '../pages/activities/Activities';
 import { Points } from '../pages/points/Points';
@@ -52,6 +53,7 @@ export const routes = [
       { path: 'games', element: <Games /> },
       { path: 'games/:id', element: <GameDetailPage /> },
       { path: 'rounds', element: <Rounds /> },
+      { path: 'rounds/create', element: <CreateRoundPage /> },
       { path: 'results', element: <Results /> },
       { path: 'activities', element: <Activities /> },
       { path: 'points', element: <Points /> },
