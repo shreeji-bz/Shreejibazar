@@ -273,8 +273,8 @@ export const Rounds = () => {
                 <span className="text-text-primary font-medium">#{String(saveModalRound.roundNumber).padStart(3, '0')}</span>
               </p>
               <p className="text-text-secondary mt-1">
-                <span className="text-text-muted">Game:</span>{' '}
-                <span className="text-text-primary font-medium">{saveModalRound.gameName}</span>
+                <span className="text-text-muted">Game ID:</span>{' '}
+                <span className="text-text-primary font-medium">{saveModalRound.gameId}</span>
               </p>
             </div>
             <Input
