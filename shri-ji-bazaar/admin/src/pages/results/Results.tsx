@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { get, post } from '../../services/api';
 import { getRounds, declareResult, closeRound, saveResult } from '../../services/authService';
 import { getGames } from '../../services/authService';
 import { Table, TableRow, TableCell } from '../../components/common/Table';
@@ -41,22 +42,22 @@ export const Results = () => {
       .finally(() => setLoadingGames(false));
   }, []);
 
+  // Load rounds — all games when nothing selected, single game when filtered
   useEffect(() => {
-    if (!selectedGameId) {
-      setRounds([]);
-      return;
-    }
     setLoadingRounds(true);
+    setError(null);
     (async () => {
       try {
-        const data = await getRounds({ gameId: selectedGameId });
-        if ((data as any).success) {
-          const list = (data as any).data;
-          list.sort((a: Round, b: Round) => new Date(b.startTime).getTime() - new Date(a.startTime).getTime());
-          setRounds(list);
+        let list: Round[];
+        if (selectedGameId) {
+          const data = await getRounds({ gameId: selectedGameId });
+          list = (data as any).data;
         } else {
-          setError((data as any).message || 'Failed to load rounds');
+          const data = await get<{ success: boolean; data: Round[] }>('/v1/admin/rounds/', { params: { limit: 200 } });
+          list = data.data;
         }
+        list.sort((a: Round, b: Round) => new Date(b.startTime).getTime() - new Date(a.startTime).getTime());
+        setRounds(list);
       } catch {
         setError('Failed to load rounds');
       } finally {
@@ -141,34 +142,26 @@ export const Results = () => {
         <div className="mb-4 px-4 py-3 bg-error/15 text-error rounded-lg text-sm">{error}</div>
       )}
 
-      {!selectedGameId ? (
-        <div className="bg-card border border-border rounded-xl p-6">
-          <p className="text-text-secondary text-sm mb-4">Select a game to view all rounds and declare results.</p>
-          {loadingGames ? (
-            <div className="text-text-muted text-sm">Loading games...</div>
-          ) : (
-            <select
-              value={selectedGameId}
-              onChange={(e) => setSelectedGameId(e.target.value)}
-              className="border border-border rounded-lg px-3 py-2 bg-card-secondary text-text-primary text-sm w-full max-w-md"
-            >
-              <option value="">Select a game</option>
-              {games.map((g) => (
-                <option key={g.id} value={g.id}>{g.name}</option>
-              ))}
-            </select>
-          )}
-        </div>
-      ) : (
-        <div className="space-y-4">
-          <div className="flex items-center justify-between">
-            <button
-              onClick={() => { setSelectedGameId(''); setRounds([]); }}
-              className="text-sm text-indigo-600 hover:text-indigo-700"
-            >
-              ← Change Game
-            </button>
-          </div>
+      <div className="flex items-center justify-between mb-4">
+        <select
+          value={selectedGameId}
+          onChange={(e) => setSelectedGameId(e.target.value)}
+          className="border border-border rounded-lg px-3 py-2 bg-card-secondary text-text-primary text-sm"
+        >
+          <option value="">All Games</option>
+          {games.map((g) => (
+            <option key={g.id} value={g.id}>{g.name}</option>
+          ))}
+        </select>
+        {selectedGameId && (
+          <button
+            onClick={() => setSelectedGameId('')}
+            className="text-sm text-indigo-600 hover:text-indigo-700"
+          >
+            Show All Games
+          </button>
+        )}
+      </div>
 
           {loadingRounds ? (
             <div className="text-center py-8 text-text-muted">Loading rounds...</div>
