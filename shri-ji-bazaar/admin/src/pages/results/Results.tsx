@@ -163,14 +163,14 @@ export const Results = () => {
         )}
       </div>
 
-          {loadingRounds ? (
-            <div className="text-center py-8 text-text-muted">Loading rounds...</div>
-          ) : rounds.length === 0 ? (
-            <div className="bg-card border border-border rounded-xl p-8 text-center text-text-muted">
-              No rounds found for this game.
-            </div>
-          ) : (
-            <div className="bg-card border border-border rounded-xl overflow-x-auto">
+      {loadingRounds ? (
+        <div className="text-center py-8 text-text-muted">Loading rounds...</div>
+      ) : rounds.length === 0 ? (
+        <div className="bg-card border border-border rounded-xl p-8 text-center text-text-muted">
+          No rounds found.
+        </div>
+      ) : (
+        <div className="bg-card border border-border rounded-xl overflow-x-auto">
               <Table headers={['Game', 'Round', 'Start Time', 'End Time', 'Status', 'Result', 'Actions']}>
                 {rounds.map((r) => (
                   <TableRow key={r.id}>
