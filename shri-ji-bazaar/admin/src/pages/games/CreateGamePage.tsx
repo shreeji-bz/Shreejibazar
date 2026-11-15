@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { createGame } from '../../services/game.service';
-import { Modal, Input, Select, Button } from '../../components/common';
+import { Input, Select, Button } from '../../components/common';
 
 const EMPTY_FORM = {
   name: '',

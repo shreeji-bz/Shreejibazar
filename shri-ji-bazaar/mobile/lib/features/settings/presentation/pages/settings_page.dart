@@ -5,7 +5,6 @@ import 'package:shri_ji_bazaar/core/theme/app_text_styles.dart';
 import 'package:shri_ji_bazaar/core/theme/theme_controller.dart';
 import 'package:shri_ji_bazaar/core/widgets/sidebar_toggle.dart';
 import 'package:shri_ji_bazaar/core/routes/route_names.dart';
-import '../controllers/settings_controller.dart';
 
 class SettingsPage extends StatelessWidget {
   const SettingsPage({super.key});

@@ -9,7 +9,6 @@ import 'package:shri_ji_bazaar/features/points/data/datasources/points_datasourc
 import 'package:shri_ji_bazaar/features/points/data/repositories/points_repository.dart';
 import 'package:shri_ji_bazaar/features/points/domain/usecases/get_wallet.dart';
 import 'core/theme/app_theme.dart';
-import 'core/theme/app_colors.dart';
 import 'core/theme/theme_controller.dart';
 import 'core/routes/app_routes.dart';
 import 'core/config/supabase_config.dart';

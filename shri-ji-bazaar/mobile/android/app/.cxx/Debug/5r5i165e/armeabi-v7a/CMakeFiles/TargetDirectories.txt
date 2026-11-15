@@ -1,0 +1,2 @@
+/Users/apple/Documents/Arrange/agent/Shreejibazar/shri-ji-bazaar/mobile/android/app/.cxx/Debug/5r5i165e/armeabi-v7a/CMakeFiles/edit_cache.dir
+/Users/apple/Documents/Arrange/agent/Shreejibazar/shri-ji-bazaar/mobile/android/app/.cxx/Debug/5r5i165e/armeabi-v7a/CMakeFiles/rebuild_cache.dir

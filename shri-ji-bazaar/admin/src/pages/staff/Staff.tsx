@@ -279,3 +279,5 @@ export const Staff = () => {
     </div>
   );
 };
+
+export default Staff;

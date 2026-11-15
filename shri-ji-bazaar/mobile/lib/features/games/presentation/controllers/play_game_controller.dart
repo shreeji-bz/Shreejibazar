@@ -48,12 +48,6 @@ class PlayGameController extends ChangeNotifier {
     return '${d.year}-${_two(d.month)}-${_two(d.day)}';
   }
 
-  /// Tomorrow's local date as YYYY-MM-DD.
-  static String _tomorrow() {
-    final d = DateTime.now().add(const Duration(days: 1));
-    return '${d.year}-${_two(d.month)}-${_two(d.day)}';
-  }
-
   /// The entries for the currently-selected tab (mode). Each tab keeps its own
   /// isolated list so switching modes never mixes the inputs together.
   List<WagerEntry> get currentEntries => _entries[activeTabIndex] ?? const [];
