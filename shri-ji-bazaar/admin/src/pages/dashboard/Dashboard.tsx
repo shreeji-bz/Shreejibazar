@@ -21,7 +21,7 @@ export const Dashboard = () => {
 
   return (
     <div>
-      <h1 className="text-2xl font-bold mb-6">Dashboard</h1>
+      <h1 className="text-2xl font-bold text-text-primary mb-6">Dashboard</h1>
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
         <AdminStatsCard title="Total Users" value={stats.totalUsers.toLocaleString()} icon={Users} change="+12% this month" />
         <AdminStatsCard title="Active Users" value={stats.activeUsers.toLocaleString()} icon={TrendingUp} change="+5% this week" />

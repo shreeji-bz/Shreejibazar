@@ -17,6 +17,7 @@ export const AdminRoutes = [
   { path: '/notifications', element: lazy(() => import('../pages/notifications/NotificationsPage')) },
   { path: '/support', element: lazy(() => import('../pages/support/TicketsPage')) },
   { path: '/settings', element: lazy(() => import('../pages/settings/SettingsPage')) },
+  { path: '/staff', element: lazy(() => import('../pages/staff/Staff')) },
   { path: '/audit-logs', element: lazy(() => import('../pages/audit-logs/AuditLogsPage')) },
   { path: '/add-fund-report', element: lazy(() => import('../pages/deposits/AddFundReportPage')) },
   { path: '/withdrawals/upi', element: lazy(() => import('../pages/withdrawals/WithdrawalUpiPage')) },

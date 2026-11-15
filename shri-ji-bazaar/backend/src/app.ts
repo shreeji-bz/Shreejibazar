@@ -164,7 +164,6 @@ apiRouter.use('/payments/imb/webhook', paymentsModule.imbRouter);
 // Protected user routes
 apiRouter.use('/users', authenticateToken, new UsersModule().router);
 apiRouter.use('/games', authenticateToken, new GamesModule().router);
-apiRouter.use('/admin/games', authenticateAdmin, new GamesModule().adminRouter);
 apiRouter.use('/rounds', authenticateToken, roundsModule.router);
 // Results - public read access
 apiRouter.use('/results', new ResultsModule().router);

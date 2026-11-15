@@ -26,7 +26,7 @@ export const Users = () => {
 
   return (
     <div>
-      <h1 className="text-2xl font-bold mb-6">Users</h1>
+      <h1 className="text-2xl font-bold text-text-primary mb-6">Users</h1>
       <div className="bg-card border border-border rounded-xl p-5">
         <div className="flex gap-3 mb-4">
           <div className="relative flex-1">
@@ -44,7 +44,7 @@ export const Users = () => {
               <TableCell><span className={`px-2 py-0.5 rounded text-xs ${user.status === 'active' ? 'bg-success/15 text-success' : 'bg-error/15 text-error'}`}>{user.status}</span></TableCell>
               <TableCell>{new Date(user.createdAt).toLocaleDateString()}</TableCell>
               <TableCell>
-                <select value={user.status} onChange={(e) => handleStatusChange(user.id, e.target.value)} className="bg-card-secondary border border-border rounded px-2 py-1 text-xs text-text-secondary">
+                <select value={user.status} onChange={(e) => handleStatusChange(user.id, e.target.value)} className="bg-card-secondary border border-border rounded px-2 py-1 text-xs text-text-secondary focus:outline-none focus:border-gold">
                   <option value="active">Active</option>
                   <option value="inactive">Inactive</option>
                   <option value="suspended">Suspend</option>

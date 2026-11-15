@@ -53,14 +53,14 @@ const GamesPage = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+    <div className="min-h-screen bg-background">
+      <div className="p-6">
         {/* Header */}
-        <div className="flex items-center justify-between mb-8">
-          <h1 className="text-2xl font-bold text-gray-900">Games Management</h1>
+        <div className="flex items-center justify-between mb-6">
+          <h1 className="text-2xl font-bold text-text-primary">Games Management</h1>
           <button
             onClick={() => navigate('/games/create')}
-            className="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors"
+            className="px-4 py-2 bg-gold text-text-primary rounded-lg hover:bg-gold-bright transition-colors font-medium text-sm"
           >
             Create Game
           </button>
@@ -68,17 +68,17 @@ const GamesPage = () => {
 
         {/* Error Banner */}
         {error && (
-          <div className="mb-6 rounded-lg bg-red-50 border border-red-200 p-4">
-            <p className="text-sm text-red-700">{error}</p>
+          <div className="mb-6 rounded-lg border border-error/30 bg-error/10 p-4">
+            <p className="text-sm text-error">{error}</p>
           </div>
         )}
 
         {/* Loading State */}
         {loading ? (
-          <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-12 flex items-center justify-center">
+          <div className="bg-card border border-border rounded-xl p-12 flex items-center justify-center">
             <div className="flex flex-col items-center gap-3">
               <svg
-                className="animate-spin h-10 w-10 text-indigo-600"
+                className="animate-spin h-10 w-10 text-gold"
                 xmlns="http://www.w3.org/2000/svg"
                 fill="none"
                 viewBox="0 0 24 24"
@@ -97,42 +97,42 @@ const GamesPage = () => {
                   d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
                 />
               </svg>
-              <p className="text-gray-500 text-sm">Loading games...</p>
+              <p className="text-sm text-text-muted">Loading games...</p>
             </div>
           </div>
         ) : (
           /* Games Table */
-          <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+          <div className="bg-card border border-border rounded-xl overflow-hidden">
             <div className="overflow-x-auto">
-              <table className="min-w-full divide-y divide-gray-200">
-                <thead className="bg-gray-50">
+              <table className="min-w-full divide-y divide-border">
+                <thead className="bg-card-secondary">
                   <tr>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    <th className="px-6 py-3 text-left text-xs font-medium text-text-secondary uppercase tracking-wider">
                       Name
                     </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    <th className="px-6 py-3 text-left text-xs font-medium text-text-secondary uppercase tracking-wider">
                       Status
                     </th>
-                    <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    <th className="px-6 py-3 text-right text-xs font-medium text-text-secondary uppercase tracking-wider">
                       Action
                     </th>
                   </tr>
                 </thead>
-                <tbody className="bg-white divide-y divide-gray-200">
+                <tbody className="divide-y divide-border">
                   {games.length === 0 ? (
                     <tr>
                       <td
                         colSpan={3}
-                        className="px-6 py-12 text-center text-sm text-gray-500"
+                        className="px-6 py-12 text-center text-sm text-text-muted"
                       >
                         No games found. Click "Create Game" to add your first game.
                       </td>
                     </tr>
                   ) : (
                     games.map((game) => (
-                      <tr key={game.id} className="hover:bg-gray-50 transition-colors">
+                      <tr key={game.id} className="hover:bg-card-secondary transition-colors">
                         <td className="px-6 py-4 whitespace-nowrap">
-                          <span className="text-sm font-medium text-gray-900">
+                          <span className="text-sm font-medium text-text-primary">
                             {game.name}
                           </span>
                         </td>
@@ -140,8 +140,8 @@ const GamesPage = () => {
                           <span
                             className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
                               game.status === 'active'
-                                ? 'bg-green-100 text-green-800'
-                                : 'bg-gray-100 text-gray-800'
+                                ? 'bg-success/15 text-success'
+                                : 'bg-text-muted/15 text-text-muted'
                             }`}
                           >
                             {game.status === 'active' ? 'Active' : 'Inactive'}
@@ -153,8 +153,8 @@ const GamesPage = () => {
                             disabled={togglingId === game.id}
                             className={`px-3 py-1.5 text-xs font-medium rounded-lg transition-colors ${
                               game.status === 'active'
-                                ? 'bg-red-50 text-red-700 hover:bg-red-100'
-                                : 'bg-indigo-50 text-indigo-700 hover:bg-indigo-100'
+                                ? 'bg-error/10 text-error hover:bg-error/20'
+                                : 'bg-gold/15 text-gold hover:bg-gold/25'
                             } disabled:opacity-50 disabled:cursor-not-allowed`}
                           >
                             {togglingId === game.id

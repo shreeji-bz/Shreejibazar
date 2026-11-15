@@ -87,7 +87,7 @@ export const BonusesPage = () => {
       </div>
 
       {error && (
-        <div className="mb-4 rounded-lg border border-red-500/40 bg-red-500/10 p-3 text-sm text-red-400">{error}</div>
+        <div className="mb-4 rounded-lg border border-error/30 bg-error/10 p-3 text-sm text-error">{error}</div>
       )}
 
       <div className="bg-card border border-border rounded-xl overflow-hidden">

@@ -75,14 +75,14 @@ const BannersPage = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+    <div className="min-h-screen bg-background">
+      <div className="p-6">
         {/* Header */}
-        <div className="flex items-center justify-between mb-8">
-          <h1 className="text-2xl font-bold text-gray-900">Banners Management</h1>
+        <div className="flex items-center justify-between mb-6">
+          <h1 className="text-2xl font-bold text-text-primary">Banners Management</h1>
           <button
             onClick={() => navigate('/banners/create')}
-            className="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors"
+            className="px-4 py-2 bg-gold text-text-primary rounded-lg hover:bg-gold-bright transition-colors"
           >
             Create Banner
           </button>
@@ -90,17 +90,17 @@ const BannersPage = () => {
 
         {/* Error Banner */}
         {error && (
-          <div className="mb-6 rounded-lg bg-red-50 border border-red-200 p-4">
-            <p className="text-sm text-red-700">{error}</p>
+          <div className="mb-6 rounded-lg border border-error/30 bg-error/10 p-4">
+            <p className="text-sm text-error">{error}</p>
           </div>
         )}
 
         {/* Loading State */}
         {loading ? (
-          <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-12 flex items-center justify-center">
+          <div className="bg-card border border-border rounded-xl p-12 flex items-center justify-center">
             <div className="flex flex-col items-center gap-3">
               <svg
-                className="animate-spin h-10 w-10 text-indigo-600"
+                className="animate-spin h-10 w-10 text-gold"
                 xmlns="http://www.w3.org/2000/svg"
                 fill="none"
                 viewBox="0 0 24 24"
@@ -119,29 +119,29 @@ const BannersPage = () => {
                   d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
                 />
               </svg>
-              <p className="text-gray-500 text-sm">Loading banners...</p>
+              <p className="text-sm text-text-muted">Loading banners...</p>
             </div>
           </div>
         ) : (
           /* Banners Grid */
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {banners.length === 0 ? (
-              <div className="col-span-full bg-white rounded-xl shadow-sm border border-gray-200 p-12 text-center">
-                <p className="text-sm text-gray-500">No banners found. Click "Create Banner" to add your first banner.</p>
+              <div className="col-span-full bg-card border border-border rounded-xl p-12 text-center">
+                <p className="text-sm text-text-muted">No banners found. Click "Create Banner" to add your first banner.</p>
               </div>
             ) : (
               banners.map((banner) => (
                 <div
                   key={banner.id}
-                  className={`bg-white rounded-xl shadow-sm border-2 p-6 ${
+                  className={`bg-card border rounded-xl p-6 ${
                     banner.status === 'active'
-                      ? 'border-green-500'
-                      : 'border-gray-200'
+                      ? 'border-success'
+                      : 'border-border'
                   }`}
                 >
                   {/* Image Preview */}
                   {banner.image_url && (
-                    <div className="mb-4 rounded-lg overflow-hidden bg-gray-100">
+                    <div className="mb-4 rounded-lg overflow-hidden bg-card-secondary">
                       <img
                         src={banner.image_url}
                         alt={banner.title}
@@ -154,16 +154,16 @@ const BannersPage = () => {
                   )}
 
                   {/* Title & Subtitle */}
-                  <h3 className="text-lg font-semibold text-gray-900 mb-1">
+                  <h3 className="text-lg font-semibold text-text-primary mb-1">
                     {banner.title}
                   </h3>
                   {banner.subtitle && (
-                    <p className="text-sm text-gray-600 mb-2">{banner.subtitle}</p>
+                    <p className="text-sm text-text-secondary mb-2">{banner.subtitle}</p>
                   )}
 
                   {/* Link */}
                   {banner.link && (
-                    <p className="text-sm text-indigo-600 mb-3 truncate">
+                    <p className="text-sm text-gold mb-3 truncate">
                       {banner.link}
                     </p>
                   )}
@@ -173,8 +173,8 @@ const BannersPage = () => {
                     <span
                       className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
                         banner.status === 'active'
-                          ? 'bg-green-100 text-green-800'
-                          : 'bg-gray-100 text-gray-800'
+                          ? 'bg-success/15 text-success'
+                          : 'bg-card-tertiary text-text-muted'
                       }`}
                     >
                       {banner.status === 'active' ? 'Active' : 'Inactive'}
@@ -185,7 +185,7 @@ const BannersPage = () => {
                   <div className="flex items-center gap-2">
                     <button
                       onClick={() => navigate(`/banners/edit/${banner.id}`)}
-                      className="px-3 py-1.5 text-xs font-medium text-indigo-700 bg-indigo-50 rounded-lg hover:bg-indigo-100 transition-colors"
+                      className="px-3 py-1.5 text-xs font-medium text-gold bg-gold/15 rounded-lg hover:bg-gold/25 transition-colors"
                     >
                       Edit
                     </button>
@@ -194,8 +194,8 @@ const BannersPage = () => {
                       disabled={updatingId === banner.id}
                       className={`px-3 py-1.5 text-xs font-medium rounded-lg transition-colors ${
                         banner.status === 'active'
-                          ? 'text-red-700 bg-red-50 hover:bg-red-100'
-                          : 'text-indigo-700 bg-indigo-50 hover:bg-indigo-100'
+                          ? 'text-error bg-error/10 hover:bg-error/20'
+                          : 'text-gold bg-gold/15 hover:bg-gold/25'
                       } disabled:opacity-50 disabled:cursor-not-allowed`}
                     >
                       {updatingId === banner.id ? 'Updating...' : banner.status === 'active' ? 'Deactivate' : 'Activate'}
@@ -203,7 +203,7 @@ const BannersPage = () => {
                     <button
                       onClick={() => handleDelete(banner.id)}
                       disabled={deletingId === banner.id}
-                      className="px-3 py-1.5 text-xs font-medium text-red-700 bg-red-50 rounded-lg hover:bg-red-100 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                      className="px-3 py-1.5 text-xs font-medium text-error bg-error/10 rounded-lg hover:bg-error/20 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                     >
                       {deletingId === banner.id ? 'Deleting...' : 'Delete'}
                     </button>

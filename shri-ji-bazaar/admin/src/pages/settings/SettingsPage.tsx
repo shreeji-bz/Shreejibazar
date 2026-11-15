@@ -126,12 +126,12 @@ export default function SettingsPage() {
       const isActive = value === true || value === 'true';
       return (
         <div className="flex items-center justify-between">
-          <span className="text-sm font-medium text-gray-700">{label}</span>
+          <span className="text-sm font-medium text-text-primary">{label}</span>
           <button
             type="button"
             onClick={() => handleChange(key, !isActive)}
             className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out ${
-              isActive ? 'bg-indigo-600' : 'bg-gray-200'
+              isActive ? 'bg-gold' : 'bg-card-tertiary'
             }`}
             role="switch"
             aria-checked={isActive}
@@ -149,12 +149,12 @@ export default function SettingsPage() {
     if (key === 'maintenance_message') {
       return (
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">{label}</label>
+          <label className="block text-sm font-medium text-text-primary mb-1">{label}</label>
           <textarea
             value={value ?? ''}
             onChange={(e) => handleChange(key, e.target.value)}
             rows={3}
-            className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm text-gray-900 focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500 resize-y"
+            className="w-full rounded-lg border border-border bg-card-secondary px-3 py-2 text-sm text-text-primary focus:border-gold focus:outline-none focus:ring-1 focus:ring-gold resize-y"
             placeholder={`Enter ${label.toLowerCase()}...`}
           />
         </div>
@@ -163,12 +163,12 @@ export default function SettingsPage() {
 
     return (
       <div>
-        <label className="block text-sm font-medium text-gray-700 mb-1">{label}</label>
+        <label className="block text-sm font-medium text-text-primary mb-1">{label}</label>
         <input
           type={key.includes('email') ? 'email' : key.includes('hours') ? 'number' : 'text'}
           value={value ?? ''}
           onChange={(e) => handleChange(key, key.includes('hours') || key.includes('version') ? Number(e.target.value) : e.target.value)}
-          className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm text-gray-900 focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500"
+          className="w-full rounded-lg border border-border bg-card-secondary px-3 py-2 text-sm text-text-primary focus:border-gold focus:outline-none focus:ring-1 focus:ring-gold"
           placeholder={`Enter ${label.toLowerCase()}...`}
         />
       </div>
@@ -179,8 +179,8 @@ export default function SettingsPage() {
     return (
       <div className="flex min-h-[60vh] items-center justify-center">
         <div className="flex flex-col items-center gap-3">
-          <div className="h-10 w-10 animate-spin rounded-full border-4 border-gray-200 border-t-indigo-600" />
-          <p className="text-sm text-gray-500">Loading settings...</p>
+          <div className="h-10 w-10 animate-spin rounded-full border-4 border-border border-t-gold" />
+          <p className="text-sm text-text-muted">Loading settings...</p>
         </div>
       </div>
     );
@@ -189,11 +189,11 @@ export default function SettingsPage() {
   if (error) {
     return (
       <div className="flex min-h-[60vh] items-center justify-center">
-        <div className="max-w-md rounded-xl border border-red-200 bg-red-50 p-6 text-center">
-          <p className="text-sm font-medium text-red-800">{error}</p>
+        <div className="max-w-md rounded-xl border border-error/30 bg-error/10 p-6 text-center">
+          <p className="text-sm font-medium text-error">{error}</p>
           <button
             onClick={fetchSettings}
-            className="mt-4 rounded-lg bg-red-600 px-4 py-2 text-sm font-medium text-white hover:bg-red-700"
+            className="mt-4 rounded-lg bg-error px-4 py-2 text-sm font-medium text-white hover:bg-error/90"
           >
             Retry
           </button>
@@ -205,17 +205,17 @@ export default function SettingsPage() {
   const hasChanges = JSON.stringify(settings) !== JSON.stringify(formData);
 
   return (
-    <div className="min-h-screen bg-gray-50 p-6">
+    <div className="min-h-screen bg-background p-6">
       <div className="mx-auto max-w-5xl">
-        <div className="mb-8 flex items-center justify-between">
+        <div className="mb-6 flex items-center justify-between">
           <div>
-            <h1 className="text-2xl font-bold text-gray-900">Settings Management</h1>
-            <p className="mt-1 text-sm text-gray-500">Manage application configuration and feature toggles.</p>
+            <h1 className="text-2xl font-bold text-text-primary">Settings Management</h1>
+            <p className="mt-1 text-sm text-text-muted">Manage application configuration and feature toggles.</p>
           </div>
           <button
             onClick={handleSave}
             disabled={!hasChanges || saving}
-            className="rounded-lg bg-indigo-600 px-5 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-indigo-700 disabled:cursor-not-allowed disabled:opacity-50"
+            className="rounded-lg bg-gold px-5 py-2.5 text-sm font-semibold text-text-primary shadow-sm hover:bg-gold-bright disabled:cursor-not-allowed disabled:opacity-50"
           >
             {saving ? 'Saving...' : 'Save Changes'}
           </button>
@@ -223,28 +223,28 @@ export default function SettingsPage() {
 
         {saveMessage && (
           <div
-            className={`mb-6 rounded-xl px-4 py-3 text-sm font-medium ${
+            className={`mb-6 rounded-xl px-4 py-3 text-sm font-medium border ${
               saveMessage.type === 'success'
-                ? 'border border-green-200 bg-green-50 text-green-800'
-                : 'border border-red-200 bg-red-50 text-red-800'
+                ? 'border-success/30 bg-success/10 text-success'
+                : 'border-error/30 bg-error/10 text-error'
             }`}
           >
             {saveMessage.text}
           </div>
         )}
 
-        <div className="mb-6 bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-          <h2 className="text-lg font-semibold text-gray-900 mb-4">Appearance</h2>
+        <div className="mb-6 bg-card border border-border rounded-xl p-6">
+          <h2 className="text-lg font-semibold text-text-primary mb-4">Appearance</h2>
           <div className="flex items-center justify-between">
             <div>
-              <span className="text-sm font-medium text-gray-700">Dark mode</span>
-              <p className="text-xs text-gray-400 mt-1">Switch the admin panel between light and dark themes.</p>
+              <span className="text-sm font-medium text-text-primary">Dark mode</span>
+              <p className="text-xs text-text-muted mt-1">Switch the admin panel between light and dark themes.</p>
             </div>
             <button
               type="button"
               onClick={toggleTheme}
               className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out ${
-                isDark ? 'bg-indigo-600' : 'bg-gray-200'
+                isDark ? 'bg-gold' : 'bg-card-tertiary'
               }`}
               role="switch"
               aria-checked={isDark}
@@ -260,13 +260,13 @@ export default function SettingsPage() {
 
         <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
           {SETTING_CATEGORIES.map((category) => (
-            <div key={category.title} className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-              <h2 className="text-lg font-semibold text-gray-900 mb-4">{category.title}</h2>
+            <div key={category.title} className="bg-card border border-border rounded-xl p-6">
+              <h2 className="text-lg font-semibold text-text-primary mb-4">{category.title}</h2>
               <div className="space-y-5">
                 {category.keys.map((key) => (
                   <div key={key} className="space-y-1">
                     {renderField(key)}
-                    <p className="text-xs text-gray-400">{DESCRIPTION_MAP[key] ?? ''}</p>
+                    <p className="text-xs text-text-muted">{DESCRIPTION_MAP[key] ?? ''}</p>
                   </div>
                 ))}
               </div>

@@ -4,15 +4,15 @@ import { paymentService } from '../../services/payment.service';
 import type { PaginatedPaymentsResponse, Payment } from '../../types/payment.types';
 
 const STATUS_STYLES: Record<string, string> = {
-  pending: 'bg-yellow-100 text-yellow-800',
-  approved: 'bg-green-100 text-green-800',
-  rejected: 'bg-red-100 text-red-800',
-  completed: 'bg-blue-100 text-blue-800',
+  pending: 'bg-gold/15 text-gold',
+  approved: 'bg-success/15 text-success',
+  rejected: 'bg-error/15 text-error',
+  completed: 'bg-gold/15 text-gold',
 };
 
 const TYPE_STYLES: Record<string, string> = {
-  deposit: 'bg-emerald-50 text-emerald-700',
-  withdrawal: 'bg-orange-50 text-orange-700',
+  deposit: 'bg-success/15 text-success',
+  withdrawal: 'bg-gold/15 text-gold',
 };
 
 export const PaymentsPage = () => {
@@ -92,63 +92,63 @@ export const PaymentsPage = () => {
   const payments: Payment[] = data?.data ?? [];
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+    <div className="min-h-screen bg-background">
+      <div className="p-6">
         <div className="flex items-center justify-between mb-6">
-          <h1 className="text-2xl font-bold text-gray-900">Payments Management</h1>
+          <h1 className="text-2xl font-bold text-text-primary">Payments Management</h1>
         </div>
 
         {error && (
-          <div className="mb-4 p-3 bg-red-50 border border-red-200 text-red-700 rounded-xl text-sm">
+          <div className="mb-4 p-3 border border-error/30 bg-error/10 text-error rounded-xl text-sm">
             {error}
           </div>
         )}
 
-        <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+        <div className="bg-card border border-border rounded-xl p-6">
           {loading ? (
             <div className="flex items-center justify-center py-16">
-              <Loader2 className="w-8 h-8 text-gray-400 animate-spin" />
-              <span className="ml-3 text-gray-500">Loading payments...</span>
+              <Loader2 className="w-8 h-8 text-text-muted animate-spin" />
+              <span className="ml-3 text-text-muted">Loading payments...</span>
             </div>
           ) : payments.length === 0 ? (
-            <div className="text-center py-16 text-gray-400">No payments found</div>
+            <div className="text-center py-16 text-text-muted">No payments found</div>
           ) : (
             <>
               <div className="overflow-x-auto">
                 <table className="w-full text-sm">
                   <thead>
-                    <tr className="border-b border-gray-200">
-                      <th className="px-4 py-3 text-left text-gray-500 font-medium">User</th>
-                      <th className="px-4 py-3 text-left text-gray-500 font-medium">Amount</th>
-                      <th className="px-4 py-3 text-left text-gray-500 font-medium">Type</th>
-                      <th className="px-4 py-3 text-left text-gray-500 font-medium">Status</th>
-                      <th className="px-4 py-3 text-left text-gray-500 font-medium">Date</th>
-                      <th className="px-4 py-3 text-left text-gray-500 font-medium">Actions</th>
+                    <tr className="border-b border-border">
+                      <th className="px-4 py-3 text-left text-text-muted font-medium">User</th>
+                      <th className="px-4 py-3 text-left text-text-muted font-medium">Amount</th>
+                      <th className="px-4 py-3 text-left text-text-muted font-medium">Type</th>
+                      <th className="px-4 py-3 text-left text-text-muted font-medium">Status</th>
+                      <th className="px-4 py-3 text-left text-text-muted font-medium">Date</th>
+                      <th className="px-4 py-3 text-left text-text-muted font-medium">Actions</th>
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-gray-100">
+                  <tbody className="divide-y divide-border">
                     {payments.map((payment) => (
-                      <tr key={payment.id} className="hover:bg-gray-50">
+                      <tr key={payment.id} className="hover:bg-card-secondary">
                         <td className="px-4 py-3">
                           <div>
-                            <div className="font-medium text-gray-900">{payment.userName}</div>
-                            <div className="text-xs text-gray-400">{payment.userMobile}</div>
+                            <div className="font-medium text-text-primary">{payment.userName}</div>
+                            <div className="text-xs text-text-muted">{payment.userMobile}</div>
                           </div>
                         </td>
-                        <td className="px-4 py-3 font-medium text-gray-900">
+                        <td className="px-4 py-3 font-medium text-text-primary">
                           {formatCurrency(payment.amount)}
                         </td>
                         <td className="px-4 py-3">
-                          <span className={`inline-block px-2.5 py-0.5 rounded-full text-xs font-medium ${TYPE_STYLES[payment.type] || 'bg-gray-100 text-gray-700'}`}>
+                          <span className={`inline-block px-2.5 py-0.5 rounded-full text-xs font-medium ${TYPE_STYLES[payment.type] || 'bg-card-tertiary text-text-muted'}`}>
                             {payment.type}
                           </span>
                         </td>
                         <td className="px-4 py-3">
-                          <span className={`inline-block px-2.5 py-0.5 rounded-full text-xs font-medium ${STATUS_STYLES[payment.status] || 'bg-gray-100 text-gray-700'}`}>
+                          <span className={`inline-block px-2.5 py-0.5 rounded-full text-xs font-medium ${STATUS_STYLES[payment.status] || 'bg-card-tertiary text-text-muted'}`}>
                             {payment.status}
                           </span>
                         </td>
-                        <td className="px-4 py-3 text-gray-600 whitespace-nowrap">
+                        <td className="px-4 py-3 text-text-secondary whitespace-nowrap">
                           {formatDate(payment.createdAt)}
                         </td>
                         <td className="px-4 py-3">
@@ -156,7 +156,7 @@ export const PaymentsPage = () => {
                             <button
                               onClick={() => handleApprove(payment.id)}
                               disabled={processingId === payment.id || payment.status !== 'pending'}
-                              className="inline-flex items-center gap-1 px-3 py-1.5 bg-green-600 text-white text-xs font-medium rounded-lg hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                              className="inline-flex items-center gap-1 px-3 py-1.5 bg-success text-text-primary text-xs font-medium rounded-lg hover:bg-success/90 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
                             >
                               {processingId === payment.id ? (
                                 <Loader2 size={12} className="animate-spin" />
@@ -168,7 +168,7 @@ export const PaymentsPage = () => {
                             <button
                               onClick={() => handleReject(payment.id)}
                               disabled={processingId === payment.id || payment.status !== 'pending'}
-                              className="inline-flex items-center gap-1 px-3 py-1.5 bg-red-600 text-white text-xs font-medium rounded-lg hover:bg-red-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                              className="inline-flex items-center gap-1 px-3 py-1.5 bg-error text-text-primary text-xs font-medium rounded-lg hover:bg-error/90 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
                             >
                               {processingId === payment.id ? (
                                 <Loader2 size={12} className="animate-spin" />
@@ -181,7 +181,7 @@ export const PaymentsPage = () => {
                               <button
                                 onClick={() => handleRevert(payment.id)}
                                 disabled={processingId === payment.id}
-                                className="inline-flex items-center gap-1 px-3 py-1.5 bg-amber-600 text-white text-xs font-medium rounded-lg hover:bg-amber-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                                className="inline-flex items-center gap-1 px-3 py-1.5 bg-gold text-text-primary text-xs font-medium rounded-lg hover:bg-gold-bright disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
                                 title="Remove this deposit and cut the points out of the user's wallet"
                               >
                                 {processingId === payment.id ? (
@@ -200,7 +200,7 @@ export const PaymentsPage = () => {
                 </table>
               </div>
 
-              <div className="flex items-center justify-between mt-4 pt-4 border-t border-gray-100 text-sm text-gray-500">
+              <div className="flex items-center justify-between mt-4 pt-4 border-t border-border text-sm text-text-muted">
                 <span>
                   Showing {payments.length} of {data?.total ?? 0} payments
                 </span>

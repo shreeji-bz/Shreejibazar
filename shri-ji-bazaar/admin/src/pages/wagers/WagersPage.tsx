@@ -48,34 +48,34 @@ const WagersPage = () => {
   const getStatusColor = (status: string) => {
     switch (status) {
       case 'won':
-        return 'bg-green-100 text-green-700';
+        return 'bg-success/15 text-success';
       case 'lost':
-        return 'bg-red-100 text-red-700';
+        return 'bg-error/15 text-error';
       case 'void':
-        return 'bg-gray-100 text-gray-700';
+        return 'bg-card-tertiary text-text-muted';
       case 'active':
-        return 'bg-blue-100 text-blue-700';
+        return 'bg-gold/15 text-gold';
       default:
-        return 'bg-yellow-100 text-yellow-700';
+        return 'bg-gold/15 text-gold';
     }
   };
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <h1 className="text-2xl font-bold text-gray-900 mb-6">Wagers Management</h1>
+    <div className="min-h-screen bg-background">
+      <div className="p-6">
+        <h1 className="text-2xl font-bold text-text-primary mb-6">Wagers Management</h1>
 
-        <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+        <div className="bg-card border border-border rounded-xl p-6">
           {loading && (
             <div className="flex justify-center items-center py-12">
-              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900" />
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gold" />
             </div>
           )}
 
           {error && (
             <div className="text-center py-12">
-              <p className="text-red-600 mb-4">{error}</p>
-              <button onClick={fetchWagers} className="px-4 py-2 bg-gray-900 text-white rounded-lg hover:bg-gray-800">
+              <p className="text-error mb-4">{error}</p>
+              <button onClick={fetchWagers} className="px-4 py-2 bg-gold text-text-primary rounded-lg hover:bg-gold-bright">
                 Retry
               </button>
             </div>
@@ -83,48 +83,48 @@ const WagersPage = () => {
 
           {!loading && !error && wagers.length === 0 && (
             <div className="text-center py-12">
-              <p className="text-gray-500">No wagers found</p>
+              <p className="text-text-muted">No wagers found</p>
             </div>
           )}
 
           {!loading && !error && wagers.length > 0 && (
             <>
               <div className="overflow-x-auto">
-                <table className="min-w-full divide-y divide-gray-200">
+                <table className="min-w-full divide-y divide-border">
                   <thead>
                     <tr>
-                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">User</th>
-                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Game</th>
-                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Round</th>
-                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Selection</th>
-                      <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Amount</th>
-                      <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Potential Win</th>
-                      <th className="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
-                      <th className="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
+                      <th className="px-4 py-3 text-left text-xs font-medium text-text-muted uppercase tracking-wider">User</th>
+                      <th className="px-4 py-3 text-left text-xs font-medium text-text-muted uppercase tracking-wider">Game</th>
+                      <th className="px-4 py-3 text-left text-xs font-medium text-text-muted uppercase tracking-wider">Round</th>
+                      <th className="px-4 py-3 text-left text-xs font-medium text-text-muted uppercase tracking-wider">Selection</th>
+                      <th className="px-4 py-3 text-right text-xs font-medium text-text-muted uppercase tracking-wider">Amount</th>
+                      <th className="px-4 py-3 text-right text-xs font-medium text-text-muted uppercase tracking-wider">Potential Win</th>
+                      <th className="px-4 py-3 text-center text-xs font-medium text-text-muted uppercase tracking-wider">Status</th>
+                      <th className="px-4 py-3 text-center text-xs font-medium text-text-muted uppercase tracking-wider">Actions</th>
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-gray-200">
+                  <tbody className="divide-y divide-border">
                     {wagers.map((wager: any) => (
-                      <tr key={wager.id} className="hover:bg-gray-50">
+                      <tr key={wager.id} className="hover:bg-card-secondary">
                         <td className="px-4 py-4 whitespace-nowrap">
-                          <div className="text-sm font-medium text-gray-900">{wager.userName}</div>
-                          <div className="text-sm text-gray-500">{wager.userMobile}</div>
+                          <div className="text-sm font-medium text-text-primary">{wager.userName}</div>
+                          <div className="text-sm text-text-muted">{wager.userMobile}</div>
                         </td>
                         <td className="px-4 py-4 whitespace-nowrap">
-                          <div className="text-sm text-gray-900">{wager.gameName}</div>
-                          <div className="text-sm text-gray-500">{wager.gameType}</div>
+                          <div className="text-sm text-text-primary">{wager.gameName}</div>
+                          <div className="text-sm text-text-muted">{wager.gameType}</div>
                         </td>
-                        <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-900">
+                        <td className="px-4 py-4 whitespace-nowrap text-sm text-text-primary">
                           #{wager.roundNumber}
                         </td>
                         <td className="px-4 py-4 whitespace-nowrap">
-                          <div className="text-sm text-gray-900 capitalize">{wager.selection}</div>
-                          {wager.number && <div className="text-sm text-gray-500">{wager.number}</div>}
+                          <div className="text-sm text-text-primary capitalize">{wager.selection}</div>
+                          {wager.number && <div className="text-sm text-text-muted">{wager.number}</div>}
                         </td>
-                        <td className="px-4 py-4 whitespace-nowrap text-right text-sm text-gray-900">
+                        <td className="px-4 py-4 whitespace-nowrap text-right text-sm text-text-primary">
                           {wager.stake.toLocaleString()}
                         </td>
-                        <td className="px-4 py-4 whitespace-nowrap text-right text-sm text-gray-900">
+                        <td className="px-4 py-4 whitespace-nowrap text-right text-sm text-text-primary">
                           {wager.potentialPayout.toLocaleString()}
                         </td>
                         <td className="px-4 py-4 whitespace-nowrap text-center">
@@ -136,7 +136,7 @@ const WagersPage = () => {
                           <div className="flex items-center justify-center gap-2">
                             <a
                               href={`/wagers/${wager.id}`}
-                              className="text-blue-600 hover:text-blue-800 p-1 rounded hover:bg-blue-50"
+                              className="text-gold hover:text-gold-bright p-1 rounded hover:bg-gold/15"
                               title="View Details"
                             >
                               <Eye size={18} />
@@ -145,7 +145,7 @@ const WagersPage = () => {
                               <button
                                 onClick={() => handleVoid(wager.id)}
                                 disabled={voidingId === wager.id}
-                                className="text-red-600 hover:text-red-800 p-1 rounded hover:bg-red-50 disabled:opacity-50"
+                                className="text-error hover:text-error/80 p-1 rounded hover:bg-error/10 disabled:opacity-50"
                                 title="Void Wager"
                               >
                                 <Trash2 size={18} />
@@ -161,24 +161,24 @@ const WagersPage = () => {
 
               {totalPages > 1 && (
                 <div className="flex items-center justify-between mt-6">
-                  <p className="text-sm text-gray-500">
+                  <p className="text-sm text-text-muted">
                     Showing {wagers.length} of {total} wagers
                   </p>
                   <div className="flex gap-2">
                     <button
                       onClick={() => { setPage((p) => Math.max(1, p - 1)); fetchWagers(); }}
                       disabled={page <= 1}
-                      className="px-4 py-2 bg-white border border-gray-300 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                      className="px-4 py-2 bg-card border border-border rounded-lg text-sm font-medium text-text-primary hover:bg-card-secondary disabled:opacity-50 disabled:cursor-not-allowed"
                     >
                       Previous
                     </button>
-                    <span className="px-4 py-2 text-sm text-gray-600">
+                    <span className="px-4 py-2 text-sm text-text-secondary">
                       Page {page} of {totalPages}
                     </span>
                     <button
                       onClick={() => { setPage((p) => Math.min(totalPages, p + 1)); fetchWagers(); }}
                       disabled={page >= totalPages}
-                      className="px-4 py-2 bg-white border border-gray-300 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                      className="px-4 py-2 bg-card border border-border rounded-lg text-sm font-medium text-text-primary hover:bg-card-secondary disabled:opacity-50 disabled:cursor-not-allowed"
                     >
                       Next
                     </button>

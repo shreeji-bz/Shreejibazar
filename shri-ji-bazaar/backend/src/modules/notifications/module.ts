@@ -7,7 +7,9 @@ export class NotificationsModule {
   public adminRouter = Router();
 
   constructor() {
-    new NotificationsController(this.router);
+    // User-facing routes (authenticated)
+    new NotificationsController(this.router, false);
+    // Admin routes
     this.adminRouter.use(authenticateAdmin);
     new NotificationsController(this.adminRouter, true);
   }
