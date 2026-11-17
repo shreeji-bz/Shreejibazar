@@ -63,7 +63,7 @@ function onAuthenticated(): void {
   (window as any).__adminAuthExpired = false;
 }
 
-export async function get<T>(path: string, params?: Record<string, any>): Promise<T> {
+export async function get<T = any>(path: string, params?: Record<string, any>): Promise<T> {
   const res = await fetch(buildUrl(path, params), { headers: getAuthHeaders() });
   if (!res.ok) {
     const body = await res.json().catch(() => ({}));
@@ -74,7 +74,7 @@ export async function get<T>(path: string, params?: Record<string, any>): Promis
   return (await res.json()) as T;
 }
 
-export async function post<T>(path: string, body: any): Promise<T> {
+export async function post<T = any>(path: string, body: any): Promise<T> {
   const res = await fetch(`${API_BASE}${path}`, { method: 'POST', headers: { 'Content-Type': 'application/json', ...getAuthHeaders() }, body: JSON.stringify(body) });
   if (!res.ok) {
     const body = await res.json().catch(() => ({}));
@@ -85,7 +85,7 @@ export async function post<T>(path: string, body: any): Promise<T> {
   return (await res.json()) as T;
 }
 
-export async function put<T>(path: string, body: any): Promise<T> {
+export async function put<T = any>(path: string, body: any): Promise<T> {
   const res = await fetch(`${API_BASE}${path}`, { method: 'PUT', headers: { 'Content-Type': 'application/json', ...getAuthHeaders() }, body: JSON.stringify(body) });
   if (!res.ok) {
     const body = await res.json().catch(() => ({}));
@@ -96,7 +96,7 @@ export async function put<T>(path: string, body: any): Promise<T> {
   return (await res.json()) as T;
 }
 
-export async function del<T>(path: string): Promise<T> {
+export async function del<T = any>(path: string): Promise<T> {
   const res = await fetch(`${API_BASE}${path}`, { method: 'DELETE', headers: getAuthHeaders() });
   if (!res.ok) {
     const body = await res.json().catch(() => ({}));
@@ -107,7 +107,7 @@ export async function del<T>(path: string): Promise<T> {
   return (await res.json()) as T;
 }
 
-export async function patch<T>(path: string, body: any): Promise<T> {
+export async function patch<T = any>(path: string, body: any): Promise<T> {
   const res = await fetch(`${API_BASE}${path}`, { method: 'PATCH', headers: { 'Content-Type': 'application/json', ...getAuthHeaders() }, body: JSON.stringify(body) });
   if (!res.ok) {
     const body = await res.json().catch(() => ({}));

@@ -150,7 +150,7 @@ export const DeclareResultPage = () => {
           <div className="flex items-center justify-between">
             <button
               onClick={() => { setSelectedGameId(''); setRounds([]); }}
-              className="text-sm text-indigo-600 hover:text-indigo-700"
+              className="text-sm text-gold hover:text-gold-dark"
             >
               ← Change Game
             </button>

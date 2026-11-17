@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { get, post } from '../../services/api';
+import { get } from '../../services/api';
 import { getRounds, declareResult, closeRound, saveResult } from '../../services/authService';
 import { getGames } from '../../services/authService';
 import { Table, TableRow, TableCell } from '../../components/common/Table';
@@ -18,7 +18,7 @@ export const Results = () => {
   const [games, setGames] = useState<{ id: string; name: string }[]>([]);
   const [rounds, setRounds] = useState<Round[]>([]);
   const [selectedGameId, setSelectedGameId] = useState('');
-  const [loadingGames, setLoadingGames] = useState(true);
+  const [, setLoadingGames] = useState(true);
   const [loadingRounds, setLoadingRounds] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -156,7 +156,7 @@ export const Results = () => {
         {selectedGameId && (
           <button
             onClick={() => setSelectedGameId('')}
-            className="text-sm text-indigo-600 hover:text-indigo-700"
+            className="text-sm text-gold hover:text-gold-dark"
           >
             Show All Games
           </button>
@@ -214,8 +214,6 @@ export const Results = () => {
               </Table>
             </div>
           )}
-        </div>
-      )}
 
       {/* Save Result Modal */}
       <Modal isOpen={saveModalOpen} onClose={() => setSaveModalOpen(false)} title="Save Result">

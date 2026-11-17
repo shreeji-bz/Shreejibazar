@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Plus } from 'lucide-react';
-import { Link, useSearchParams } from 'react-router-dom';
+import { Link } from 'react-router-dom';
 import { getRounds, closeRound, saveResult, declareResult, getGames } from '../../services/authService';
 import { Table, TableRow, TableCell } from '../../components/common/Table';
 import { Button } from '../../components/common/Button';
@@ -28,7 +28,7 @@ export const Rounds = () => {
   const [saveModalRound, setSaveModalRound] = useState<Round | null>(null);
   const [saveModalValue, setSaveModalValue] = useState('');
   const [roundDate, setRoundDate] = useState(() => new Date().toISOString().split('T')[0]);
-  const [searchParams] = useSearchParams();
+
 
   useEffect(() => {
     getGames({ page: 1, limit: 100 })
@@ -151,7 +151,7 @@ export const Rounds = () => {
               />
               <Link
                 to={`/rounds/create?date=${roundDate}`}
-                className="inline-flex items-center gap-2 px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors text-sm font-medium"
+                className="inline-flex items-center gap-2 px-4 py-2 bg-gold text-white rounded-lg hover:bg-gold-dark transition-colors text-sm font-medium"
               >
                 <Plus size={16} />
                 Add Round
