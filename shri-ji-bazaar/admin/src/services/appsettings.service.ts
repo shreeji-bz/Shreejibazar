@@ -1,7 +1,7 @@
 import { fetchSettings, updateSettings } from './settings.service';
 
 const APP_IMAGE_KEYS = ['app.image_banner', 'app.image_splash', 'app.image_header'];
-const APK_KEYS = ['app.apk_url', 'app.apk_version', 'app.apk_changelog'];
+const APK_KEYS = ['app.apk_url', 'app.apk_version', 'app.apk_changelog', 'force_update_apk'];
 const VIDEO_KEYS = ['app.video_url'];
 const CONTACT_KEYS = ['contact.whatsapp', 'contact.telegram', 'contact.email', 'contact.support_url'];
 

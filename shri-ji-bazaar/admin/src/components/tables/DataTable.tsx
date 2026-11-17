@@ -5,7 +5,7 @@ export function DataTable<T>({ columns, data }: Props<T>) {
     <div className="overflow-x-auto">
       <table className="w-full text-sm">
         <thead>
-          <tr className="bg-gray-50">
+          <tr className="bg-card-secondary">
             {columns.map(c => <th key={String(c.accessor)} className="text-left px-4 py-2">{c.header}</th>)}
           </tr>
         </thead>

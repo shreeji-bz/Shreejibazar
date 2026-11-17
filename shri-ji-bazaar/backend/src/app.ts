@@ -77,13 +77,25 @@ const apiRouter = Router();
 const authModule = new AuthModule();
 apiRouter.use('/auth', authModule.router);
 
-// System status (public - needed for splash screen maintenance check)
+// System status (public - needed for splash screen maintenance check AND
+// the "Update App" APK check: admins manage the APK via the admin panel's
+// Apk Manager -> settings keys app.apk_url / app.apk_version /
+// app.apk_changelog / force_update).
 apiRouter.get('/system/status', async (_req: Request, res: Response) => {
   try {
     const { data, error } = await supabase
       .from('settings')
       .select('key, value')
-      .in('key', ['maintenance_mode', 'maintenance_message', 'latest_version', 'force_update']);
+      .in('key', [
+        'maintenance_mode',
+        'maintenance_message',
+        'latest_version',
+        'force_update',
+        'force_update_apk',
+        'app.apk_url',
+        'app.apk_version',
+        'app.apk_changelog',
+      ]);
 
     if (error) {
       res.json({
@@ -93,6 +105,9 @@ apiRouter.get('/system/status', async (_req: Request, res: Response) => {
           maintenance_message: null,
           latest_version: '1.0.0',
           force_update: false,
+          apk_url: null,
+          apk_version: null,
+          apk_changelog: null,
         },
       });
       return;
@@ -108,8 +123,17 @@ apiRouter.get('/system/status', async (_req: Request, res: Response) => {
       data: {
         maintenance_mode: settings.maintenance_mode === true || settings.maintenance_mode === 'true',
         maintenance_message: settings.maintenance_message || null,
-        latest_version: settings.latest_version || '1.0.0',
-        force_update: settings.force_update === true || settings.force_update === 'true',
+        // The APK Manager keys win when present (admins use Apk Manager in
+        // the panel); latest_version/force_update remain as legacy fallbacks.
+        latest_version: settings['app.apk_version'] || settings.latest_version || '1.0.0',
+        force_update:
+          settings.force_update === true ||
+          settings.force_update === 'true' ||
+          settings['force_update_apk'] === true ||
+          settings['force_update_apk'] === 'true',
+        apk_url: settings['app.apk_url'] || null,
+        apk_version: settings['app.apk_version'] || settings.latest_version || null,
+        apk_changelog: settings['app.apk_changelog'] || null,
       },
     });
   } catch (error: any) {

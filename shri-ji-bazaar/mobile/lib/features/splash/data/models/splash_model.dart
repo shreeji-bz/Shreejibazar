@@ -6,6 +6,8 @@ class SplashModel extends SplashEntity {
     super.maintenanceMessage,
     required super.latestVersion,
     required super.forceUpdate,
+    super.apkUrl,
+    super.apkChangelog,
   });
 
   factory SplashModel.fromJson(Map<String, dynamic> json) {
@@ -14,6 +16,8 @@ class SplashModel extends SplashEntity {
       maintenanceMessage: json['maintenance_message'] as String?,
       latestVersion: json['latest_version'] as String? ?? '1.0.0',
       forceUpdate: json['force_update'] as bool? ?? false,
+      apkUrl: (json['apk_url'] as String?)?.trim().isEmpty == true ? null : json['apk_url'] as String?,
+      apkChangelog: json['apk_changelog'] as String?,
     );
   }
 }

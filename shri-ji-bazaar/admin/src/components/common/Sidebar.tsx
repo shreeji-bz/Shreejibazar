@@ -1,1 +1,1 @@
-export const Sidebar = () => <aside className="w-64 bg-gray-900 text-white" />;
+export const Sidebar = () => <aside className="w-64 bg-gold text-white" />;

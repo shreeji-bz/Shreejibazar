@@ -10,11 +10,11 @@ const STATUS_TABS = ['all', 'pending', 'approved', 'rejected', 'completed', 'fai
 type StatusTab = (typeof STATUS_TABS)[number];
 
 const STATUS_BADGE: Record<string, string> = {
-  pending: 'bg-yellow-500/15 text-yellow-600',
-  approved: 'bg-green-500/15 text-green-600',
-  rejected: 'bg-red-500/15 text-red-600',
-  completed: 'bg-blue-500/15 text-blue-600',
-  failed: 'bg-red-500/15 text-red-600',
+  pending: 'bg-warning/15 text-warning',
+  approved: 'bg-success/15 text-success',
+  rejected: 'bg-error/100/15 text-error',
+  completed: 'bg-info/150/15 text-info',
+  failed: 'bg-error/100/15 text-error',
 };
 
 interface WithdrawalsPageProps {

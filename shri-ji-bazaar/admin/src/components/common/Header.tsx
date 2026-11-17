@@ -1,1 +1,1 @@
-export const Header = () => <header className="h-14 bg-white shadow-sm" />;
+export const Header = () => <header className="h-14 bg-card shadow-sm" />;

@@ -2,37 +2,60 @@
 @tailwind components;
 @tailwind utilities;
 
-/* Theme tokens: light is the fixed default; dark applies when .dark is on <html> */
+/*
+ * Theme tokens (dual theme: light is default, dark applies when .dark is on <html>).
+ *
+ * Every color is an RGB triple consumed by the Tailwind config via
+ * `rgb(var(--token-rgb) / <alpha-value>)` — that keeps BOTH themes and BOTH
+ * opacity modifiers (bg-error/10, border-gold/40 …) working without any
+ * per-class overrides.
+ */
 :root {
-  --background: #F6F4EF;
-  --background-secondary: #FFFFFF;
-  --card: #FFFFFF;
-  --card-secondary: #F1EDE3;
-  --card-tertiary: #EAE4D6;
-  --border: #D8D0BE;
-  --text-primary: #1A1608;
-  --text-secondary: #5A5142;
-  --text-muted: #8A7E68;
-  --gold-dark: #8A5A00;
-  --gold: #B8860B;
-  --gold-bright: #A97800;
-  --gold-light: #D89B18;
-  --gold-muted: #C9A227;
+  --background-rgb: 246 244 239;
+  --background-secondary-rgb: 255 255 255;
+  --card-rgb: 255 255 255;
+  --card-secondary-rgb: 241 237 227;
+  --card-tertiary-rgb: 234 228 214;
+  --border-rgb: 216 208 190;
+  --text-primary-rgb: 26 22 8;
+  --text-secondary-rgb: 90 81 66;
+  --text-muted-rgb: 138 126 104;
+  --gold-dark-rgb: 138 90 0;
+  --gold-rgb: 184 134 11;
+  --gold-bright-rgb: 169 120 0;
+  --gold-light-rgb: 216 155 24;
+  --gold-muted-rgb: 201 162 39;
+  /* semantic status */
+  --success-rgb: 21 127 60;
+  --error-rgb: 198 40 40;
+  --warning-rgb: 178 106 0;
+  --info-rgb: 21 101 192;
 }
 
 .dark {
-  --background: #050505;
-  --background-secondary: #0A0A0A;
-  --card: #120C05;
-  --card-secondary: #1A1005;
-  --card-tertiary: #211508;
-  --border: #2A2008;
-  --text-primary: #FFFFFF;
-  --text-secondary: #B8A98A;
-  --text-muted: #7A6E5A;
-  --gold-dark: #8A5A00;
-  --gold: #D89B18;
-  --gold-bright: #C9A227;
-  --gold-light: #E8C547;
-  --gold-muted: #B8942B;
+  --background-rgb: 5 5 5;
+  --background-secondary-rgb: 10 10 10;
+  --card-rgb: 18 12 5;
+  --card-secondary-rgb: 26 16 5;
+  --card-tertiary-rgb: 33 21 8;
+  --border-rgb: 42 32 8;
+  --text-primary-rgb: 255 255 255;
+  --text-secondary-rgb: 184 169 138;
+  --text-muted-rgb: 122 110 90;
+  --gold-dark-rgb: 138 90 0;
+  --gold-rgb: 216 155 24;
+  --gold-bright-rgb: 201 162 39;
+  --gold-light-rgb: 232 197 71;
+  --gold-muted-rgb: 184 148 43;
+  /* semantic status */
+  --success-rgb: 37 200 90;
+  --error-rgb: 229 57 53;
+  --warning-rgb: 255 167 38;
+  --info-rgb: 66 165 245;
+}
+
+/* Body surface follows the theme token (was hardcoded light before). */
+body {
+  background-color: rgb(var(--background-rgb));
+  color: rgb(var(--text-primary-rgb));
 }
