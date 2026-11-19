@@ -4,6 +4,9 @@ import 'package:url_launcher/url_launcher.dart';
 import 'package:shri_ji_bazaar/core/theme/app_text_styles.dart';
 import 'package:shri_ji_bazaar/core/widgets/sidebar_toggle.dart';
 import 'package:shri_ji_bazaar/features/settings/presentation/controllers/settings_controller.dart';
+import 'package:shri_ji_bazaar/features/settings/domain/usecases/get_settings.dart';
+import 'package:shri_ji_bazaar/features/settings/data/repositories/settings_repository.dart';
+import 'package:shri_ji_bazaar/features/settings/data/datasources/settings_datasource.dart';
 
 class AboutPage extends StatelessWidget {
   const AboutPage({super.key});
@@ -11,7 +14,11 @@ class AboutPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return ChangeNotifierProvider(
-      create: (_) => SettingsController()..loadContact(),
+      create: (_) =>
+          SettingsController(
+            GetSettings(SettingsRepository(SettingsDatasource())),
+            SettingsDatasource(),
+          )..loadContact(),
       child: const _AboutContent(),
     );
   }
@@ -35,7 +42,7 @@ class _AboutContent extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final settings = context.watch<SettingsController>();
-    final whatsapp = settings.whatsapp;
+    final whatsapp = settings.whatsApp;
     final telegram = settings.telegram;
     final email = settings.email;
     final supportUrl = settings.supportUrl;

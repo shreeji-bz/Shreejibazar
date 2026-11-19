@@ -18,15 +18,20 @@ export class SettingsRepository {
     return data;
   }
 
+  // `onConflict: 'key'` is required: without it PostgREST treats an
+  // upsert of an existing key as a plain insert and throws a
+  // duplicate-key error (error code 23505), which the admin panel saw as
+  // "success: true" but the value never persisted. With the conflict
+  // target, existing keys update and missing keys insert.
   async set(key: string, value: string) {
-    const result = await supabase.from('settings').upsert({ key, value, updated_at: new Date().toISOString() }).select().single();
+    const result = await supabase.from('settings').upsert({ key, value, updated_at: new Date().toISOString() }, { onConflict: 'key' }).select().single();
     invalidateSettingsCache();
     return result;
   }
 
   async setMany(updates: Record<string, string>) {
     const rows = Object.entries(updates).map(([key, value]) => ({ key, value: String(value), updated_at: new Date().toISOString() }));
-    const result = await supabase.from('settings').upsert(rows);
+    const result = await supabase.from('settings').upsert(rows, { onConflict: 'key' });
     invalidateSettingsCache();
     return result;
   }

@@ -18,17 +18,18 @@ export class BannerRepository {
   }
 
   async create(data: any): Promise<any> {
-    const { data: record } = await supabase.from('banners').insert({
+    const { data: record, error } = await supabase.from('banners').insert({
       title: data.title,
       image: data.image,
       description: data.description || '',
-      action: data.action,
+      action: data.action || '',
       action_value: data.actionValue || '',
       status: data.status || 'active',
       sort_order: data.sortOrder || 0,
       start_date: data.startDate || null,
       end_date: data.endDate || null,
     }).select().single();
+    if (error) throw new Error(`Failed to create banner: ${error.message}`);
     return record;
   }
 

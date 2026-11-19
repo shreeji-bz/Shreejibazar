@@ -26,6 +26,11 @@ class AppEnv {
   /// Local-dev alternative: http://127.0.0.1:3000/api/v1 +
   /// `adb reverse tcp:3000 tcp:3000` (or the PC's LAN IP on shared Wi-Fi).
   static const String API_BASE_URL = 'https://api.shreejibazar.com/api/v1';
+
+  /// Public version of the running app, shown in About and compared against
+  /// the admin-published APK version (GET /system/status -> latest_version)
+  /// to decide whether to show the "Update App" dialog.
+  static const String APP_VERSION = '1.0.0';
   /// -----------------------------------------
 
   /// Flips on (throw) when [API_BASE_URL] is cleartext http, to catch

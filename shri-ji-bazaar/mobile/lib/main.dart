@@ -137,6 +137,7 @@ class ShriJiBazaarApp extends StatelessWidget {
         ChangeNotifierProvider(
           create: (_) => SettingsController(
             GetSettings(SettingsRepository(SettingsDatasource())),
+            SettingsDatasource(),
           ),
         ),
         ChangeNotifierProvider(

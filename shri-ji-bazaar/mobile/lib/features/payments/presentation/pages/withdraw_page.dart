@@ -71,7 +71,7 @@ class _WithdrawFormState extends State<_WithdrawForm> {
   }
 
   Future<void> _pickQrImage() async {
-    final XFile? picked = await _imagePicker.pickImage(source: ImagePickerSource.gallery);
+    final XFile? picked = await _imagePicker.pickImage(source: ImageSource.gallery);
     if (picked != null) {
       setState(() {
         _qrImage = File(picked.path);
@@ -149,14 +149,13 @@ class _WithdrawFormState extends State<_WithdrawForm> {
           onPressed: _pickQrImage,
           icon: const Icon(Icons.upload_file_rounded),
           label: Text(_qrImage == null ? 'Upload QR Image' : 'Change QR Image'),
-          style: ElevatedButton(
-            style: ElevatedButton.styleFrom(
-              backgroundColor: const Color(0xFF1A1208),
-              foregroundColor: const Color(0xFFD4A853),
-              side: const BorderSide(color: Color(0xFF3A3020)),
-              padding: const EdgeInsets.symmetric(vertical: 14),
-            ),
-          ).copyWith(elevation: WidgetStateProperty.all(0)),
+          style: ElevatedButton.styleFrom(
+            backgroundColor: const Color(0xFF1A1208),
+            foregroundColor: const Color(0xFFD4A853),
+            side: const BorderSide(color: Color(0xFF3A3020)),
+            padding: const EdgeInsets.symmetric(vertical: 14),
+            elevation: 0,
+          ),
         ),
         if (_qrImage != null) ...[
           const SizedBox(height: 12),
@@ -369,7 +368,7 @@ class _WithdrawFormState extends State<_WithdrawForm> {
                             upiId: upiId,
                             qrImage: qrImage,
                           );
-                          if (success && context.mounted) {
+                          if (success != null && context.mounted) {
                             ScaffoldMessenger.of(context).showSnackBar(
                               const SnackBar(content: Text('Withdrawal request submitted!'), backgroundColor: Color(0xFF25C85A)),
                             );

@@ -41,6 +41,18 @@ BEGIN
 END $$;
 
 -- ----------------------------------------------------------
+-- 1b. payments: UPI/QR withdrawal fields (UPI/QR/Bank withdrawal flow).
+--     Plain nullable columns — no existing row is affected.
+-- ----------------------------------------------------------
+DO $$
+BEGIN
+  IF to_regclass('public.payments') IS NOT NULL THEN
+    ALTER TABLE public.payments ADD COLUMN IF NOT EXISTS upi_id        TEXT;
+    ALTER TABLE public.payments ADD COLUMN IF NOT EXISTS qr_image_url TEXT;
+  END IF;
+END $$;
+
+-- ----------------------------------------------------------
 -- 2. RESERVE — request a withdrawal hold (no balance change)
 -- ----------------------------------------------------------
 CREATE OR REPLACE FUNCTION public.reserve_withdrawal_points(

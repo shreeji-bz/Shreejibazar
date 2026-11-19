@@ -1,4 +1,4 @@
-import { Router } from 'express';
+import { Router, Request, Response } from 'express';
 import { RoundsController } from './controllers/rounds.controller';
 import { RoundsService } from './services/rounds.service';
 import { RoundsRepository } from './repositories/rounds.repository';

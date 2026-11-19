@@ -5,36 +5,43 @@ const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/
 
 export class PaymentsRepository {
   async create(data: Partial<PaymentEntity>): Promise<PaymentEntity> {
-    const { data: record, error } = await supabase
-      .from('payments')
-      .insert({
-        user_id: data.userId,
-        processed_by: data.processedBy,
-        type: data.type,
-        amount: data.amount,
-        currency: data.currency || 'INR',
-        method: data.method,
-        status: data.status || 'pending',
-        reference_id: data.referenceId,
-        reference_type: data.referenceType,
-        notes: data.notes,
-        admin_notes: data.adminNotes,
-        balance_before: data.balanceBefore,
-        balance_after: data.balanceAfter,
-        txn_id: data.txnId,
-        utr_number: data.utrNumber,
-        screenshot_url: data.screenshotUrl,
-        provider: data.provider || 'manual',
-        rejection_reason: data.rejectionReason,
-        bank_name: data.bankName,
-        account_number: data.accountNumber,
-        ifsc_code: data.ifscCode,
-        account_holder_name: data.accountHolderName,
-        upi_id: data.upiId,
-        qr_image_url: data.qrImageUrl,
-      })
-      .select()
-      .single();
+    const payload: Record<string, any> = {
+      user_id: data.userId,
+      processed_by: data.processedBy,
+      type: data.type,
+      amount: data.amount,
+      currency: data.currency || 'INR',
+      method: data.method,
+      status: data.status || 'pending',
+      reference_id: data.referenceId,
+      reference_type: data.referenceType,
+      notes: data.notes,
+      admin_notes: data.adminNotes,
+      balance_before: data.balanceBefore,
+      balance_after: data.balanceAfter,
+      txn_id: data.txnId,
+      utr_number: data.utrNumber,
+      screenshot_url: data.screenshotUrl,
+      provider: data.provider || 'manual',
+      rejection_reason: data.rejectionReason,
+      bank_name: data.bankName,
+      account_number: data.accountNumber,
+      ifsc_code: data.ifscCode,
+      account_holder_name: data.accountHolderName,
+      // UPI/QR withdrawal fields (added for the UPI/QR/Bank flow). The live
+      // DB gains these columns with the pending sync; until then, an insert
+      // that names them fails with "Could not find the 'upi_id' column" —
+      // we retry without the fields so withdrawals keep working.
+      upi_id: data.upiId,
+      qr_image_url: data.qrImageUrl,
+    };
+    let insert = await supabase.from('payments').insert(payload).select().single();
+    if (insert.error && /upi_id|qr_image_url/i.test(String(insert.error.message))) {
+      delete payload.upi_id;
+      delete payload.qr_image_url;
+      insert = await supabase.from('payments').insert(payload).select().single();
+    }
+    const { data: record, error } = insert;
 
     if (error || !record) {
       console.error('Payments insert error:', JSON.stringify(error));
